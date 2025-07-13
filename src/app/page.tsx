@@ -3,15 +3,25 @@
 
 import Image from 'next/image';
 import { ProductCustomizer } from '@/components/product-customizer';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Palette } from 'lucide-react';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
 import { addBorder } from '@/ai/flows/add-border-flow';
 import { cn } from '@/lib/utils';
+import { Slider } from '@/components/ui/slider';
+
+const BORDER_WIDTHS = ["thin", "medium", "thick", "extra-thick"];
+const BORDER_COLORS = [
+  { value: "white", label: "White", color: "#FFFFFF" },
+  { value: "black", label: "Black", color: "#000000" },
+  { value: "red", label: "Red", color: "#EF4444" },
+  { value: "blue", label: "Blue", color: "#3B82F6" },
+  { value: "green", label: "Green", color: "#22C55E" },
+];
 
 export default function Home() {
   const { toast } = useToast();
@@ -26,6 +36,9 @@ export default function Home() {
   const [borderAdded, setBorderAdded] = useState(false);
   const [borderedImage, setBorderedImage] = useState<string | null>(null);
 
+  const [borderWidthIndex, setBorderWidthIndex] = useState(1);
+  const [borderColor, setBorderColor] = useState(BORDER_COLORS[0].value);
+
   const handleStickerUpdate = (newImage: string) => {
     setOriginalStickerImage(newImage);
     setDisplayedStickerImage(newImage);
@@ -37,12 +50,12 @@ export default function Home() {
 
   const handleBackgroundToggle = async (checked: boolean) => {
     setBackgroundRemoved(checked);
-    // If background is removed, border must also be removed
     if (!checked) {
       setBorderAdded(false);
-    }
-
-    if (checked) {
+      if (originalStickerImage) {
+        setDisplayedStickerImage(originalStickerImage);
+      }
+    } else {
       if (backgroundRemovedImage) {
         setDisplayedStickerImage(backgroundRemovedImage);
       } else if (originalStickerImage) {
@@ -66,59 +79,82 @@ export default function Home() {
             title: 'Background Removal Failed',
             description: 'Could not remove background. Please try again.',
           });
-          setBackgroundRemoved(false); // Revert toggle on failure
+          setBackgroundRemoved(false);
         } finally {
           setIsRemovingBackground(false);
         }
       }
-    } else {
-      if (originalStickerImage) {
-        setDisplayedStickerImage(originalStickerImage);
-      }
     }
   };
 
+  const applyBorder = useCallback(async (imageToBorder: string, width: number, color: string) => {
+    setIsAddingBorder(true);
+    try {
+      const result = await addBorder({
+        imageDataUri: imageToBorder,
+        borderWidth: BORDER_WIDTHS[width],
+        borderColor: color,
+      });
+      if (result.imageDataUri) {
+        // Only update the main displayed image, not the cached borderedImage
+        // This makes subsequent slider changes feel faster.
+        setDisplayedStickerImage(result.imageDataUri);
+        // Cache the result for this specific combo
+        if (width === borderWidthIndex && color === borderColor) {
+            setBorderedImage(result.imageDataUri);
+        }
+        toast({
+          title: 'Border Updated!',
+          description: `A ${BORDER_WIDTHS[width]} ${color} border has been applied.`,
+        });
+      } else {
+        throw new Error('Border addition failed to return data.');
+      }
+    } catch (error) {
+      console.error('Adding border failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Border Addition Failed',
+        description: 'Could not add border. Please try again.',
+      });
+      setBorderAdded(false);
+    } finally {
+      setIsAddingBorder(false);
+    }
+  }, [borderColor, borderWidthIndex]);
+
   const handleBorderToggle = async (checked: boolean) => {
     setBorderAdded(checked);
-
     if (checked) {
       if (borderedImage) {
         setDisplayedStickerImage(borderedImage);
       } else if (backgroundRemovedImage) {
-        setIsAddingBorder(true);
-        try {
-          const result = await addBorder({ imageDataUri: backgroundRemovedImage });
-          if (result.imageDataUri) {
-            setBorderedImage(result.imageDataUri);
-            setDisplayedStickerImage(result.imageDataUri);
-             toast({
-              title: 'Border Added!',
-              description: 'A classic sticker border has been added.',
-            });
-          } else {
-             throw new Error('Border addition failed to return data.');
-          }
-        } catch (error) {
-          console.error('Adding border failed:', error);
-           toast({
-            variant: 'destructive',
-            title: 'Border Addition Failed',
-            description: 'Could not add border. Please try again.',
-          });
-          setBorderAdded(false); // Revert toggle on failure
-        } finally {
-          setIsAddingBorder(false);
-        }
+        await applyBorder(backgroundRemovedImage, borderWidthIndex, borderColor);
       }
     } else {
-        if(backgroundRemovedImage) {
-            setDisplayedStickerImage(backgroundRemovedImage);
-        }
+      if (backgroundRemovedImage) {
+        setDisplayedStickerImage(backgroundRemovedImage);
+      }
     }
-  }
+  };
+
+  const handleBorderWidthChange = async (value: number[]) => {
+    const newIndex = value[0];
+    setBorderWidthIndex(newIndex);
+    if (borderAdded && backgroundRemovedImage) {
+      await applyBorder(backgroundRemovedImage, newIndex, borderColor);
+    }
+  };
+
+  const handleBorderColorChange = async (colorValue: string) => {
+    setBorderColor(colorValue);
+    if (borderAdded && backgroundRemovedImage) {
+      await applyBorder(backgroundRemovedImage, borderWidthIndex, colorValue);
+    }
+  };
 
   const isLoading = isRemovingBackground || isAddingBorder;
-  const loadingText = isRemovingBackground ? "Removing Background..." : isAddingBorder ? "Adding Border..." : "";
+  const loadingText = isRemovingBackground ? "Removing Background..." : isAddingBorder ? "Applying Border..." : "";
 
 
   return (
@@ -168,6 +204,43 @@ export default function Home() {
                             disabled={isLoading || !backgroundRemoved}
                         />
                     </div>
+                    {borderAdded && (
+                    <div className="space-y-4 pt-2 border-t border-dashed">
+                        <div className="grid gap-2">
+                           <Label className="text-sm font-medium">Border Width</Label>
+                           <Slider
+                             value={[borderWidthIndex]}
+                             onValueChange={handleBorderWidthChange}
+                             min={0}
+                             max={BORDER_WIDTHS.length - 1}
+                             step={1}
+                             disabled={isLoading || !borderAdded}
+                           />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="text-sm font-medium">Border Color</Label>
+                            <div className="flex items-center gap-2">
+                                {BORDER_COLORS.map(color => (
+                                    <button
+                                        key={color.value}
+                                        type="button"
+                                        title={color.label}
+                                        onClick={() => handleBorderColorChange(color.value)}
+                                        className={cn(
+                                            "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
+                                            borderColor === color.value ? "ring-2 ring-offset-2 ring-primary" : "border-muted",
+                                            (isLoading || !borderAdded) && "cursor-not-allowed opacity-50"
+                                        )}
+                                        style={{ backgroundColor: color.color }}
+                                        disabled={isLoading || !borderAdded}
+                                    >
+                                      <span className="sr-only">{color.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    )}
                 </CardContent>
             </Card>
           </div>
