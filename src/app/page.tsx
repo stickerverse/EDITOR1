@@ -41,43 +41,50 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function Home() {
   const { toast } = useToast();
+  
+  // The user's original uploaded or generated image
   const [originalStickerImage, setOriginalStickerImage] = useState<string | null>(null);
+  
+  // The image currently being displayed in the preview
   const [displayedStickerImage, setDisplayedStickerImage] = useState<string | null>(null);
 
+  // Background removal state
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [backgroundRemovedImage, setBackgroundRemovedImage] = useState<string | null>(null);
 
+  // Border addition state
   const [isAddingBorder, setIsAddingBorder] = useState(false);
   const [borderAdded, setBorderAdded] = useState(false);
-
   const [borderWidthIndex, setBorderWidthIndex] = useState(1);
   const [borderColor, setBorderColor] = useState(BORDER_COLORS[0].value);
-  
   const [borderPreviews, setBorderPreviews] = useState<Record<string, string>>({});
 
   const debouncedBorderWidthIndex = useDebounce(borderWidthIndex, 300);
 
-  const handleStickerUpdate = (newImage: string) => {
+  // This function is called when a new sticker is generated or uploaded
+  const handleStickerUpdate = useCallback((newImage: string) => {
     setOriginalStickerImage(newImage);
     setDisplayedStickerImage(newImage);
+    // Reset all modifications
     setBackgroundRemoved(false);
     setBackgroundRemovedImage(null);
     setBorderAdded(false);
     setBorderPreviews({});
-  };
+    setBorderWidthIndex(1);
+    setBorderColor(BORDER_COLORS[0].value);
+  }, []);
 
   const handleBackgroundToggle = async (checked: boolean) => {
     setBackgroundRemoved(checked);
-    if (!checked) {
-      // Toggled OFF
-      setBorderAdded(false); 
-      setDisplayedStickerImage(originalStickerImage!);
-    } else {
-      // Toggled ON
+
+    if (checked) {
+      // Toggling ON
       if (backgroundRemovedImage) {
+        // If we already have a background-removed image, just display it
         setDisplayedStickerImage(backgroundRemovedImage);
       } else if (originalStickerImage) {
+        // Otherwise, process the original image
         setIsRemovingBackground(true);
         try {
           const result = await removeBackground({ imageDataUri: originalStickerImage });
@@ -103,11 +110,16 @@ export default function Home() {
           setIsRemovingBackground(false);
         }
       }
+    } else {
+      // Toggling OFF
+      setBorderAdded(false); // Can't have a border without a removed background
+      setDisplayedStickerImage(originalStickerImage); // Go back to original
     }
   };
 
   const applyBorder = useCallback(async (imageToBorder: string, widthIndex: number, color: string) => {
     const key = `${widthIndex}-${color}`;
+    // If we have a cached preview, use it
     if (borderPreviews[key]) {
       setDisplayedStickerImage(borderPreviews[key]);
       return;
@@ -121,12 +133,9 @@ export default function Home() {
         borderColor: color,
       });
       if (result.imageDataUri) {
-        setDisplayedStickerImage(result.imageDataUri);
+        // Cache the new preview and display it
         setBorderPreviews(prev => ({ ...prev, [key]: result.imageDataUri }));
-        toast({
-          title: 'Border Updated!',
-          description: `A ${BORDER_WIDTHS[widthIndex]} ${color} border has been applied.`,
-        });
+        setDisplayedStickerImage(result.imageDataUri);
       } else {
         throw new Error('Border addition failed to return data.');
       }
@@ -143,22 +152,18 @@ export default function Home() {
     }
   }, [borderPreviews, toast]);
 
+  // Effect to apply border when settings change
   useEffect(() => {
     if (borderAdded && backgroundRemovedImage) {
       applyBorder(backgroundRemovedImage, debouncedBorderWidthIndex, borderColor);
     }
   }, [debouncedBorderWidthIndex, borderColor, borderAdded, backgroundRemovedImage, applyBorder]);
 
-  const handleBorderToggle = async (checked: boolean) => {
+  const handleBorderToggle = (checked: boolean) => {
     setBorderAdded(checked);
-    if (checked) {
-      if (backgroundRemovedImage) {
-        await applyBorder(backgroundRemovedImage, borderWidthIndex, borderColor);
-      }
-    } else {
-      if (backgroundRemovedImage) {
-        setDisplayedStickerImage(backgroundRemovedImage);
-      }
+    if (!checked) {
+      // If turning border off, go back to the background-removed image
+      setDisplayedStickerImage(backgroundRemovedImage);
     }
   };
 
