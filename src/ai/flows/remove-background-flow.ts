@@ -38,13 +38,13 @@ const removeBackgroundFlow = ai.defineFlow(
   async ({ imageDataUri }) => {
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: [
-        {media: {url: imageDataUri}},
-        {text: 'Remove the background of this image. The output should be the subject on a transparent background.'},
-      ],
+      prompt: 'Remove the background of this image. The output should be the subject on a transparent background.',
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
+      input: {
+        media: { url: imageDataUri },
+      }
     });
 
     if (!media.url) {
