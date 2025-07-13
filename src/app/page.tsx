@@ -3,12 +3,12 @@
 
 import Image from 'next/image';
 import { ProductCustomizer } from '@/components/product-customizer';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Palette } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
 import { addBorder } from '@/ai/flows/add-border-flow';
 import { cn } from '@/lib/utils';
@@ -34,10 +34,11 @@ export default function Home() {
 
   const [isAddingBorder, setIsAddingBorder] = useState(false);
   const [borderAdded, setBorderAdded] = useState(false);
-  const [borderedImage, setBorderedImage] = useState<string | null>(null);
 
   const [borderWidthIndex, setBorderWidthIndex] = useState(1);
   const [borderColor, setBorderColor] = useState(BORDER_COLORS[0].value);
+  
+  const [borderPreviews, setBorderPreviews] = useState<Record<string, string>>({});
 
   const handleStickerUpdate = (newImage: string) => {
     setOriginalStickerImage(newImage);
@@ -45,7 +46,7 @@ export default function Home() {
     setBackgroundRemoved(false);
     setBackgroundRemovedImage(null);
     setBorderAdded(false);
-    setBorderedImage(null);
+    setBorderPreviews({});
   };
 
   const handleBackgroundToggle = async (checked: boolean) => {
@@ -87,25 +88,26 @@ export default function Home() {
     }
   };
 
-  const applyBorder = useCallback(async (imageToBorder: string, width: number, color: string) => {
+  const applyBorder = useCallback(async (imageToBorder: string, widthIndex: number, color: string) => {
+    const key = `${widthIndex}-${color}`;
+    if (borderPreviews[key]) {
+      setDisplayedStickerImage(borderPreviews[key]);
+      return;
+    }
+    
     setIsAddingBorder(true);
     try {
       const result = await addBorder({
         imageDataUri: imageToBorder,
-        borderWidth: BORDER_WIDTHS[width],
+        borderWidth: BORDER_WIDTHS[widthIndex],
         borderColor: color,
       });
       if (result.imageDataUri) {
-        // Only update the main displayed image, not the cached borderedImage
-        // This makes subsequent slider changes feel faster.
         setDisplayedStickerImage(result.imageDataUri);
-        // Cache the result for this specific combo
-        if (width === borderWidthIndex && color === borderColor) {
-            setBorderedImage(result.imageDataUri);
-        }
+        setBorderPreviews(prev => ({ ...prev, [key]: result.imageDataUri }));
         toast({
           title: 'Border Updated!',
-          description: `A ${BORDER_WIDTHS[width]} ${color} border has been applied.`,
+          description: `A ${BORDER_WIDTHS[widthIndex]} ${color} border has been applied.`,
         });
       } else {
         throw new Error('Border addition failed to return data.');
@@ -121,14 +123,12 @@ export default function Home() {
     } finally {
       setIsAddingBorder(false);
     }
-  }, [borderColor, borderWidthIndex]);
+  }, [borderPreviews]);
 
   const handleBorderToggle = async (checked: boolean) => {
     setBorderAdded(checked);
     if (checked) {
-      if (borderedImage) {
-        setDisplayedStickerImage(borderedImage);
-      } else if (backgroundRemovedImage) {
+      if (backgroundRemovedImage) {
         await applyBorder(backgroundRemovedImage, borderWidthIndex, borderColor);
       }
     } else {
@@ -161,8 +161,8 @@ export default function Home() {
     <div className="min-h-screen">
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-          <div className="flex flex-col items-center gap-4">
-            <div className="sticky top-8 w-full max-w-lg aspect-square bg-card rounded-xl shadow-lg overflow-hidden border">
+          <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4">
+            <div className="w-full max-w-lg aspect-square bg-card rounded-xl shadow-lg overflow-hidden border">
               {isLoading && (
                 <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
@@ -195,7 +195,7 @@ export default function Home() {
                      <div className="flex items-center justify-between">
                         <Label htmlFor="border-switch" className="flex flex-col space-y-1">
                             <span className={cn("font-medium", !backgroundRemoved && "text-muted-foreground/50")}>Add Sticker Border</span>
-                            <span className={cn("text-xs text-muted-foreground", !backgroundRemoved && "text-muted-foreground/50")}>Add a classic white border for a die-cut look.</span>
+                            <span className={cn("text-xs text-muted-foreground", !backgroundRemoved && "text-muted-foreground/50")}>Add a classic die-cut border.</span>
                         </Label>
                         <Switch
                             id="border-switch"
