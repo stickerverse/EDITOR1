@@ -94,35 +94,33 @@ export default function Home() {
 
   const handleBackgroundToggle = async (checked: boolean) => {
     // This logic should only apply to uploaded images
-    if (sticker.source !== 'upload') return;
+    if (sticker.source !== 'upload' || !sticker.originalUrl) return;
 
     setSticker(s => ({ ...s, bgRemoved: checked, borderAdded: checked ? s.borderAdded : false }));
 
     if (checked) {
       if (sticker.bgRemovedUrl) return; // Already have it, do nothing.
       
-      if (sticker.originalUrl) {
-        setSticker(s => ({ ...s, isLoading: true, loadingText: "Removing Background..." }));
-        try {
-          const result = await removeBackground({ imageDataUri: sticker.originalUrl });
-          if (result.imageDataUri) {
-            setSticker(s => ({ ...s, bgRemovedUrl: result.imageDataUri, isLoading: false }));
-            toast({
-              title: 'Success!',
-              description: 'The background has been removed.',
-            });
-          } else {
-            throw new Error('Background removal failed to return data.');
-          }
-        } catch (error) {
-          console.error('Background removal failed:', error);
+      setSticker(s => ({ ...s, isLoading: true, loadingText: "Removing Background..." }));
+      try {
+        const result = await removeBackground({ imageDataUri: sticker.originalUrl });
+        if (result.imageDataUri) {
+          setSticker(s => ({ ...s, bgRemovedUrl: result.imageDataUri, isLoading: false }));
           toast({
-            variant: 'destructive',
-            title: 'Background Removal Failed',
-            description: 'Could not remove background. Please try again.',
+            title: 'Success!',
+            description: 'The background has been removed.',
           });
-          setSticker(s => ({ ...s, bgRemoved: false, isLoading: false, loadingText: "" }));
+        } else {
+          throw new Error('Background removal failed to return data.');
         }
+      } catch (error) {
+        console.error('Background removal failed:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Background Removal Failed',
+          description: 'Could not remove background. Please try again.',
+        });
+        setSticker(s => ({ ...s, bgRemoved: false, isLoading: false, loadingText: "" }));
       }
     }
   };
@@ -141,7 +139,13 @@ export default function Home() {
 
   // Effect to apply border when settings change
   useEffect(() => {
-    if (!sticker.borderAdded || !sticker.bgRemoved || !sticker.bgRemovedUrl) {
+    // GUARD: Only apply borders for the 'upload' flow.
+    if (
+      sticker.source !== 'upload' ||
+      !sticker.borderAdded ||
+      !sticker.bgRemoved ||
+      !sticker.bgRemovedUrl
+    ) {
       return;
     }
 
@@ -158,6 +162,7 @@ export default function Home() {
         });
 
         if (result.imageDataUri) {
+          // SAFE UPDATE: Use functional form to prevent race conditions.
           setSticker(s => ({ 
             ...s, 
             borderedUrls: { ...s.borderedUrls, [key]: result.imageDataUri },
@@ -173,18 +178,20 @@ export default function Home() {
           title: 'Border Addition Failed',
           description: 'Could not add border. Please try again.',
         });
+        // SAFE UPDATE: Use functional form here too.
         setSticker(s => ({ ...s, isLoading: false, loadingText: "" }));
       }
     };
     
     applyBorder();
   }, [
+    sticker.source, // Add source as a dependency
     debouncedBorderWidthIndex, 
     debouncedBorderColor, 
     sticker.borderAdded,
     sticker.bgRemoved, 
     sticker.bgRemovedUrl, 
-    sticker.borderedUrls, // needed to avoid re-running if key already exists
+    sticker.borderedUrls,
     toast
   ]);
 
