@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
+import { addBorder } from '@/ai/flows/add-border-flow';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { toast } = useToast();
@@ -20,15 +22,25 @@ export default function Home() {
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [backgroundRemovedImage, setBackgroundRemovedImage] = useState<string | null>(null);
 
+  const [isAddingBorder, setIsAddingBorder] = useState(false);
+  const [borderAdded, setBorderAdded] = useState(false);
+  const [borderedImage, setBorderedImage] = useState<string | null>(null);
+
   const handleStickerUpdate = (newImage: string) => {
     setOriginalStickerImage(newImage);
     setDisplayedStickerImage(newImage);
     setBackgroundRemoved(false);
     setBackgroundRemovedImage(null);
+    setBorderAdded(false);
+    setBorderedImage(null);
   };
 
   const handleBackgroundToggle = async (checked: boolean) => {
     setBackgroundRemoved(checked);
+    // If background is removed, border must also be removed
+    if (!checked) {
+      setBorderAdded(false);
+    }
 
     if (checked) {
       if (backgroundRemovedImage) {
@@ -66,6 +78,48 @@ export default function Home() {
     }
   };
 
+  const handleBorderToggle = async (checked: boolean) => {
+    setBorderAdded(checked);
+
+    if (checked) {
+      if (borderedImage) {
+        setDisplayedStickerImage(borderedImage);
+      } else if (backgroundRemovedImage) {
+        setIsAddingBorder(true);
+        try {
+          const result = await addBorder({ imageDataUri: backgroundRemovedImage });
+          if (result.imageDataUri) {
+            setBorderedImage(result.imageDataUri);
+            setDisplayedStickerImage(result.imageDataUri);
+             toast({
+              title: 'Border Added!',
+              description: 'A classic sticker border has been added.',
+            });
+          } else {
+             throw new Error('Border addition failed to return data.');
+          }
+        } catch (error) {
+          console.error('Adding border failed:', error);
+           toast({
+            variant: 'destructive',
+            title: 'Border Addition Failed',
+            description: 'Could not add border. Please try again.',
+          });
+          setBorderAdded(false); // Revert toggle on failure
+        } finally {
+          setIsAddingBorder(false);
+        }
+      }
+    } else {
+        if(backgroundRemovedImage) {
+            setDisplayedStickerImage(backgroundRemovedImage);
+        }
+    }
+  }
+
+  const isLoading = isRemovingBackground || isAddingBorder;
+  const loadingText = isRemovingBackground ? "Removing Background..." : isAddingBorder ? "Adding Border..." : "";
+
 
   return (
     <div className="min-h-screen">
@@ -73,10 +127,10 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           <div className="flex flex-col items-center gap-4">
             <div className="sticky top-8 w-full max-w-lg aspect-square bg-card rounded-xl shadow-lg overflow-hidden border">
-              {isRemovingBackground && (
+              {isLoading && (
                 <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
-                  <p className="text-white mt-4 font-semibold">Removing Background...</p>
+                  <p className="text-white mt-4 font-semibold">{loadingText}</p>
                 </div>
               )}
               <Image
@@ -89,17 +143,31 @@ export default function Home() {
               />
             </div>
              <Card className="w-full max-w-lg">
-                <CardContent className="p-4 flex items-center justify-between">
-                    <Label htmlFor="background-switch" className="flex flex-col space-y-1">
-                        <span className="font-medium">Remove Background</span>
-                        <span className="text-xs text-muted-foreground">Automatically remove the background of your image.</span>
-                    </Label>
-                    <Switch
-                        id="background-switch"
-                        checked={backgroundRemoved}
-                        onCheckedChange={handleBackgroundToggle}
-                        disabled={isRemovingBackground || !originalStickerImage}
-                    />
+                <CardContent className="p-4 flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="background-switch" className="flex flex-col space-y-1">
+                            <span className="font-medium">Remove Background</span>
+                            <span className="text-xs text-muted-foreground">Automatically remove the image background.</span>
+                        </Label>
+                        <Switch
+                            id="background-switch"
+                            checked={backgroundRemoved}
+                            onCheckedChange={handleBackgroundToggle}
+                            disabled={isLoading || !originalStickerImage}
+                        />
+                    </div>
+                     <div className="flex items-center justify-between">
+                        <Label htmlFor="border-switch" className="flex flex-col space-y-1">
+                            <span className={cn("font-medium", !backgroundRemoved && "text-muted-foreground/50")}>Add Sticker Border</span>
+                            <span className={cn("text-xs text-muted-foreground", !backgroundRemoved && "text-muted-foreground/50")}>Add a classic white border for a die-cut look.</span>
+                        </Label>
+                        <Switch
+                            id="border-switch"
+                            checked={borderAdded}
+                            onCheckedChange={handleBorderToggle}
+                            disabled={isLoading || !backgroundRemoved}
+                        />
+                    </div>
                 </CardContent>
             </Card>
           </div>
