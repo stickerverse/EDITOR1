@@ -1,31 +1,18 @@
-
 "use client"
 
 import { useState } from 'react';
-import { ChevronRight, Star, Square, Circle, Sparkles, Sparkle, Layers, FlipHorizontal, Upload, Wand2, Loader2, ImagePlus, FileCheck2, Minus, Plus } from 'lucide-react';
+import { Star, Wand2, Loader2, Sparkles, Upload, ImagePlus, FileCheck2, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { ContourCutIcon, RoundedRectangleIcon, VinylIcon } from '@/components/icons';
 import { useToast } from "@/hooks/use-toast";
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-
-
-const shapes = [
-  { id: 'contour', name: 'Contour Cut', icon: ContourCutIcon },
-  { id: 'square', name: 'Square', icon: Square },
-  { id: 'circle', name: 'Circle', icon: Circle },
-  { id: 'rounded', name: 'Rounded Corners', icon: RoundedRectangleIcon },
-];
 
 const materials = [
   { id: 'vinyl', name: 'White Vinyl', description: 'Our most popular, great for any use.' },
@@ -49,9 +36,8 @@ const quantityOptions = [
   { quantity: 1000, pricePer: 0.35 },
 ];
 
-export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataUrl: string, source: 'upload' | 'generate') => void }) {
+export function ProductCustomizerDetails({ onStickerUpdate }: { onStickerUpdate: (dataUrl: string, source: 'upload' | 'generate') => void }) {
   const { toast } = useToast();
-  const [shape, setShape] = useState(shapes[0].id);
   const [material, setMaterial] = useState(materials[0].id);
   const [finish, setFinish] = useState(finishes[0].id);
   const [width, setWidth] = useState(3);
@@ -62,14 +48,13 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
-
-  const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 }; // Fallback for custom quantity
+  const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
   
   const handleAddToCart = () => {
     toast({
       title: "Added to Cart!",
-      description: `Your custom ${shape} stickers are on the way.`,
+      description: `Your custom stickers are on the way.`,
     })
   }
 
@@ -185,8 +170,6 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
       if (type === 'h') setHeight(value);
     }
   }
-
-  const isCustomQuantity = !quantityOptions.some(q => q.quantity === quantity);
 
   return (
     <div className="flex flex-col space-y-6">
@@ -371,5 +354,3 @@ function CustomizationSection({ title, children, className }: { title: string; c
     </div>
   );
 }
-
-    
