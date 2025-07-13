@@ -81,6 +81,8 @@ export default function Home() {
   const debouncedBorderWidthIndex = useDebounce(sticker.borderWidthIndex, 300);
   const debouncedBorderColor = useDebounce(sticker.borderColor, 300);
 
+  const stableToast = useCallback(toast, []);
+
   const handleStickerUpdate = useCallback((newImage: string, source: 'upload' | 'generate') => {
     setSticker({
       ...initialState,
@@ -106,7 +108,7 @@ export default function Home() {
         const result = await removeBackground({ imageDataUri: sticker.originalUrl });
         if (result.imageDataUri) {
           setSticker(s => ({ ...s, bgRemovedUrl: result.imageDataUri, isLoading: false }));
-          toast({
+          stableToast({
             title: 'Success!',
             description: 'The background has been removed.',
           });
@@ -115,7 +117,7 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Background removal failed:', error);
-        toast({
+        stableToast({
           variant: 'destructive',
           title: 'Background Removal Failed',
           description: 'Could not remove background. Please try again.',
@@ -173,7 +175,7 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Adding border failed:', error);
-        toast({
+        stableToast({
           variant: 'destructive',
           title: 'Border Addition Failed',
           description: 'Could not add border. Please try again.',
@@ -185,14 +187,14 @@ export default function Home() {
     
     applyBorder();
   }, [
-    sticker.source, // Add source as a dependency
+    sticker.source,
     debouncedBorderWidthIndex, 
     debouncedBorderColor, 
     sticker.borderAdded,
     sticker.bgRemoved, 
     sticker.bgRemovedUrl, 
     sticker.borderedUrls,
-    toast
+    stableToast
   ]);
 
 
@@ -226,6 +228,7 @@ export default function Home() {
                     src={imageToDisplay || "https://placehold.co/800x800.png"}
                     alt="Custom Sticker Preview"
                     fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-contain p-4 transition-transform duration-300 hover:scale-105"
                     data-ai-hint="sticker design"
                     priority
