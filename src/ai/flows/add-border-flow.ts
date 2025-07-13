@@ -42,7 +42,7 @@ const addBorderFlow = ai.defineFlow(
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
         {media: {url: imageDataUri}},
-        {text: `Add a ${borderWidth}, ${borderColor}, clean die-cut sticker border around the main subject of this image. The background should remain transparent.`},
+        {text: `Add a ${borderWidth} ${borderColor} die-cut sticker border to the subject of this image. The background must be transparent.`},
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
