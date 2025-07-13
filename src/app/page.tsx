@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { ProductCustomizer } from '@/components/product-customizer';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -41,8 +41,8 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function Home() {
   const { toast } = useToast();
-  const [originalStickerImage, setOriginalStickerImage] = useState<string | null>("https://placehold.co/800x800.png");
-  const [displayedStickerImage, setDisplayedStickerImage] = useState<string>("https://placehold.co/800x800.png");
+  const [originalStickerImage, setOriginalStickerImage] = useState<string | null>(null);
+  const [displayedStickerImage, setDisplayedStickerImage] = useState<string | null>(null);
 
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
@@ -85,8 +85,8 @@ export default function Home() {
             setBackgroundRemovedImage(result.imageDataUri);
             setDisplayedStickerImage(result.imageDataUri);
             toast({
-              title: 'Background Removed!',
-              description: 'The background has been successfully removed.',
+              title: 'Success!',
+              description: 'The background has been removed.',
             });
           } else {
             throw new Error('Background removal failed to return data.');
@@ -172,6 +172,7 @@ export default function Home() {
 
   const isLoading = isRemovingBackground || isAddingBorder;
   const loadingText = isRemovingBackground ? "Removing Background..." : isAddingBorder ? "Applying Border..." : "";
+  const imageToDisplay = displayedStickerImage || "https://placehold.co/800x800.png";
 
 
   return (
@@ -188,7 +189,7 @@ export default function Home() {
               )}
                <div className="relative w-full h-full">
                 <Image
-                    src={displayedStickerImage}
+                    src={imageToDisplay}
                     alt="Custom Sticker Preview"
                     fill
                     className="object-contain p-4 transition-transform duration-300 hover:scale-105"
