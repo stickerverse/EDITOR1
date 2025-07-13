@@ -3,22 +3,11 @@
 /**
  * @fileOverview An AI flow for adding a border to a sticker image.
  *
- * THIS FILE NOW CALLS A DEDICATED IMAGE EDITING SERVICE, NOT AN IMAGE GENERATOR.
+ * This flow now correctly uses an image generation model to add a border.
  */
 
-import { z } from 'zod';
-
-// This is a placeholder for a real API call to a service that can add borders,
-// like Cloudinary, or a custom image processing library like Sharp on the server.
-async function callDedicatedBorderAPI(base64Data: string, borderColor: string, borderWidth: string): Promise<string> {
-  console.log(`SIMULATING a call to a dedicated border service with color: ${borderColor} and width: ${borderWidth}`);
-  
-  // A real implementation would involve complex image processing.
-  // For now, we simulate success by returning the image as is after a delay.
-  return new Promise(resolve => setTimeout(() => {
-    resolve(`data:image/png;base64,${base64Data}`);
-  }, 1000));
-}
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const AddBorderInputSchema = z.object({
   imageDataUri: z.string().describe("The image to process (with background removed)."),
@@ -33,16 +22,31 @@ const AddBorderOutputSchema = z.object({
 export type AddBorderOutput = z.infer<typeof AddBorderOutputSchema>;
 
 export async function addBorder(input: AddBorderInput): Promise<AddBorderOutput> {
-  try {
-    const { imageDataUri, borderColor, borderWidth } = AddBorderInputSchema.parse(input);
-    const base64Data = imageDataUri.split(',')[1];
-    if (!base64Data) throw new Error("Invalid Data URI: Base64 data not found.");
-
-    const processedUri = await callDedicatedBorderAPI(base64Data, borderColor, borderWidth);
-    
-    return { imageDataUri: processedUri };
-  } catch (error) {
-    console.error("Error in addBorder:", error);
-    throw new Error("Could not add border.");
-  }
+  return addBorderFlow(input);
 }
+
+const addBorderFlow = ai.defineFlow(
+  {
+    name: 'addBorderFlow',
+    inputSchema: AddBorderInputSchema,
+    outputSchema: AddBorderOutputSchema,
+  },
+  async ({ imageDataUri, borderColor, borderWidth }) => {
+    const { media } = await ai.generate({
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
+      prompt: [
+        { media: { url: imageDataUri } },
+        { text: `Add a ${borderWidth} ${borderColor} border around the subject. The border should look like a die-cut sticker border. The background must remain transparent.` },
+      ],
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+
+    if (!media.url) {
+      throw new Error('Border addition failed to return image data.');
+    }
+
+    return { imageDataUri: media.url };
+  }
+);
