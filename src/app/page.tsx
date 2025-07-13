@@ -24,6 +24,8 @@ const BORDER_COLORS = [
 ];
 
 interface StickerState {
+  source: 'upload' | 'generate' | null;
+  
   // Base images
   originalUrl: string | null;
   bgRemovedUrl: string | null;
@@ -43,6 +45,7 @@ interface StickerState {
 }
 
 const initialState: StickerState = {
+  source: null,
   originalUrl: null,
   bgRemovedUrl: null,
   borderedUrls: {},
@@ -78,23 +81,25 @@ export default function Home() {
   const debouncedBorderWidthIndex = useDebounce(sticker.borderWidthIndex, 300);
   const debouncedBorderColor = useDebounce(sticker.borderColor, 300);
 
-  const handleStickerUpdate = useCallback((newImage: string) => {
-    // This is the key: when a new image is introduced (either via upload or generation),
-    // we reset the entire state to a clean slate with the new image as the origin.
+  const handleStickerUpdate = useCallback((newImage: string, source: 'upload' | 'generate') => {
     setSticker({
       ...initialState,
       originalUrl: newImage,
+      source: source,
+      // If generated, assume background is already removed.
+      bgRemoved: source === 'generate',
+      bgRemovedUrl: source === 'generate' ? newImage : null,
     });
   }, []);
 
   const handleBackgroundToggle = async (checked: boolean) => {
+    // This logic should only apply to uploaded images
+    if (sticker.source !== 'upload') return;
+
     setSticker(s => ({ ...s, bgRemoved: checked, borderAdded: checked ? s.borderAdded : false }));
 
     if (checked) {
-      if (sticker.bgRemovedUrl) {
-        // Already have a processed version, just show it.
-        return;
-      }
+      if (sticker.bgRemovedUrl) return; // Already have it, do nothing.
       
       if (sticker.originalUrl) {
         setSticker(s => ({ ...s, isLoading: true, loadingText: "Removing Background..." }));
@@ -116,7 +121,6 @@ export default function Home() {
             title: 'Background Removal Failed',
             description: 'Could not remove background. Please try again.',
           });
-          // Revert switch and loading state on failure
           setSticker(s => ({ ...s, bgRemoved: false, isLoading: false, loadingText: "" }));
         }
       }
@@ -137,17 +141,13 @@ export default function Home() {
 
   // Effect to apply border when settings change
   useEffect(() => {
-    // This effect should only trigger when border is enabled and we have a base image to work with.
     if (!sticker.borderAdded || !sticker.bgRemoved || !sticker.bgRemovedUrl) {
       return;
     }
 
     const applyBorder = async () => {
       const key = `${debouncedBorderWidthIndex}-${debouncedBorderColor}`;
-      // If we already have a bordered image with these exact settings, do nothing.
-      if (sticker.borderedUrls[key]) {
-        return;
-      }
+      if (sticker.borderedUrls[key]) return;
       
       setSticker(s => ({ ...s, isLoading: true, loadingText: "Applying Border..." }));
       try {
@@ -178,33 +178,29 @@ export default function Home() {
     };
     
     applyBorder();
-    // The dependency array is critical. It correctly re-runs when the debounced values change.
   }, [
     debouncedBorderWidthIndex, 
     debouncedBorderColor, 
     sticker.borderAdded,
     sticker.bgRemoved, 
     sticker.bgRemovedUrl, 
-    // We don't need sticker.borderedUrls or toast in deps, as they cause unnecessary re-renders.
+    sticker.borderedUrls, // needed to avoid re-running if key already exists
+    toast
   ]);
 
 
-  // This memoized value determines which image URL to show.
-  // The logic is now clear and hierarchical.
   const imageToDisplay = useMemo(() => {
     const borderKey = `${debouncedBorderWidthIndex}-${debouncedBorderColor}`;
-    // 1. If border is on, and the specific bordered version exists, show it.
     if (sticker.borderAdded && sticker.bgRemoved && sticker.borderedUrls[borderKey]) {
       return sticker.borderedUrls[borderKey];
     }
-    // 2. If border is toggled on but the image is still loading, show the BG-removed version as a fallback.
-    // 3. If only BG removal is on, show the BG-removed version.
     if (sticker.bgRemoved && sticker.bgRemovedUrl) {
       return sticker.bgRemovedUrl;
     }
-    // 4. Otherwise, show the original image.
     return sticker.originalUrl;
   }, [sticker, debouncedBorderColor, debouncedBorderWidthIndex]);
+
+  const showBgRemoveToggle = sticker.source === 'upload';
 
   return (
     <div className="min-h-screen">
@@ -231,18 +227,20 @@ export default function Home() {
             </div>
              <Card className="w-full max-w-lg">
                 <CardContent className="p-4 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                        <Label htmlFor="background-switch" className="flex flex-col space-y-1">
-                            <span className="font-medium">Remove Background</span>
-                            <span className="text-xs text-muted-foreground">Automatically remove the image background.</span>
-                        </Label>
-                        <Switch
-                            id="background-switch"
-                            checked={sticker.bgRemoved}
-                            onCheckedChange={handleBackgroundToggle}
-                            disabled={sticker.isLoading || !sticker.originalUrl}
-                        />
-                    </div>
+                    {showBgRemoveToggle && (
+                      <div className="flex items-center justify-between">
+                          <Label htmlFor="background-switch" className="flex flex-col space-y-1">
+                              <span className="font-medium">Remove Background</span>
+                              <span className="text-xs text-muted-foreground">Automatically remove the image background.</span>
+                          </Label>
+                          <Switch
+                              id="background-switch"
+                              checked={sticker.bgRemoved}
+                              onCheckedChange={handleBackgroundToggle}
+                              disabled={sticker.isLoading || !sticker.originalUrl}
+                          />
+                      </div>
+                    )}
                      <div className="flex items-center justify-between">
                         <Label htmlFor="border-switch" className="flex flex-col space-y-1">
                             <span className={cn("font-medium", !sticker.bgRemoved && "text-muted-foreground/50")}>Add Sticker Border</span>

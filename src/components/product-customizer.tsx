@@ -48,7 +48,7 @@ const quantityOptions = [
   { quantity: 1000, pricePer: 0.35, discount: 60 },
 ];
 
-export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataUrl: string) => void }) {
+export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataUrl: string, source: 'upload' | 'generate') => void }) {
   const { toast } = useToast();
   const [shape, setShape] = useState(shapes[0].id);
   const [material, setMaterial] = useState(materials[0].id);
@@ -87,7 +87,7 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
         const reader = new FileReader();
         reader.onload = (event) => {
             const dataUrl = event.target?.result as string;
-            onStickerUpdate(dataUrl);
+            onStickerUpdate(dataUrl, 'upload');
             setUploadedFileName(file.name);
             toast({
                 title: "Image Uploaded",
@@ -152,7 +152,7 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
     try {
       const result = await generateSticker({ prompt });
       if (result.imageDataUri) {
-        onStickerUpdate(result.imageDataUri);
+        onStickerUpdate(result.imageDataUri, 'generate');
         toast({
           title: "Sticker Generated!",
           description: "Your new sticker design is ready.",
