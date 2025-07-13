@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { ProductCustomizer } from '@/components/product-customizer';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,22 @@ const BORDER_COLORS = [
   { value: "green", label: "Green", color: "#22C55E" },
 ];
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function Home() {
   const { toast } = useToast();
   const [originalStickerImage, setOriginalStickerImage] = useState<string | null>("https://placehold.co/800x800.png");
@@ -39,6 +55,8 @@ export default function Home() {
   const [borderColor, setBorderColor] = useState(BORDER_COLORS[0].value);
   
   const [borderPreviews, setBorderPreviews] = useState<Record<string, string>>({});
+
+  const debouncedBorderWidthIndex = useDebounce(borderWidthIndex, 300);
 
   const handleStickerUpdate = (newImage: string) => {
     setOriginalStickerImage(newImage);
@@ -125,6 +143,12 @@ export default function Home() {
     }
   }, [borderPreviews, toast]);
 
+  useEffect(() => {
+    if (borderAdded && backgroundRemovedImage) {
+      applyBorder(backgroundRemovedImage, debouncedBorderWidthIndex, borderColor);
+    }
+  }, [debouncedBorderWidthIndex, borderColor, borderAdded, backgroundRemovedImage, applyBorder]);
+
   const handleBorderToggle = async (checked: boolean) => {
     setBorderAdded(checked);
     if (checked) {
@@ -139,19 +163,11 @@ export default function Home() {
   };
 
   const handleBorderWidthChange = (value: number[]) => {
-    const newIndex = value[0];
-    setBorderWidthIndex(newIndex);
-    if (borderAdded && backgroundRemovedImage) {
-      // Debounce or apply on release if needed, for now it's live
-      applyBorder(backgroundRemovedImage, newIndex, borderColor);
-    }
+    setBorderWidthIndex(value[0]);
   };
 
-  const handleBorderColorChange = async (colorValue: string) => {
+  const handleBorderColorChange = (colorValue: string) => {
     setBorderColor(colorValue);
-    if (borderAdded && backgroundRemovedImage) {
-      await applyBorder(backgroundRemovedImage, borderWidthIndex, colorValue);
-    }
   };
 
   const isLoading = isRemovingBackground || isAddingBorder;
