@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from 'react';
-import { ChevronRight, Star, Square, Circle, Sparkles, Sparkle, Layers, FlipHorizontal, Upload, Wand2, Loader2 } from 'lucide-react';
+import { ChevronRight, Star, Square, Circle, Sparkles, Sparkle, Layers, FlipHorizontal, Upload, Wand2, Loader2, ImagePlus, FileCheck2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +58,8 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
   const [quantity, setQuantity] = useState(quantityOptions[0].quantity);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || quantityOptions[0];
@@ -80,16 +82,60 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
     }
   };
 
+  const processFile = (file: File) => {
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const dataUrl = event.target?.result as string;
+            onStickerUpdate(dataUrl);
+            setUploadedFileName(file.name);
+            toast({
+                title: "Image Uploaded",
+                description: `${file.name} is ready for printing.`,
+            });
+        };
+        reader.readAsDataURL(file);
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Invalid File Type",
+            description: "Please upload a valid image file.",
+        });
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        onStickerUpdate(dataUrl);
-      };
-      reader.readAsDataURL(file);
+      processFile(file);
     }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
   };
 
   const handleGenerateSticker = async () => {
@@ -102,6 +148,7 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
       return;
     }
     setIsGenerating(true);
+    setUploadedFileName(null);
     try {
       const result = await generateSticker({ prompt });
       if (result.imageDataUri) {
@@ -166,7 +213,7 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
       <CustomizationSection title="Design your Sticker">
         <Tabs defaultValue="generate" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="generate"><Wand2 className="mr-2"/>Generate with AI</TabsTrigger>
+            <TabsTrigger value="generate" onClick={() => setUploadedFileName(null)}><Wand2 className="mr-2"/>Generate with AI</TabsTrigger>
             <TabsTrigger value="upload"><Upload className="mr-2"/>Upload Image</TabsTrigger>
           </TabsList>
           <TabsContent value="generate" className="mt-4">
@@ -194,8 +241,37 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
           </TabsContent>
           <TabsContent value="upload" className="mt-4">
             <div className="space-y-2">
-              <Label htmlFor="picture">Upload your design</Label>
-              <Input id="picture" type="file" accept="image/*" onChange={handleImageUpload} />
+                <Label
+                    htmlFor="picture"
+                    className={cn(
+                        "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-muted transition-colors",
+                        isDragging && "border-primary bg-primary/10",
+                        uploadedFileName && "border-green-500 bg-green-500/10"
+                    )}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                        {uploadedFileName ? (
+                            <>
+                                <FileCheck2 className="w-8 h-8 mb-2 text-green-500" />
+                                <p className="font-semibold text-green-600">File Uploaded!</p>
+                                <p className="text-xs text-muted-foreground truncate max-w-xs">{uploadedFileName}</p>
+                            </>
+                        ) : (
+                            <>
+                                <ImagePlus className="w-8 h-8 mb-2 text-muted-foreground" />
+                                <p className="mb-1 text-sm text-muted-foreground">
+                                    <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                                </p>
+                                <p className="text-xs text-muted-foreground">PNG, JPG, or WEBP (max 5MB)</p>
+                            </>
+                        )}
+                    </div>
+                    <Input id="picture" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+                </Label>
             </div>
           </TabsContent>
         </Tabs>
