@@ -52,17 +52,14 @@ export default function Home() {
   const handleBackgroundToggle = async (checked: boolean) => {
     setBackgroundRemoved(checked);
     if (!checked) {
-      setBorderAdded(false);
-      // Revert to original image when background removal is turned off
-      if (originalStickerImage) {
-        setDisplayedStickerImage(originalStickerImage);
-      }
+      // Toggled OFF
+      setBorderAdded(false); 
+      setDisplayedStickerImage(originalStickerImage!);
     } else {
+      // Toggled ON
       if (backgroundRemovedImage) {
-        // If we already have a background-removed image, just display it
         setDisplayedStickerImage(backgroundRemovedImage);
       } else if (originalStickerImage) {
-        // Otherwise, call the AI flow to remove the background
         setIsRemovingBackground(true);
         try {
           const result = await removeBackground({ imageDataUri: originalStickerImage });
@@ -131,23 +128,22 @@ export default function Home() {
   const handleBorderToggle = async (checked: boolean) => {
     setBorderAdded(checked);
     if (checked) {
-      // Apply border if toggled on
       if (backgroundRemovedImage) {
         await applyBorder(backgroundRemovedImage, borderWidthIndex, borderColor);
       }
     } else {
-      // Revert to the background-removed image if toggled off
       if (backgroundRemovedImage) {
         setDisplayedStickerImage(backgroundRemovedImage);
       }
     }
   };
 
-  const handleBorderWidthChange = async (value: number[]) => {
+  const handleBorderWidthChange = (value: number[]) => {
     const newIndex = value[0];
     setBorderWidthIndex(newIndex);
     if (borderAdded && backgroundRemovedImage) {
-      await applyBorder(backgroundRemovedImage, newIndex, borderColor);
+      // Debounce or apply on release if needed, for now it's live
+      applyBorder(backgroundRemovedImage, newIndex, borderColor);
     }
   };
 
