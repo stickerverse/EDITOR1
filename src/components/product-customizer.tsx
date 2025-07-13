@@ -63,6 +63,18 @@ export function ProductCustomizer() {
     })
   }
 
+  const handleCustomQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const numValue = parseInt(value, 10);
+    if (value === "") {
+        setQuantity(0);
+    } else if (!isNaN(numValue) && numValue > 0) {
+        setQuantity(numValue);
+    }
+  };
+
+  const isCustomQuantity = !quantityOptions.some(q => q.quantity === quantity);
+
   return (
     <div className="flex flex-col space-y-6">
       <nav aria-label="Breadcrumb">
@@ -144,7 +156,11 @@ export function ProductCustomizer() {
       </div>
 
       <CustomizationSection title="Quantity">
-        <RadioGroup value={quantity.toString()} onValueChange={(value) => setQuantity(parseInt(value, 10))} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <RadioGroup value={isCustomQuantity ? "custom" : quantity.toString()} onValueChange={(value) => {
+            if (value !== "custom") {
+              setQuantity(parseInt(value, 10));
+            }
+        }} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {quantityOptions.map((q) => (
             <div key={q.quantity}>
               <RadioGroupItem value={q.quantity.toString()} id={`quantity-${q.quantity}`} className="sr-only" />
@@ -159,6 +175,27 @@ export function ProductCustomizer() {
               </Label>
             </div>
           ))}
+          <div>
+            <RadioGroupItem value="custom" id="quantity-custom" className="sr-only" />
+            <Label htmlFor="quantity-custom" className={cn("cursor-pointer rounded-lg border-2 p-3 transition-all flex items-center justify-between", isCustomQuantity ? "border-primary bg-primary/5 shadow-inner" : "border-border hover:border-primary/50")}>
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-lg">Custom</span>
+                    <Input
+                        type="number"
+                        id="custom-quantity-input"
+                        className="w-24 h-8 text-center"
+                        value={isCustomQuantity ? quantity : ""}
+                        placeholder="Qty"
+                        onChange={handleCustomQuantityChange}
+                        onFocus={() => {
+                            if (!isCustomQuantity) {
+                                setQuantity(0); // or a default custom value
+                            }
+                        }}
+                    />
+                </div>
+            </Label>
+          </div>
         </RadioGroup>
       </CustomizationSection>
 
