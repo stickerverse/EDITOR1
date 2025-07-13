@@ -123,7 +123,7 @@ export default function Home() {
     } finally {
       setIsAddingBorder(false);
     }
-  }, [borderPreviews]);
+  }, [borderPreviews, toast]);
 
   const handleBorderToggle = async (checked: boolean) => {
     setBorderAdded(checked);
@@ -162,7 +162,7 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4">
-            <div className="w-full max-w-lg aspect-square bg-card rounded-xl shadow-lg overflow-hidden border">
+            <div className="relative w-full max-w-lg aspect-square bg-card rounded-xl shadow-lg overflow-hidden border">
               {isLoading && (
                 <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
