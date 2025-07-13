@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Image from 'next/image';
@@ -84,14 +85,14 @@ export default function Home() {
   const stableToast = useCallback(toast, []);
 
   const handleStickerUpdate = useCallback((newImage: string, source: 'upload' | 'generate') => {
-    setSticker({
+    setSticker(s => ({
       ...initialState,
       originalUrl: newImage,
       source: source,
       // If generated, assume background is already removed.
       bgRemoved: source === 'generate',
       bgRemovedUrl: source === 'generate' ? newImage : null,
-    });
+    }));
   }, []);
 
   const handleBackgroundToggle = async (checked: boolean) => {
@@ -210,38 +211,39 @@ export default function Home() {
   }, [sticker, debouncedBorderColor, debouncedBorderWidthIndex]);
 
   const showBgRemoveToggle = sticker.source === 'upload';
+  const showBorderControls = showBgRemoveToggle; // For now, link border controls to upload flow
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4">
-            <div className="relative w-full max-w-lg aspect-square bg-card rounded-xl shadow-lg overflow-hidden border">
+            <div className="relative w-full max-w-lg aspect-square bg-white rounded-xl shadow-lg overflow-hidden border">
               {sticker.isLoading && (
                 <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
                   <p className="text-white mt-4 font-semibold">{sticker.loadingText}</p>
                 </div>
               )}
-               <div className="relative w-full h-full">
+               <div className="relative w-full h-full flex items-center justify-center bg-gray-50 p-4">
                 <Image
                     src={imageToDisplay || "https://placehold.co/800x800.png"}
                     alt="Custom Sticker Preview"
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-contain p-4 transition-transform duration-300 hover:scale-105"
+                    width={500}
+                    height={500}
+                    className="object-contain transition-transform duration-300 hover:scale-105"
                     data-ai-hint="sticker design"
                     priority
                 />
               </div>
             </div>
-             <Card className="w-full max-w-lg">
-                <CardContent className="p-4 flex flex-col gap-4">
-                    {showBgRemoveToggle && (
+             {showBorderControls && (
+              <Card className="w-full max-w-lg">
+                  <CardContent className="p-4 flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                           <Label htmlFor="background-switch" className="flex flex-col space-y-1">
                               <span className="font-medium">Remove Background</span>
-                              <span className="text-xs text-muted-foreground">Automatically remove the image background.</span>
+                              <span className="text-xs text-muted-foreground">Automatically removes the background.</span>
                           </Label>
                           <Switch
                               id="background-switch"
@@ -250,58 +252,58 @@ export default function Home() {
                               disabled={sticker.isLoading || !sticker.originalUrl}
                           />
                       </div>
-                    )}
-                     <div className="flex items-center justify-between">
-                        <Label htmlFor="border-switch" className="flex flex-col space-y-1">
-                            <span className={cn("font-medium", !sticker.bgRemoved && "text-muted-foreground/50")}>Add Sticker Border</span>
-                            <span className={cn("text-xs text-muted-foreground", !sticker.bgRemoved && "text-muted-foreground/50")}>Add a classic die-cut border.</span>
-                        </Label>
-                        <Switch
-                            id="border-switch"
-                            checked={sticker.borderAdded}
-                            onCheckedChange={handleBorderToggle}
-                            disabled={sticker.isLoading || !sticker.bgRemoved}
-                        />
-                    </div>
-                    {sticker.borderAdded && sticker.bgRemoved && (
-                    <div className="space-y-4 pt-2 border-t border-dashed">
-                        <div className="grid gap-2">
-                           <Label className="text-sm font-medium">Border Width</Label>
-                           <Slider
-                             value={[sticker.borderWidthIndex]}
-                             onValueChange={handleBorderWidthChange}
-                             min={0}
-                             max={BORDER_WIDTHS.length - 1}
-                             step={1}
-                             disabled={sticker.isLoading}
-                           />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label className="text-sm font-medium">Border Color</Label>
-                            <div className="flex items-center gap-2">
-                                {BORDER_COLORS.map(color => (
-                                    <button
-                                        key={color.value}
-                                        type="button"
-                                        title={color.label}
-                                        onClick={() => handleBorderColorChange(color.value)}
-                                        className={cn(
-                                            "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
-                                            sticker.borderColor === color.value ? "ring-2 ring-offset-2 ring-primary" : "border-muted",
-                                            sticker.isLoading && "cursor-not-allowed opacity-50"
-                                        )}
-                                        style={{ backgroundColor: color.color }}
-                                        disabled={sticker.isLoading}
-                                    >
-                                      <span className="sr-only">{color.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    )}
-                </CardContent>
-            </Card>
+                      <div className="flex items-center justify-between">
+                          <Label htmlFor="border-switch" className="flex flex-col space-y-1">
+                              <span className={cn("font-medium", !sticker.bgRemoved && "text-muted-foreground/50")}>Add Sticker Border</span>
+                              <span className={cn("text-xs text-muted-foreground", !sticker.bgRemoved && "text-muted-foreground/50")}>Adds a classic die-cut border.</span>
+                          </Label>
+                          <Switch
+                              id="border-switch"
+                              checked={sticker.borderAdded}
+                              onCheckedChange={handleBorderToggle}
+                              disabled={sticker.isLoading || !sticker.bgRemoved}
+                          />
+                      </div>
+                      {sticker.borderAdded && sticker.bgRemoved && (
+                      <div className="space-y-4 pt-4 border-t">
+                          <div className="grid gap-2">
+                            <Label className="text-sm font-medium">Border Width</Label>
+                            <Slider
+                              value={[sticker.borderWidthIndex]}
+                              onValueChange={handleBorderWidthChange}
+                              min={0}
+                              max={BORDER_WIDTHS.length - 1}
+                              step={1}
+                              disabled={sticker.isLoading}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                              <Label className="text-sm font-medium">Border Color</Label>
+                              <div className="flex items-center gap-2">
+                                  {BORDER_COLORS.map(color => (
+                                      <button
+                                          key={color.value}
+                                          type="button"
+                                          title={color.label}
+                                          onClick={() => handleBorderColorChange(color.value)}
+                                          className={cn(
+                                              "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
+                                              sticker.borderColor === color.value ? "ring-2 ring-offset-2 ring-primary" : "border-muted",
+                                              sticker.isLoading && "cursor-not-allowed opacity-50"
+                                          )}
+                                          style={{ backgroundColor: color.color }}
+                                          disabled={sticker.isLoading}
+                                      >
+                                        <span className="sr-only">{color.label}</span>
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+                      </div>
+                      )}
+                  </CardContent>
+              </Card>
+             )}
           </div>
           
           <div className="flex flex-col">
@@ -312,3 +314,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
