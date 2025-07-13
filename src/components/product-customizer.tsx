@@ -141,17 +141,23 @@ export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataU
       </nav>
 
       <header>
-        <h1 className="text-3xl md:text-4xl font-bold font-headline">Custom Stickers</h1>
-        <p className="mt-2 text-muted-foreground">High quality, durable, and fully customizable stickers for any occasion.</p>
-        <div className="mt-3 flex items-center gap-2">
-          <div className="flex text-yellow-400">
-            <Star className="w-5 h-5 fill-current" />
-            <Star className="w-5 h-5 fill-current" />
-            <Star className="w-5 h-5 fill-current" />
-            <Star className="w-5 h-5 fill-current" />
-            <Star className="w-5 h-5 fill-current" />
-          </div>
-          <span className="text-sm text-muted-foreground">4,882 reviews</span>
+        <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight">
+            <span className="bg-gradient-to-r from-primary via-accent to-primary/80 bg-clip-text text-transparent">
+                Custom Stickers
+            </span>
+        </h1>
+        <p className="mt-3 text-muted-foreground max-w-prose">High quality, durable, and fully customizable stickers for any occasion.</p>
+        <div className="mt-4 flex items-center gap-4">
+            <div className="flex items-center gap-1">
+                <div className="flex text-yellow-400">
+                    <Star className="w-5 h-5 fill-current" />
+                    <Star className="w-5 h-5 fill-current" />
+                    <Star className="w-5 h-5 fill-current" />
+                    <Star className="w-5 h-5 fill-current" />
+                    <Star className="w-5 h-5 fill-current" />
+                </div>
+                <p className="text-sm text-muted-foreground font-medium"><span className="text-foreground">5.0</span> (4,882 reviews)</p>
+            </div>
         </div>
       </header>
       
