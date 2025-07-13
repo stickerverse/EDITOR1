@@ -1,7 +1,13 @@
+
+"use client";
+
 import Image from 'next/image';
 import { ProductCustomizer } from '@/components/product-customizer';
+import { useState } from 'react';
 
 export default function Home() {
+  const [stickerImage, setStickerImage] = useState("https://placehold.co/800x800.png");
+
   return (
     <div className="min-h-screen">
       <main className="container mx-auto px-4 py-8 md:py-12">
@@ -9,7 +15,7 @@ export default function Home() {
           <div className="flex items-start justify-center">
             <div className="sticky top-8 w-full max-w-lg aspect-square bg-card rounded-xl shadow-lg overflow-hidden border">
               <Image
-                src="https://placehold.co/800x800.png"
+                src={stickerImage}
                 alt="Custom Sticker Preview"
                 fill
                 className="object-cover transition-transform duration-300 hover:scale-105"
@@ -20,7 +26,7 @@ export default function Home() {
           </div>
           
           <div className="flex flex-col">
-            <ProductCustomizer />
+            <ProductCustomizer onStickerUpdate={setStickerImage} />
           </div>
         </div>
       </main>

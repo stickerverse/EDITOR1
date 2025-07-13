@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useState } from 'react';
-import { ChevronRight, Star, Square, Circle, Sparkles, Sparkle, Layers, FlipHorizontal } from 'lucide-react';
+import { ChevronRight, Star, Square, Circle, Sparkles, Sparkle, Layers, FlipHorizontal, Upload, Wand2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,9 +11,12 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { ContourCutIcon, RoundedRectangleIcon, VinylIcon } from '@/components/icons';
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
+import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 
 
 const shapes = [
@@ -44,14 +48,17 @@ const quantityOptions = [
   { quantity: 1000, pricePer: 0.35, discount: 60 },
 ];
 
-export function ProductCustomizer() {
-  const { toast } = useToast()
+export function ProductCustomizer({ onStickerUpdate }: { onStickerUpdate: (dataUrl: string) => void }) {
+  const { toast } = useToast();
   const [shape, setShape] = useState(shapes[0].id);
   const [material, setMaterial] = useState(materials[0].id);
   const [finish, setFinish] = useState(finishes[0].id);
   const [width, setWidth] = useState(3);
   const [height, setHeight] = useState(3);
   const [quantity, setQuantity] = useState(quantityOptions[0].quantity);
+  const [prompt, setPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || quantityOptions[0];
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -72,6 +79,52 @@ export function ProductCustomizer() {
         setQuantity(numValue);
     }
   };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        onStickerUpdate(dataUrl);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerateSticker = async () => {
+    if (!prompt) {
+      toast({
+        variant: "destructive",
+        title: "Prompt is empty",
+        description: "Please enter a description for your sticker.",
+      });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const result = await generateSticker({ prompt });
+      if (result.imageDataUri) {
+        onStickerUpdate(result.imageDataUri);
+        toast({
+          title: "Sticker Generated!",
+          description: "Your new sticker design is ready.",
+        });
+      } else {
+        throw new Error("Image generation failed to return data.");
+      }
+    } catch (error) {
+      console.error("Sticker generation failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: "Could not generate sticker. Please try again.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
 
   const isCustomQuantity = !quantityOptions.some(q => q.quantity === quantity);
 
@@ -101,8 +154,46 @@ export function ProductCustomizer() {
           <span className="text-sm text-muted-foreground">4,882 reviews</span>
         </div>
       </header>
-
+      
       <Separator />
+
+      <CustomizationSection title="Design your Sticker">
+        <Tabs defaultValue="generate" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="generate"><Wand2 className="mr-2"/>Generate with AI</TabsTrigger>
+            <TabsTrigger value="upload"><Upload className="mr-2"/>Upload Image</TabsTrigger>
+          </TabsList>
+          <TabsContent value="generate" className="mt-4">
+            <div className="space-y-4">
+                <Textarea
+                    placeholder="e.g., A cute baby panda developer writing code, sticker, vector art"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={3}
+                />
+                <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full">
+                    {isGenerating ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Generate Sticker
+                        </>
+                    )}
+                </Button>
+            </div>
+          </TabsContent>
+          <TabsContent value="upload" className="mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="picture">Upload your design</Label>
+              <Input id="picture" type="file" accept="image/*" onChange={handleImageUpload} />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CustomizationSection>
 
       <CustomizationSection title="Shape">
         <RadioGroup value={shape} onValueChange={setShape} className="grid grid-cols-2 md:grid-cols-4 gap-4">
