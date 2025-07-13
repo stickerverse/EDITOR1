@@ -53,13 +53,16 @@ export default function Home() {
     setBackgroundRemoved(checked);
     if (!checked) {
       setBorderAdded(false);
+      // Revert to original image when background removal is turned off
       if (originalStickerImage) {
         setDisplayedStickerImage(originalStickerImage);
       }
     } else {
       if (backgroundRemovedImage) {
+        // If we already have a background-removed image, just display it
         setDisplayedStickerImage(backgroundRemovedImage);
       } else if (originalStickerImage) {
+        // Otherwise, call the AI flow to remove the background
         setIsRemovingBackground(true);
         try {
           const result = await removeBackground({ imageDataUri: originalStickerImage });
@@ -80,7 +83,7 @@ export default function Home() {
             title: 'Background Removal Failed',
             description: 'Could not remove background. Please try again.',
           });
-          setBackgroundRemoved(false);
+          setBackgroundRemoved(false); // Revert switch on failure
         } finally {
           setIsRemovingBackground(false);
         }
@@ -119,7 +122,7 @@ export default function Home() {
         title: 'Border Addition Failed',
         description: 'Could not add border. Please try again.',
       });
-      setBorderAdded(false);
+      setBorderAdded(false); // Revert switch on failure
     } finally {
       setIsAddingBorder(false);
     }
@@ -128,10 +131,12 @@ export default function Home() {
   const handleBorderToggle = async (checked: boolean) => {
     setBorderAdded(checked);
     if (checked) {
+      // Apply border if toggled on
       if (backgroundRemovedImage) {
         await applyBorder(backgroundRemovedImage, borderWidthIndex, borderColor);
       }
     } else {
+      // Revert to the background-removed image if toggled off
       if (backgroundRemovedImage) {
         setDisplayedStickerImage(backgroundRemovedImage);
       }
@@ -169,14 +174,16 @@ export default function Home() {
                   <p className="text-white mt-4 font-semibold">{loadingText}</p>
                 </div>
               )}
-              <Image
-                src={displayedStickerImage}
-                alt="Custom Sticker Preview"
-                fill
-                className="object-contain p-4 transition-transform duration-300 hover:scale-105"
-                data-ai-hint="sticker design"
-                priority
-              />
+               <div className="relative w-full h-full">
+                <Image
+                    src={displayedStickerImage}
+                    alt="Custom Sticker Preview"
+                    fill
+                    className="object-contain p-4 transition-transform duration-300 hover:scale-105"
+                    data-ai-hint="sticker design"
+                    priority
+                />
+              </div>
             </div>
              <Card className="w-full max-w-lg">
                 <CardContent className="p-4 flex flex-col gap-4">
