@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { ProductCustomizer } from '@/components/product-customizer';
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,38 @@ const BORDER_COLORS = [
   { value: "green", label: "Green", color: "#22C55E" },
 ];
 
+interface StickerState {
+  // Base images
+  originalUrl: string | null;
+  bgRemovedUrl: string | null;
+
+  // Bordered images, cached by settings
+  borderedUrls: Record<string, string>;
+  
+  // UI Controls State
+  bgRemoved: boolean;
+  borderAdded: boolean;
+  borderWidthIndex: number;
+  borderColor: string;
+
+  // Status
+  isLoading: boolean;
+  loadingText: string;
+}
+
+const initialState: StickerState = {
+  originalUrl: null,
+  bgRemovedUrl: null,
+  borderedUrls: {},
+  bgRemoved: false,
+  borderAdded: false,
+  borderWidthIndex: 1,
+  borderColor: BORDER_COLORS[0].value,
+  isLoading: false,
+  loadingText: "",
+};
+
+
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -41,56 +73,34 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function Home() {
   const { toast } = useToast();
+  const [sticker, setSticker] = useState<StickerState>(initialState);
   
-  // The user's original uploaded or generated image
-  const [originalStickerImage, setOriginalStickerImage] = useState<string | null>(null);
-  
-  // The image currently being displayed in the preview
-  const [displayedStickerImage, setDisplayedStickerImage] = useState<string | null>(null);
+  const debouncedBorderWidthIndex = useDebounce(sticker.borderWidthIndex, 300);
+  const debouncedBorderColor = useDebounce(sticker.borderColor, 300);
 
-  // Background removal state
-  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
-  const [backgroundRemoved, setBackgroundRemoved] = useState(false);
-  const [backgroundRemovedImage, setBackgroundRemovedImage] = useState<string | null>(null);
-
-  // Border addition state
-  const [isAddingBorder, setIsAddingBorder] = useState(false);
-  const [borderAdded, setBorderAdded] = useState(false);
-  const [borderWidthIndex, setBorderWidthIndex] = useState(1);
-  const [borderColor, setBorderColor] = useState(BORDER_COLORS[0].value);
-  const [borderPreviews, setBorderPreviews] = useState<Record<string, string>>({});
-
-  const debouncedBorderWidthIndex = useDebounce(borderWidthIndex, 300);
-
-  // This function is called when a new sticker is generated or uploaded
   const handleStickerUpdate = useCallback((newImage: string) => {
-    setOriginalStickerImage(newImage);
-    setDisplayedStickerImage(newImage);
-    // Reset all modifications
-    setBackgroundRemoved(false);
-    setBackgroundRemovedImage(null);
-    setBorderAdded(false);
-    setBorderPreviews({});
-    setBorderWidthIndex(1);
-    setBorderColor(BORDER_COLORS[0].value);
+    // Reset state completely for the new image
+    setSticker({
+      ...initialState,
+      originalUrl: newImage,
+    });
   }, []);
 
   const handleBackgroundToggle = async (checked: boolean) => {
-    setBackgroundRemoved(checked);
+    setSticker(s => ({ ...s, bgRemoved: checked, borderAdded: checked ? s.borderAdded : false }));
 
     if (checked) {
-      // Toggling ON
-      if (backgroundRemovedImage) {
-        // If we already have a background-removed image, just display it
-        setDisplayedStickerImage(backgroundRemovedImage);
-      } else if (originalStickerImage) {
-        // Otherwise, process the original image
-        setIsRemovingBackground(true);
+      if (sticker.bgRemovedUrl) {
+        // Already exists, do nothing
+        return;
+      }
+      
+      if (sticker.originalUrl) {
+        setSticker(s => ({ ...s, isLoading: true, loadingText: "Removing Background..." }));
         try {
-          const result = await removeBackground({ imageDataUri: originalStickerImage });
+          const result = await removeBackground({ imageDataUri: sticker.originalUrl });
           if (result.imageDataUri) {
-            setBackgroundRemovedImage(result.imageDataUri);
-            setDisplayedStickerImage(result.imageDataUri);
+            setSticker(s => ({ ...s, bgRemovedUrl: result.imageDataUri }));
             toast({
               title: 'Success!',
               description: 'The background has been removed.',
@@ -105,80 +115,89 @@ export default function Home() {
             title: 'Background Removal Failed',
             description: 'Could not remove background. Please try again.',
           });
-          setBackgroundRemoved(false); // Revert switch on failure
+          setSticker(s => ({ ...s, bgRemoved: false })); // Revert switch on failure
         } finally {
-          setIsRemovingBackground(false);
+          setSticker(s => ({ ...s, isLoading: false, loadingText: "" }));
         }
       }
-    } else {
-      // Toggling OFF
-      setBorderAdded(false); // Can't have a border without a removed background
-      setDisplayedStickerImage(originalStickerImage); // Go back to original
     }
   };
-
-  const applyBorder = useCallback(async (imageToBorder: string, widthIndex: number, color: string) => {
-    const key = `${widthIndex}-${color}`;
-    // If we have a cached preview, use it
-    if (borderPreviews[key]) {
-      setDisplayedStickerImage(borderPreviews[key]);
-      return;
-    }
-    
-    setIsAddingBorder(true);
-    try {
-      const result = await addBorder({
-        imageDataUri: imageToBorder,
-        borderWidth: BORDER_WIDTHS[widthIndex],
-        borderColor: color,
-      });
-      if (result.imageDataUri) {
-        // Cache the new preview and display it
-        setBorderPreviews(prev => ({ ...prev, [key]: result.imageDataUri }));
-        setDisplayedStickerImage(result.imageDataUri);
-      } else {
-        throw new Error('Border addition failed to return data.');
-      }
-    } catch (error) {
-      console.error('Adding border failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Border Addition Failed',
-        description: 'Could not add border. Please try again.',
-      });
-      setBorderAdded(false); // Revert switch on failure
-    } finally {
-      setIsAddingBorder(false);
-    }
-  }, [borderPreviews, toast]);
-
-  // Effect to apply border when settings change
-  useEffect(() => {
-    if (borderAdded && backgroundRemovedImage) {
-      applyBorder(backgroundRemovedImage, debouncedBorderWidthIndex, borderColor);
-    }
-  }, [debouncedBorderWidthIndex, borderColor, borderAdded, backgroundRemovedImage, applyBorder]);
-
+  
   const handleBorderToggle = (checked: boolean) => {
-    setBorderAdded(checked);
-    if (!checked) {
-      // If turning border off, go back to the background-removed image
-      setDisplayedStickerImage(backgroundRemovedImage);
-    }
+    setSticker(s => ({ ...s, borderAdded: checked }));
   };
-
+  
   const handleBorderWidthChange = (value: number[]) => {
-    setBorderWidthIndex(value[0]);
+    setSticker(s => ({...s, borderWidthIndex: value[0]}));
   };
 
   const handleBorderColorChange = (colorValue: string) => {
-    setBorderColor(colorValue);
+    setSticker(s => ({...s, borderColor: colorValue}));
   };
 
-  const isLoading = isRemovingBackground || isAddingBorder;
-  const loadingText = isRemovingBackground ? "Removing Background..." : isAddingBorder ? "Applying Border..." : "";
-  const imageToDisplay = displayedStickerImage || "https://placehold.co/800x800.png";
+  // Effect to apply border when settings change
+  useEffect(() => {
+    const applyBorder = async () => {
+      if (!sticker.bgRemovedUrl) return;
 
+      const key = `${debouncedBorderWidthIndex}-${debouncedBorderColor}`;
+      if (sticker.borderedUrls[key]) {
+        // Already have this border, no need to re-generate
+        return;
+      }
+      
+      setSticker(s => ({ ...s, isLoading: true, loadingText: "Applying Border..." }));
+      try {
+        const result = await addBorder({
+          imageDataUri: sticker.bgRemovedUrl,
+          borderWidth: BORDER_WIDTHS[debouncedBorderWidthIndex],
+          borderColor: debouncedBorderColor,
+        });
+        if (result.imageDataUri) {
+          setSticker(s => ({ 
+            ...s, 
+            borderedUrls: { ...s.borderedUrls, [key]: result.imageDataUri }
+          }));
+        } else {
+          throw new Error('Border addition failed to return data.');
+        }
+      } catch (error) {
+        console.error('Adding border failed:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Border Addition Failed',
+          description: 'Could not add border. Please try again.',
+        });
+        // We don't revert the switch here, to allow for retries
+      } finally {
+        setSticker(s => ({ ...s, isLoading: false, loadingText: "" }));
+      }
+    };
+    
+    if (sticker.borderAdded && sticker.bgRemoved) {
+      applyBorder();
+    }
+  }, [
+    debouncedBorderWidthIndex, 
+    debouncedBorderColor, 
+    sticker.borderAdded,
+    sticker.bgRemoved, 
+    sticker.bgRemovedUrl, 
+    sticker.borderedUrls,
+    toast
+  ]);
+
+
+  const imageToDisplay = useMemo(() => {
+    if (sticker.borderAdded && sticker.bgRemoved) {
+      const key = `${debouncedBorderWidthIndex}-${debouncedBorderColor}`;
+      return sticker.borderedUrls[key] || sticker.bgRemovedUrl;
+    }
+    if (sticker.bgRemoved) {
+      return sticker.bgRemovedUrl;
+    }
+    return sticker.originalUrl;
+  }, [sticker, debouncedBorderColor, debouncedBorderWidthIndex]);
 
   return (
     <div className="min-h-screen">
@@ -186,15 +205,15 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4">
             <div className="relative w-full max-w-lg aspect-square bg-card rounded-xl shadow-lg overflow-hidden border">
-              {isLoading && (
+              {sticker.isLoading && (
                 <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
-                  <p className="text-white mt-4 font-semibold">{loadingText}</p>
+                  <p className="text-white mt-4 font-semibold">{sticker.loadingText}</p>
                 </div>
               )}
                <div className="relative w-full h-full">
                 <Image
-                    src={imageToDisplay}
+                    src={imageToDisplay || "https://placehold.co/800x800.png"}
                     alt="Custom Sticker Preview"
                     fill
                     className="object-contain p-4 transition-transform duration-300 hover:scale-105"
@@ -212,34 +231,34 @@ export default function Home() {
                         </Label>
                         <Switch
                             id="background-switch"
-                            checked={backgroundRemoved}
+                            checked={sticker.bgRemoved}
                             onCheckedChange={handleBackgroundToggle}
-                            disabled={isLoading || !originalStickerImage}
+                            disabled={sticker.isLoading || !sticker.originalUrl}
                         />
                     </div>
                      <div className="flex items-center justify-between">
                         <Label htmlFor="border-switch" className="flex flex-col space-y-1">
-                            <span className={cn("font-medium", !backgroundRemoved && "text-muted-foreground/50")}>Add Sticker Border</span>
-                            <span className={cn("text-xs text-muted-foreground", !backgroundRemoved && "text-muted-foreground/50")}>Add a classic die-cut border.</span>
+                            <span className={cn("font-medium", !sticker.bgRemoved && "text-muted-foreground/50")}>Add Sticker Border</span>
+                            <span className={cn("text-xs text-muted-foreground", !sticker.bgRemoved && "text-muted-foreground/50")}>Add a classic die-cut border.</span>
                         </Label>
                         <Switch
                             id="border-switch"
-                            checked={borderAdded}
+                            checked={sticker.borderAdded}
                             onCheckedChange={handleBorderToggle}
-                            disabled={isLoading || !backgroundRemoved}
+                            disabled={sticker.isLoading || !sticker.bgRemoved}
                         />
                     </div>
-                    {borderAdded && (
+                    {sticker.borderAdded && (
                     <div className="space-y-4 pt-2 border-t border-dashed">
                         <div className="grid gap-2">
                            <Label className="text-sm font-medium">Border Width</Label>
                            <Slider
-                             value={[borderWidthIndex]}
+                             value={[sticker.borderWidthIndex]}
                              onValueChange={handleBorderWidthChange}
                              min={0}
                              max={BORDER_WIDTHS.length - 1}
                              step={1}
-                             disabled={isLoading || !borderAdded}
+                             disabled={sticker.isLoading || !sticker.borderAdded}
                            />
                         </div>
                         <div className="grid gap-2">
@@ -253,11 +272,11 @@ export default function Home() {
                                         onClick={() => handleBorderColorChange(color.value)}
                                         className={cn(
                                             "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
-                                            borderColor === color.value ? "ring-2 ring-offset-2 ring-primary" : "border-muted",
-                                            (isLoading || !borderAdded) && "cursor-not-allowed opacity-50"
+                                            sticker.borderColor === color.value ? "ring-2 ring-offset-2 ring-primary" : "border-muted",
+                                            (sticker.isLoading || !sticker.borderAdded) && "cursor-not-allowed opacity-50"
                                         )}
                                         style={{ backgroundColor: color.color }}
-                                        disabled={isLoading || !borderAdded}
+                                        disabled={sticker.isLoading || !sticker.borderAdded}
                                     >
                                       <span className="sr-only">{color.label}</span>
                                     </button>
