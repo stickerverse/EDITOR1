@@ -159,6 +159,11 @@ export function StickerCustomizer() {
   // State for Sheet Configuration
   const [sheetLayout, setSheetLayout] = useState({ rows: 2, cols: 2 });
   const [hoveredLayout, setHoveredLayout] = useState({ rows: 0, cols: 0 });
+  
+  // State for Drag and Drop
+  const [draggedItem, setDraggedItem] = useState<DragDataType | null>(null);
+  const [draggedOffset, setDraggedOffset] = useState({ x: 0, y: 0 });
+
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -302,13 +307,23 @@ export function StickerCustomizer() {
     const offsetY = e.clientY - rect.top;
 
     const dragData: DragDataType = { type, id, offsetX, offsetY };
+    setDraggedItem(dragData);
     e.dataTransfer.setData('application/json', JSON.stringify(dragData));
     e.dataTransfer.effectAllowed = 'move';
   };
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (draggedItem) {
+        setDraggedOffset({ x: e.clientX, y: e.clientY });
+    }
+  }
+
 
   const handleDropOnCanvas = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingOverCanvas(false);
+    setDraggedItem(null);
     const canvasRect = e.currentTarget.getBoundingClientRect();
     const dataString = e.dataTransfer.getData('application/json');
     if (!dataString) return;
@@ -332,6 +347,7 @@ export function StickerCustomizer() {
   const handleDropOnTrash = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingOverTrash(false);
+    setDraggedItem(null);
     const dataString = e.dataTransfer.getData('application/json');
     if (!dataString) return;
 
@@ -411,8 +427,8 @@ export function StickerCustomizer() {
                             isDraggingOverCanvas && "border-green-400 bg-green-900/20",
                             uploadedFileName && "border-green-500 bg-green-900/20"
                         )}
-                         onDragEnter={() => setIsDraggingOverCanvas(true)}
-                         onDragLeave={() => setIsDraggingOverCanvas(false)}
+                         onDragEnter={(e) => { e.preventDefault(); setIsDraggingOverCanvas(true); }}
+                         onDragLeave={(e) => { e.preventDefault(); setIsDraggingOverCanvas(false); }}
                          onDrop={(e) => {
                             e.preventDefault();
                             setIsDraggingOverCanvas(false);
@@ -493,11 +509,7 @@ export function StickerCustomizer() {
                   </DropdownMenuContent>
                 </DropdownMenu>
             </CustomizationSection>
-            <CustomizationSection title="Add New Design">
-                <Button className="w-full" variant="outline">
-                    <ImagePlus className="mr-2 h-4 w-4"/> Add Design to Library
-                </Button>
-            </CustomizationSection>
+            
             <CustomizationSection title="Design Library">
               <div className="space-y-4">
                   <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-2 flex gap-2 overflow-x-auto">
@@ -543,44 +555,47 @@ export function StickerCustomizer() {
                       ))
                     )}
                   </div>
-                   <Tabs defaultValue="generate" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 bg-gray-800 text-gray-400">
-                        <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
-                        <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
-                        <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="generate" className="mt-4">
-                        <div className="space-y-2">
-                            <Textarea
-                                placeholder="e.g., A cute baby panda developer"
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                rows={2}
-                                className="bg-gray-800 border-gray-600 text-gray-200"
-                            />
-                            <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
-                                {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating</> : <><Sparkles className="mr-2 h-4 w-4" />Generate</>}
-                            </Button>
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="upload" className="mt-4">
-                        <Input id="picture-library" type="file" accept="image/*" className="w-full bg-gray-800 border-gray-600" onChange={handleImageUpload} />
-                    </TabsContent>
-                    <TabsContent value="text" className="mt-4">
-                        <div className="space-y-2">
-                           <Input 
-                                placeholder="Your Text Here"
-                                value={decalText}
-                                onChange={(e) => setDecalText(e.target.value)}
-                                className="bg-gray-800 border-gray-600 text-gray-200"
-                            />
-                           <Button onClick={handleAddTextDecal} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
-                                <Type className="mr-2 h-4 w-4" /> Add Text to Library
-                            </Button>
-                        </div>
-                    </TabsContent>
-                   </Tabs>
               </div>
+            </CustomizationSection>
+
+            <CustomizationSection title="Add New Design">
+                <Tabs defaultValue="generate" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 bg-gray-800 text-gray-400">
+                    <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
+                    <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
+                    <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
+                </TabsList>
+                <TabsContent value="generate" className="mt-4">
+                    <div className="space-y-2">
+                        <Textarea
+                            placeholder="e.g., A cute baby panda developer"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            rows={2}
+                            className="bg-gray-800 border-gray-600 text-gray-200"
+                        />
+                        <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
+                            {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating</> : <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>}
+                        </Button>
+                    </div>
+                </TabsContent>
+                <TabsContent value="upload" className="mt-4">
+                    <Input id="picture-library" type="file" accept="image/*" className="w-full bg-gray-800 border-gray-600" onChange={handleImageUpload} />
+                </TabsContent>
+                <TabsContent value="text" className="mt-4">
+                    <div className="space-y-2">
+                        <Input 
+                            placeholder="Your Text Here"
+                            value={decalText}
+                            onChange={(e) => setDecalText(e.target.value)}
+                            className="bg-gray-800 border-gray-600 text-gray-200"
+                        />
+                        <Button onClick={handleAddTextDecal} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
+                            <Type className="mr-2 h-4 w-4" /> Add Text to Library
+                        </Button>
+                    </div>
+                </TabsContent>
+                </Tabs>
             </CustomizationSection>
           </>
         );
@@ -648,7 +663,8 @@ export function StickerCustomizer() {
                 className={cn(
                     "absolute flex items-center justify-center p-2 break-words text-center select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
-                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-green-400"
+                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-green-400",
+                    draggedItem?.id === sticker.stickerId && "opacity-50"
                 )}
                 style={{
                     left: `${sticker.position.x}px`,
@@ -677,7 +693,8 @@ export function StickerCustomizer() {
                 className={cn(
                     "absolute select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
-                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-green-400 rounded-md"
+                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-green-400 rounded-md",
+                    draggedItem?.id === sticker.stickerId && "opacity-50"
                 )}
                 style={{
                     left: `${sticker.position.x}px`,
@@ -705,7 +722,7 @@ export function StickerCustomizer() {
   const renderCanvasContent = () => {
     // For sheet product type, render the grid or stickers
     if (stickerType === 'sheet') {
-        if (appState.stickers.length === 0 && appState.stickerSheet.settings.autoPackEnabled) {
+        if (appState.stickerSheet.settings.autoPackEnabled) {
           return (
              <div 
               className="grid w-full h-full gap-2 p-2"
@@ -771,7 +788,7 @@ export function StickerCustomizer() {
 
 
   return (
-    <div className="container mx-auto px-0 py-0 md:py-4">
+    <div className="container mx-auto px-0 py-0 md:py-4" onDragOver={handleDragOver}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
             <div className="w-full max-w-lg aspect-square overflow-hidden p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 transition-all duration-300 hover:shadow-[0_0_30px_1px_rgba(0,255,117,0.30)]">
@@ -781,7 +798,7 @@ export function StickerCustomizer() {
                   isDraggingOverCanvas && "outline-dashed outline-2 outline-offset-4 outline-green-400"
                 )}
                 onDrop={handleDropOnCanvas}
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
                 onDragEnter={() => setIsDraggingOverCanvas(true)}
                 onDragLeave={() => setIsDraggingOverCanvas(false)}
               >
