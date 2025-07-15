@@ -537,28 +537,33 @@ export function StickerCustomizer() {
       // Switching to Custom Layout
       const currentDesign = appState.designLibrary.find(d => d.sourceType !== 'text');
       if (!currentDesign || !canvasRef.current) {
-        setAppState(s => ({
-          ...s,
-          stickerSheet: { ...s.stickerSheet, settings: { ...s.stickerSheet.settings, autoPackEnabled: false } },
-          stickers: [] // Clear stickers if no design is available
-        }));
+        toast({
+          variant: 'destructive',
+          title: 'No Design Available',
+          description: 'Please add a design to the library before enabling custom layout.',
+        });
+        setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, settings: {...s.stickerSheet.settings, autoPackEnabled: true}}}));
         return;
       }
-  
+      
       const canvasRect = canvasRef.current.getBoundingClientRect();
-      const newStickers: StickerInstance[] = [];
       const { rows, cols } = sheetLayout;
       const cellWidth = canvasRect.width / cols;
       const cellHeight = canvasRect.height / rows;
-      const padding = 8; // p-2
+      const padding = 8; // Corresponds to p-2 in Tailwind
+      const gap = 8; // Corresponds to gap-2 in Tailwind
       
-      const stickerWidth = cellWidth - (padding * 2);
-      const stickerHeight = cellHeight - (padding * 2);
-  
+      const stickerBaseWidth = (canvasRect.width - (gap * (cols - 1)) - (padding * 2)) / cols;
+      const stickerBaseHeight = (canvasRect.height - (gap * (rows - 1)) - (padding * 2)) / rows;
+
+      const stickerWidth = stickerBaseWidth;
+      const stickerHeight = stickerBaseHeight;
+
+      const newStickers: StickerInstance[] = [];
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
-          const x = (j * cellWidth) + padding;
-          const y = (i * cellHeight) + padding;
+          const x = padding + j * (stickerWidth + gap);
+          const y = padding + i * (stickerHeight + gap);
           const stickerId = `inst_grid_${i}_${j}`;
   
           newStickers.push({
@@ -585,6 +590,7 @@ export function StickerCustomizer() {
       }));
     }
   };
+
 
   const renderDesignControls = () => {
     switch (stickerType) {
@@ -1260,5 +1266,7 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
 
     
