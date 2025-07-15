@@ -442,12 +442,12 @@ export function StickerCustomizer() {
             </CustomizationSection>
             <CustomizationSection title="Design Library">
               <div className="space-y-4">
-                  <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-4 text-center text-gray-400">
-                    <Library className="mx-auto h-8 w-8 mb-2" />
-                    <p>Your design library will appear here.</p>
-                    <p className="text-xs">Add designs by using the controls below.</p>
+                  <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-4 text-center text-gray-400 flex flex-col justify-center items-center">
+                    <Library className="h-8 w-8 mb-2" />
+                    <p>Your design library is empty.</p>
+                    <p className="text-xs">Add designs using the controls below.</p>
                   </div>
-                   <Button className="w-full" variant="outline"><ImagePlus className="mr-2 h-4 w-4"/>Add New Design</Button>
+                   <Button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold"><ImagePlus className="mr-2 h-4 w-4"/>Add New Design</Button>
               </div>
             </CustomizationSection>
           </>
