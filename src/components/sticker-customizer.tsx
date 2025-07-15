@@ -7,7 +7,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Minus, Plus } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Minus, Plus, Scissors, Type, SheetIcon } from 'lucide-react';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
 import { addBorder } from '@/ai/flows/add-border-flow';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ContourCutIcon } from '@/components/icons';
+
 
 const BORDER_WIDTHS = ["thin", "medium", "thick", "extra-thick"];
 const BORDER_COLORS = [
@@ -142,7 +145,7 @@ export function StickerCustomizer() {
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState>(initialAppState);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("");
+  const [loadingText] = useState("");
   const [activeStickerId, setActiveStickerId] = useState<string | null>(null);
 
   const [finish, setFinish] = useState(finishes[0].id);
@@ -153,6 +156,7 @@ export function StickerCustomizer() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [stickerType, setStickerType] = useState('die-cut');
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -377,7 +381,7 @@ export function StickerCustomizer() {
           <div className="flex flex-col space-y-6">
           <header>
               <h1 className="text-3xl md:text-4xl font-bold font-headline tracking-tight text-gray-100">
-                  Sticker Sheet Editor
+                  Create Your Sticker
               </h1>
               <div className="mt-2 flex items-center gap-4">
                   <div className="flex items-center gap-1">
@@ -393,6 +397,41 @@ export function StickerCustomizer() {
               </div>
             </header>
             
+            <CustomizationSection title="Product Type">
+              <Select value={stickerType} onValueChange={setStickerType}>
+                  <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-200 h-12 text-base">
+                      <SelectValue placeholder="Select a product type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-600 text-gray-200">
+                      <SelectItem value="die-cut">
+                          <div className="flex items-center gap-3">
+                              <Scissors className="h-5 w-5 text-green-400" />
+                              <span className="font-semibold">Die-cut Stickers</span>
+                          </div>
+                      </SelectItem>
+                      <SelectItem value="sheet">
+                          <div className="flex items-center gap-3">
+                              <SheetIcon className="h-5 w-5 text-blue-400" />
+                              <span className="font-semibold">Sticker Sheets</span>
+                          </div>
+                      </SelectItem>
+                      <SelectItem value="kiss-cut">
+                         <div className="flex items-center gap-3">
+                              <ContourCutIcon className="h-5 w-5 text-purple-400" />
+                              <span className="font-semibold">Kiss-cut Stickers</span>
+                          </div>
+                      </SelectItem>
+                      <SelectItem value="decal">
+                         <div className="flex items-center gap-3">
+                              <Type className="h-5 w-5 text-red-400" />
+                              <span className="font-semibold">Text Decals</span>
+                          </div>
+                      </SelectItem>
+                  </SelectContent>
+              </Select>
+            </CustomizationSection>
+
+
             <CustomizationSection title="Add a Design">
               <Tabs defaultValue="generate" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-gray-800 text-gray-400">
@@ -450,16 +489,7 @@ export function StickerCustomizer() {
               </Tabs>
             </CustomizationSection>
             
-            <Accordion type="multiple" defaultValue={['sheet-settings', 'quantity']} className="w-full">
-              <AccordionItem value="sheet-settings" className="border-gray-200/10">
-                <AccordionTrigger className="text-lg font-semibold text-gray-200">Sheet Settings</AccordionTrigger>
-                <AccordionContent>
-                  <div className="flex items-center gap-4">
-                      {/* Sheet settings like size and auto-pack will go here */}
-                      <p className="text-gray-400 text-sm">Sheet configuration options will be available here.</p>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+            <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full">
               <AccordionItem value="material" className="border-gray-200/10">
                 <AccordionTrigger className="text-lg font-semibold text-gray-200">Material</AccordionTrigger>
                 <AccordionContent>
