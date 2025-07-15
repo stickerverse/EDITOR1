@@ -693,7 +693,43 @@ export function StickerCustomizer() {
   }
 
   const renderCanvasContent = () => {
-    if (stickerType === 'sheet' && appState.stickerSheet.settings.autoPackEnabled) {
+    // For sheet product type, render the grid or stickers
+    if (stickerType === 'sheet') {
+      // If auto-pack is on, always show the grid layout
+      if (appState.stickerSheet.settings.autoPackEnabled) {
+        return (
+          <div 
+            className="grid w-full h-full gap-2 p-2"
+            style={{
+              gridTemplateRows: `repeat(${sheetLayout.rows}, 1fr)`,
+              gridTemplateColumns: `repeat(${sheetLayout.cols}, 1fr)`,
+            }}
+          >
+            {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
+              <div key={i} className="relative w-full h-full bg-gray-700/50 rounded-md flex items-center justify-center">
+                {imageToDisplay ? (
+                  <Image
+                    src={imageToDisplay}
+                    alt={`Sticker preview ${i + 1}`}
+                    fill
+                    sizes="(max-width: 768px) 10vw, 5vw"
+                    className="object-contain p-1"
+                  />
+                ) : (
+                  <ImagePlus className="h-6 w-6 text-gray-500"/>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      }
+      
+      // If auto-pack is off, show draggable stickers if any, or empty state
+      if (appState.stickers.length > 0) {
+        return appState.stickers.map(renderStickerInstance);
+      }
+      
+      // If no stickers and auto-pack is off, show the grid structure as a guide
       return (
         <div 
           className="grid w-full h-full gap-2 p-2"
@@ -703,31 +739,22 @@ export function StickerCustomizer() {
           }}
         >
           {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-            <div key={i} className="relative w-full h-full bg-gray-700/50 rounded-md flex items-center justify-center">
-              {imageToDisplay ? (
-                <Image
-                  src={imageToDisplay}
-                  alt={`Sticker preview ${i + 1}`}
-                  fill
-                  sizes="(max-width: 768px) 10vw, 5vw"
-                  className="object-contain p-1"
-                />
-              ) : (
-                <ImagePlus className="h-6 w-6 text-gray-500"/>
-              )}
+            <div key={i} className="w-full h-full bg-gray-700/10 border border-dashed border-gray-600/50 rounded-md flex items-center justify-center">
+               <ImagePlus className="h-6 w-6 text-gray-500/50"/>
             </div>
           ))}
         </div>
-      )
+      );
     }
     
+    // For other product types (die-cut, kiss-cut, decal)
     if (appState.stickers.length > 0) {
       return appState.stickers.map(renderStickerInstance);
     }
 
     return (
       <div className="text-center text-gray-500">
-        <p className="text-lg font-semibold">Sticker Sheet</p>
+        <p className="text-lg font-semibold">Sticker Canvas</p>
         <p className="text-sm">Select a product and add a design to start.</p>
       </div>
     );
@@ -917,3 +944,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
