@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, Trash2, GripVertical } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { ContourCutIcon } from '@/components/icons';
 import {
   DropdownMenu,
@@ -101,6 +102,12 @@ const initialAppState: AppState = {
   stickers: [],
 };
 
+type DragDataType = {
+    type: 'sticker' | 'design';
+    id: string;
+    offsetX: number;
+    offsetY: number;
+}
 
 function CustomizationSection({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
@@ -138,7 +145,8 @@ export function StickerCustomizer() {
   const [quantity, setQuantity] = useState(quantityOptions[0].quantity);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
+  const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [stickerType, setStickerType] = useState('die-cut');
 
@@ -188,21 +196,22 @@ export function StickerCustomizer() {
     return newDesign;
   }
 
-  const addStickerToSheet = (designId: string) => {
+  const addStickerToSheet = (designId: string, position?: {x: number, y: number}) => {
     const stickerId = `inst_${Math.random().toString(36).substr(2, 9)}`;
     const newSticker: StickerInstance = {
       stickerId,
       designId,
-      position: { x: 1, y: 1, unit: 'inches' },
-      size: { width: 3, height: 3, unit: 'inches' },
+      position: position ? { ...position, unit: 'px' } : { x: 50, y: 50, unit: 'px' },
+      size: { width: 100, height: 100, unit: 'px' },
       rotation: 0,
       cutLine: { type: stickerType === 'kiss-cut' ? 'kiss_cut' : 'die_cut', offset: 0.1, shape: 'auto' },
     };
 
-    setAppState(current => ({
-      ...current,
-      stickers: [newSticker], // For single stickers, replace the existing one. For sheets, append.
-    }));
+    setAppState(current => {
+      const isSingleStickerMode = stickerType === 'die-cut' || stickerType === 'kiss-cut';
+      const newStickers = isSingleStickerMode ? [newSticker] : [...current.stickers, newSticker];
+      return { ...current, stickers: newStickers };
+    });
     setActiveStickerId(stickerId);
   }
 
@@ -224,7 +233,7 @@ export function StickerCustomizer() {
             setUploadedFileName(file.name);
             toast({
                 title: "Image Uploaded",
-                description: `${file.name} is added to your sheet.`,
+                description: `${file.name} is added to your library.`,
             });
         };
         reader.readAsDataURL(file);
@@ -244,32 +253,6 @@ export function StickerCustomizer() {
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      processFile(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
 
   const handleGenerateSticker = async () => {
     if (!prompt) {
@@ -294,7 +277,7 @@ export function StickerCustomizer() {
         addStickerToSheet(newDesign.designId);
         toast({
           title: "Sticker Generated!",
-          description: "Your new design has been added to the sheet.",
+          description: "Your new design has been added.",
         });
       } else {
         throw new Error("Image generation failed to return data.");
@@ -310,6 +293,60 @@ export function StickerCustomizer() {
       setIsGenerating(false);
     }
   };
+  
+  const handleDragStart = (e: React.DragEvent, type: 'sticker' | 'design', id: string) => {
+    const target = e.target as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+
+    const dragData: DragDataType = { type, id, offsetX, offsetY };
+    e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDropOnCanvas = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingOverCanvas(false);
+    const canvasRect = e.currentTarget.getBoundingClientRect();
+    const dataString = e.dataTransfer.getData('application/json');
+    if (!dataString) return;
+
+    const data: DragDataType = JSON.parse(dataString);
+    const x = e.clientX - canvasRect.left - data.offsetX;
+    const y = e.clientY - canvasRect.top - data.offsetY;
+
+    if (data.type === 'sticker') { // Moving an existing sticker
+        setAppState(current => ({
+            ...current,
+            stickers: current.stickers.map(s => 
+                s.stickerId === data.id ? { ...s, position: { ...s.position, x, y } } : s
+            )
+        }));
+    } else if (data.type === 'design') { // Adding a new sticker from the library
+        addStickerToSheet(data.id, { x, y });
+    }
+  };
+  
+  const handleDropOnTrash = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingOverTrash(false);
+    const dataString = e.dataTransfer.getData('application/json');
+    if (!dataString) return;
+
+    const data: DragDataType = JSON.parse(dataString);
+    if (data.type === 'sticker') {
+        setAppState(current => ({
+            ...current,
+            stickers: current.stickers.filter(s => s.stickerId !== data.id)
+        }));
+        toast({
+            title: "Sticker Removed",
+            description: "The sticker has been removed from your sheet.",
+        });
+    }
+  };
+
 
   const handleAddTextDecal = () => {
     const newDesign = addDesignToLibrary({
@@ -332,7 +369,7 @@ export function StickerCustomizer() {
   const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
   const activeDesign = activeSticker ? appState.designLibrary.find(d => d.designId === activeSticker.designId) : null;
   
-  const imageToDisplay = activeDesign?.sourceUrl;
+  const imageToDisplay = activeSticker ? activeDesign?.sourceUrl : appState.designLibrary[0]?.sourceUrl;
 
 
   const renderDesignControls = () => {
@@ -370,10 +407,9 @@ export function StickerCustomizer() {
                         htmlFor="picture"
                         className={cn(
                             "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-[#1f1f1f] hover:bg-gray-800 transition-colors border-gray-600",
-                            isDragging && "border-green-400 bg-green-900/20",
+                            isDraggingOverCanvas && "border-green-400 bg-green-900/20",
                             uploadedFileName && "border-green-500 bg-green-900/20"
                         )}
-                        onDrop={handleDrop} onDragOver={handleDragOver} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave}
                     >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                             {uploadedFileName ? (
@@ -401,53 +437,100 @@ export function StickerCustomizer() {
         return (
           <>
             <CustomizationSection title="Sheet Configuration">
-              <DropdownMenu onOpenChange={() => setHoveredLayout({rows: 0, cols: 0})}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between bg-gray-800 border-gray-600 text-gray-200 h-12 text-base">
-                    <span>{sheetLayout.rows} &times; {sheetLayout.cols} Layout</span>
-                    <LayoutGrid className="h-5 w-5 text-gray-400" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[200px] bg-gray-800 border-gray-600 p-2">
-                  <div 
-                    className="grid grid-cols-5 gap-1"
-                    onMouseLeave={() => setHoveredLayout({rows: 0, cols: 0})}
-                  >
-                    {Array.from({ length: 25 }).map((_, i) => {
-                      const row = Math.floor(i / 5) + 1;
-                      const col = (i % 5) + 1;
-                      const isHovered = row <= hoveredLayout.rows && col <= hoveredLayout.cols;
-                      const isSelected = row === sheetLayout.rows && col === sheetLayout.cols;
-
-                      return (
-                        <div
-                          key={i}
-                          onMouseEnter={() => setHoveredLayout({ rows: row, cols: col })}
-                          onClick={() => setSheetLayout({ rows: row, cols: col })}
-                          className={cn(
-                            "w-8 h-8 rounded-sm cursor-pointer transition-colors duration-150",
-                            "border border-gray-600",
-                            isHovered ? "bg-green-500/50 border-green-400" : "bg-gray-700",
-                            isSelected && "bg-green-500 !border-green-300 ring-2 ring-white"
-                          )}
-                        />
-                      );
-                    })}
-                  </div>
-                   <div className="text-center text-gray-400 text-sm mt-2 h-4">
-                     {hoveredLayout.rows > 0 && `${hoveredLayout.rows} \u00D7 ${hoveredLayout.cols}`}
-                   </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center space-x-4 rounded-lg bg-gray-800 p-3 border border-gray-600">
+                <div className="flex-1">
+                  <Label htmlFor="auto-pack" className="text-gray-200 font-semibold">Auto-pack stickers</Label>
+                  <p className="text-xs text-gray-400">Automatically arrange stickers for best fit.</p>
+                </div>
+                <Switch
+                  id="auto-pack"
+                  checked={appState.stickerSheet.settings.autoPackEnabled}
+                  onCheckedChange={(checked) => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, settings: {...s.stickerSheet.settings, autoPackEnabled: checked}}}))}
+                />
+              </div>
             </CustomizationSection>
             <CustomizationSection title="Design Library">
               <div className="space-y-4">
-                  <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-4 text-center text-gray-400 flex flex-col justify-center items-center">
-                    <Library className="h-8 w-8 mb-2" />
-                    <p>Your design library is empty.</p>
-                    <p className="text-xs">Add designs using the controls below.</p>
+                  <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-2 flex gap-2 overflow-x-auto">
+                    {appState.designLibrary.length === 0 ? (
+                       <div className="w-full text-center text-gray-400 flex flex-col justify-center items-center p-4">
+                          <Library className="h-8 w-8 mb-2" />
+                          <p className="text-sm">Your design library is empty.</p>
+                          <p className="text-xs">Generate or upload a design to start.</p>
+                        </div>
+                    ) : (
+                      appState.designLibrary.map(design => (
+                        <div 
+                          key={design.designId}
+                          className="relative w-24 h-24 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, 'design', design.designId)}
+                        >
+                           {design.sourceType === 'text' && design.textData ? (
+                             <div 
+                                className="w-full h-full flex items-center justify-center bg-gray-700 rounded-md p-1 overflow-hidden"
+                                style={{
+                                    color: design.textData.color,
+                                    fontFamily: design.textData.font,
+                                }}
+                             >
+                                <span className="text-sm font-bold break-words text-center leading-tight">
+                                    {design.textData.content}
+                                </span>
+                             </div>
+                           ) : design.sourceUrl ? (
+                              <Image 
+                                src={design.sourceUrl}
+                                alt={design.fileName || design.aiPrompt || 'sticker design'}
+                                fill
+                                sizes="96px"
+                                className="object-contain bg-gray-700/50 rounded-md"
+                              />
+                           ) : null}
+                           <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <GripVertical className="text-white"/>
+                           </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                   <Button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold"><ImagePlus className="mr-2 h-4 w-4"/>Add New Design</Button>
+                   <Tabs defaultValue="generate" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 bg-gray-800 text-gray-400">
+                        <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
+                        <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
+                        <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="generate" className="mt-4">
+                        <div className="space-y-2">
+                            <Textarea
+                                placeholder="e.g., A cute baby panda developer"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                rows={2}
+                                className="bg-gray-800 border-gray-600 text-gray-200"
+                            />
+                            <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
+                                {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating</> : <><Sparkles className="mr-2 h-4 w-4" />Generate</>}
+                            </Button>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="upload" className="mt-4">
+                        <Input id="picture-library" type="file" accept="image/*" className="w-full bg-gray-800 border-gray-600" onChange={handleImageUpload} />
+                    </TabsContent>
+                    <TabsContent value="text" className="mt-4">
+                        <div className="space-y-2">
+                           <Input 
+                                placeholder="Your Text Here"
+                                value={decalText}
+                                onChange={(e) => setDecalText(e.target.value)}
+                                className="bg-gray-800 border-gray-600 text-gray-200"
+                            />
+                           <Button onClick={handleAddTextDecal} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
+                                <Type className="mr-2 h-4 w-4" /> Add Text to Library
+                            </Button>
+                        </div>
+                    </TabsContent>
+                   </Tabs>
               </div>
             </CustomizationSection>
           </>
@@ -499,9 +582,79 @@ export function StickerCustomizer() {
         return null;
     }
   }
+  
+  const renderStickerInstance = (sticker: StickerInstance) => {
+    const design = appState.designLibrary.find(d => d.designId === sticker.designId);
+    if (!design) return null;
+
+    const isDraggable = stickerType === 'sheet' && !appState.stickerSheet.settings.autoPackEnabled;
+
+    if (design.sourceType === 'text' && design.textData) {
+        return (
+            <div
+                key={sticker.stickerId}
+                draggable={isDraggable}
+                onDragStart={(e) => handleDragStart(e, 'sticker', sticker.stickerId)}
+                onClick={() => setActiveStickerId(sticker.stickerId)}
+                className={cn(
+                    "absolute flex items-center justify-center p-2 break-words text-center select-none",
+                    isDraggable && "cursor-grab active:cursor-grabbing",
+                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-green-400"
+                )}
+                style={{
+                    left: `${sticker.position.x}px`,
+                    top: `${sticker.position.y}px`,
+                    width: `${sticker.size.width}px`,
+                    height: `${sticker.size.height}px`,
+                    transform: `rotate(${sticker.rotation}deg)`,
+                    color: design.textData.color,
+                    fontFamily: design.textData.font,
+                }}
+            >
+                <span className="text-4xl lg:text-6xl font-bold p-4 break-words text-center">
+                    {design.textData.content}
+                </span>
+            </div>
+        )
+    }
+
+    if (design.sourceUrl) {
+        return (
+            <div
+                key={sticker.stickerId}
+                draggable={isDraggable}
+                onDragStart={(e) => handleDragStart(e, 'sticker', sticker.stickerId)}
+                onClick={() => setActiveStickerId(sticker.stickerId)}
+                className={cn(
+                    "absolute select-none",
+                    isDraggable && "cursor-grab active:cursor-grabbing",
+                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-green-400 rounded-md"
+                )}
+                style={{
+                    left: `${sticker.position.x}px`,
+                    top: `${sticker.position.y}px`,
+                    width: `${sticker.size.width}px`,
+                    height: `${sticker.size.height}px`,
+                    transform: `rotate(${sticker.rotation}deg)`,
+                }}
+            >
+                <Image
+                    src={design.sourceUrl}
+                    alt="sticker instance"
+                    fill
+                    sizes="(max-width: 768px) 10vw, 100px"
+                    className="object-contain pointer-events-none"
+                    priority={sticker.stickerId === activeStickerId}
+                />
+            </div>
+        );
+    }
+
+    return null;
+  }
 
   const renderCanvasContent = () => {
-    if (stickerType === 'sheet') {
+    if (stickerType === 'sheet' && appState.stickerSheet.settings.autoPackEnabled) {
       return (
         <div 
           className="grid w-full h-full gap-2 p-2"
@@ -528,32 +681,9 @@ export function StickerCustomizer() {
         </div>
       )
     }
-
-    if (activeDesign && activeDesign.sourceType === 'text' && activeDesign.textData) {
-      return (
-        <div 
-          style={{
-            color: activeDesign.textData.color,
-            fontFamily: activeDesign.textData.font,
-          }}
-          className="text-4xl lg:text-6xl font-bold p-4 break-words text-center"
-        >
-            {activeDesign.textData.content}
-        </div>
-      );
-    }
-
-    if (imageToDisplay) {
-      return (
-        <Image
-          src={imageToDisplay}
-          alt="Active Sticker Preview"
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-contain"
-          priority
-        />
-      );
+    
+    if (appState.stickers.length > 0) {
+      return appState.stickers.map(renderStickerInstance);
     }
 
     return (
@@ -570,26 +700,40 @@ export function StickerCustomizer() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
             <div className="w-full max-w-lg aspect-square overflow-hidden p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 transition-all duration-300 hover:shadow-[0_0_30px_1px_rgba(0,255,117,0.30)]">
-              <div className="relative bg-gray-800 rounded-[18px] w-full h-full flex items-center justify-center p-4 transition-all duration-200 group-hover:scale-[0.98]">
+              <div 
+                className={cn(
+                  "relative bg-gray-800 rounded-[18px] w-full h-full p-0 transition-all duration-200 group-hover:scale-[0.98]",
+                  isDraggingOverCanvas && "outline-dashed outline-2 outline-offset-4 outline-green-400"
+                )}
+                onDrop={handleDropOnCanvas}
+                onDragOver={(e) => { e.preventDefault(); setIsDraggingOverCanvas(true); }}
+                onDragLeave={() => setIsDraggingOverCanvas(false)}
+              >
               {isLoading && (
-                <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10 rounded-[18px]">
+                <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 rounded-[18px]">
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
                   <p className="text-white mt-4 font-semibold">{loadingText}</p>
                 </div>
               )}
                 {/* This area will become the sticker sheet canvas */}
-                <div className="w-full h-full border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center">
+                <div className="w-full h-full border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center relative overflow-hidden">
                   {renderCanvasContent()}
                 </div>
               </div>
             </div>
-           {activeStickerId && (
-            <ThemedCard className="w-full max-w-lg">
-                <div className="flex flex-col gap-4">
-                    {/* Controls for the selected sticker will go here */}
-                    <p className="text-gray-300 text-center">Controls for active sticker (ID: {activeStickerId}) will appear here.</p>
-                </div>
-            </ThemedCard>
+           {stickerType === 'sheet' && (
+             <div 
+                onDrop={handleDropOnTrash}
+                onDragOver={(e) => { e.preventDefault(); setIsDraggingOverTrash(true); }}
+                onDragLeave={() => setIsDraggingOverTrash(false)}
+                className={cn(
+                    "flex items-center justify-center gap-2 rounded-lg p-3 w-48 transition-colors",
+                    isDraggingOverTrash ? "bg-red-500/20 text-red-400" : "bg-gray-800 text-gray-500"
+                )}
+            >
+                <Trash2 className="h-5 w-5" />
+                <span>Drag here to remove</span>
+            </div>
            )}
         </div>
         
