@@ -341,12 +341,14 @@ export function StickerCustomizer() {
   const handleDropOnTrash = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingOverTrash(false);
-    if (dragAction?.type === 'move') {
+    const stickerIdToRemove = e.dataTransfer.getData('application/sticker-id');
+
+    if (stickerIdToRemove) {
         setAppState(current => ({
             ...current,
-            stickers: current.stickers.filter(s => s.stickerId !== dragAction.stickerId)
+            stickers: current.stickers.filter(s => s.stickerId !== stickerIdToRemove)
         }));
-        if (activeStickerId === dragAction.stickerId) {
+        if (activeStickerId === stickerIdToRemove) {
           setActiveStickerId(null);
         }
         toast({
@@ -354,7 +356,6 @@ export function StickerCustomizer() {
             description: "The sticker has been removed from your sheet.",
         });
     }
-    setDragAction(null);
   };
 
 
@@ -419,6 +420,14 @@ export function StickerCustomizer() {
     if (!targetSticker) return;
     
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    
+    if (type === 'move') {
+      (e.currentTarget as HTMLElement).draggable = true;
+      e.currentTarget.addEventListener('dragstart', (de) => {
+        de.dataTransfer?.setData('application/sticker-id', stickerId);
+      });
+    }
+    
     setActiveStickerId(stickerId);
     setDragAction({
         type,
@@ -450,8 +459,14 @@ export function StickerCustomizer() {
         if (!design) return;
 
         const newWidth = originalSticker.size.width + dx;
-        const aspectRatio = design.originalDimensions.width / design.originalDimensions.height;
-        const newHeight = isAspectRatioLocked ? newWidth / aspectRatio : originalSticker.size.height + dy;
+        let newHeight = originalSticker.size.height + dy;
+        
+        if(isAspectRatioLocked) {
+            const aspectRatio = design.sourceType === 'text' 
+                ? originalSticker.size.width / originalSticker.size.height 
+                : design.originalDimensions.width / design.originalDimensions.height;
+            newHeight = newWidth / aspectRatio;
+        }
 
         if (newWidth > 10 && newHeight > 10) {
             setAppState(current => ({
@@ -789,6 +804,7 @@ export function StickerCustomizer() {
     const isSelected = activeStickerId === sticker.stickerId;
 
     if (design.sourceType === 'text' && design.textData) {
+        const fontSize = sticker.size.width / 10;
         return (
             <div
                 id={`sticker-${sticker.stickerId}`}
@@ -807,9 +823,11 @@ export function StickerCustomizer() {
                     transform: `rotate(${sticker.rotation}deg)`,
                     color: design.textData.color,
                     fontFamily: design.textData.font,
+                    fontSize: `${fontSize}px`,
+                    lineHeight: 1,
                 }}
             >
-                <span className="text-4xl lg:text-6xl font-bold p-4 break-words text-center pointer-events-none">
+                <span className="font-bold pointer-events-none">
                     {design.textData.content}
                 </span>
                 {isSelected && (
@@ -857,6 +875,20 @@ export function StickerCustomizer() {
                     className="object-contain pointer-events-none"
                     priority={sticker.stickerId === activeStickerId}
                 />
+                 {isSelected && (
+                    <>
+                        <div
+                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-indigo-400 rounded-full cursor-se-resize"
+                            onPointerDown={(e) => handlePointerDown(e, 'resize-br', sticker.stickerId)}
+                        />
+                        <div
+                            className="absolute -top-2 -right-2 w-4 h-4 bg-indigo-400 rounded-full cursor-grab"
+                            onPointerDown={(e) => handlePointerDown(e, 'rotate', sticker.stickerId)}
+                        >
+                          <RotateCw className="w-full h-full p-0.5 text-slate-900" />
+                        </div>
+                    </>
+                )}
             </div>
         );
     }
