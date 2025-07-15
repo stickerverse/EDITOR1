@@ -3,33 +3,20 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Minus, Plus, Scissors, Type, SheetIcon } from 'lucide-react';
-import { removeBackground } from '@/ai/flows/remove-background-flow';
-import { addBorder } from '@/ai/flows/add-border-flow';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive } from 'lucide-react';
+import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
-import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { ContourCutIcon } from '@/components/icons';
 
-
-const BORDER_WIDTHS = ["thin", "medium", "thick", "extra-thick"];
-const BORDER_COLORS = [
-  { value: "white", label: "White", color: "#FFFFFF" },
-  { value: "black", label: "Black", color: "#000000" },
-  { value: "red", label: "Red", color: "#EF4444" },
-  { value: "blue", label: "Blue", color: "#3B82F6" },
-  { value: "green", label: "Green", color: "#22C55E" },
-];
 
 const materials = [
   { id: 'vinyl', name: 'Vinyl', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/06/08/4d0ae46e9e164daa9171d70e51cd46c7acaa2419.png' },
@@ -45,12 +32,6 @@ const materials = [
   { id: 'reflective', name: 'Reflective', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2024/10/16/3980001d8c15a7ed2b727613c425f8290de317cd.png' },
   { id: 'glow_in_the_dark', name: 'Glow In The Dark', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/c23d3c3023560c21da44135bd142dc04affa380e.png' },
   { id: 'low_tack_vinyl', name: 'Low-Tack Vinyl', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/06/08/4d0ae46e9e164daa9171d70e51cd46c7acaa2419.png', outOfStock: true },
-];
-
-const finishes = [
-  { id: 'glossy', name: 'Glossy', description: 'Shiny and vibrant, great for outdoors.' },
-  { id: 'matte', name: 'Matte', description: 'Smooth, non-reflective, premium feel.' },
-  { id: 'cracked_ice', name: 'Cracked Ice', description: 'Holographic with a shattered glass look.' },
 ];
 
 const quantityOptions = [
@@ -75,14 +56,16 @@ interface StickerSheet {
 
 interface Design {
   designId: string;
-  sourceType: 'upload' | 'ai_generated' | 'library';
-  sourceUrl: string;
-  originalDimensions: { width: number; height: number; unit: string; };
+  sourceType: 'upload' | 'ai_generated' | 'library' | 'text';
+  sourceUrl?: string; // Optional for text
+  originalDimensions?: { width: number; height: number; unit: string; };
   fileName?: string;
   aiPrompt?: string;
-  // Client-side only properties for processing
-  bgRemovedUrl?: string;
-  borderedUrls?: Record<string, string>;
+  textData?: {
+    content: string;
+    font: string;
+    color: string;
+  }
 }
 
 interface StickerInstance {
@@ -145,18 +128,20 @@ export function StickerCustomizer() {
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState>(initialAppState);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingText] = useState("");
+  const [loadingText, setLoadingText] = useState("");
   const [activeStickerId, setActiveStickerId] = useState<string | null>(null);
 
-  const [finish, setFinish] = useState(finishes[0].id);
-  const [width, setWidth] = useState(3);
-  const [height, setHeight] = useState(3);
   const [quantity, setQuantity] = useState(quantityOptions[0].quantity);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [stickerType, setStickerType] = useState('die-cut');
+
+  // State for Text Decals
+  const [decalText, setDecalText] = useState('Your Text Here');
+  const [decalFont, setDecalFont] = useState('serif');
+  const [decalColor, setDecalColor] = useState('#FFFFFF');
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -203,12 +188,12 @@ export function StickerCustomizer() {
       position: { x: 1, y: 1, unit: 'inches' },
       size: { width: 3, height: 3, unit: 'inches' },
       rotation: 0,
-      cutLine: { type: 'die_cut', offset: 0.1, shape: 'auto' },
+      cutLine: { type: stickerType === 'kiss-cut' ? 'kiss_cut' : 'die_cut', offset: 0.1, shape: 'auto' },
     };
 
     setAppState(current => ({
       ...current,
-      stickers: [...current.stickers, newSticker],
+      stickers: [newSticker], // For single stickers, replace the existing one. For sheets, append.
     }));
     setActiveStickerId(stickerId);
   }
@@ -318,21 +303,152 @@ export function StickerCustomizer() {
     }
   };
 
-  const handleSizeChange = (type: 'w' | 'h', value: number) => {
-    if (value >= 1) {
-      if (type === 'w') setWidth(value);
-      if (type === 'h') setHeight(value);
-    }
+  const handleAddTextDecal = () => {
+    const newDesign = addDesignToLibrary({
+      sourceType: 'text',
+      textData: {
+        content: decalText,
+        font: decalFont,
+        color: decalColor,
+      }
+    });
+    addStickerToSheet(newDesign.designId);
+    toast({
+      title: "Text Decal Added",
+      description: "Your text has been added to the sheet."
+    });
   }
+
 
   // Find the active sticker and its design
   const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
   const activeDesign = activeSticker ? appState.designLibrary.find(d => d.designId === activeSticker.designId) : null;
   
-  // NOTE: The remove background and add border logic will need to be adapted
-  // to work with the new data model. For now, it is non-functional.
-
   const imageToDisplay = activeDesign?.sourceUrl;
+
+
+  const renderDesignControls = () => {
+    switch (stickerType) {
+      case 'die-cut':
+      case 'kiss-cut':
+        return (
+          <CustomizationSection title="Add a Design">
+            <Tabs defaultValue="generate" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-gray-800 text-gray-400">
+                <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
+                <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
+              </TabsList>
+              <TabsContent value="generate" className="mt-4">
+                <div className="space-y-4">
+                    <Textarea
+                        placeholder="e.g., A cute baby panda developer writing code"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        rows={3}
+                        className="bg-gray-800 border-gray-600 text-gray-200 focus:ring-green-400"
+                    />
+                    <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
+                        {isGenerating ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
+                        ) : (
+                            <><Sparkles className="mr-2 h-4 w-4" />Generate Design</>
+                        )}
+                    </Button>
+                </div>
+              </TabsContent>
+              <TabsContent value="upload" className="mt-4">
+                <div className="space-y-2">
+                    <Label
+                        htmlFor="picture"
+                        className={cn(
+                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-[#1f1f1f] hover:bg-gray-800 transition-colors border-gray-600",
+                            isDragging && "border-green-400 bg-green-900/20",
+                            uploadedFileName && "border-green-500 bg-green-900/20"
+                        )}
+                        onDrop={handleDrop} onDragOver={handleDragOver} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave}
+                    >
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                            {uploadedFileName ? (
+                                <>
+                                    <FileCheck2 className="w-8 h-8 mb-2 text-green-500" />
+                                    <p className="font-semibold text-green-500">File Uploaded!</p>
+                                    <p className="text-xs text-gray-400 truncate max-w-xs">{uploadedFileName}</p>
+                                </>
+                            ) : (
+                                <>
+                                    <ImagePlus className="w-8 h-8 mb-2 text-gray-500" />
+                                    <p className="mb-1 text-sm text-gray-400"><span className="font-semibold text-green-400">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-gray-500">PNG, JPG, or WEBP</p>
+                                </>
+                            )}
+                        </div>
+                        <Input id="picture" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+                    </Label>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CustomizationSection>
+        );
+      case 'sheet':
+        return (
+          <CustomizationSection title="Design Library">
+            <div className="space-y-4">
+                <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-4 text-center text-gray-400">
+                  <Library className="mx-auto h-8 w-8 mb-2" />
+                  <p>Your design library will appear here.</p>
+                  <p className="text-xs">Add designs by using the controls below.</p>
+                </div>
+                 <Button className="w-full" variant="outline"><ImagePlus className="mr-2 h-4 w-4"/>Add New Design</Button>
+            </div>
+          </CustomizationSection>
+        );
+      case 'decal':
+        return (
+          <CustomizationSection title="Create Text Decal">
+            <div className="space-y-4">
+              <Textarea
+                placeholder="Your Text Here"
+                value={decalText}
+                onChange={(e) => setDecalText(e.target.value)}
+                rows={3}
+                className="bg-gray-800 border-gray-600 text-gray-200 focus:ring-green-400 text-lg"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="font-select" className="text-gray-400 mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
+                  <Select value={decalFont} onValueChange={setDecalFont}>
+                    <SelectTrigger id="font-select" className="bg-gray-800 border-gray-600 text-gray-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-600 text-gray-200">
+                      <SelectItem value="serif">Serif</SelectItem>
+                      <SelectItem value="sans-serif">Sans-Serif</SelectItem>
+                      <SelectItem value="monospace">Monospace</SelectItem>
+                      <SelectItem value="cursive">Cursive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                   <Label htmlFor="color-picker" className="text-gray-400 mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
+                   <Input 
+                      id="color-picker"
+                      type="color" 
+                      value={decalColor}
+                      onChange={(e) => setDecalColor(e.target.value)}
+                      className="w-full h-10 p-1 bg-gray-800 border-gray-600"
+                    />
+                </div>
+              </div>
+              <Button onClick={handleAddTextDecal} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
+                <Type className="mr-2 h-4 w-4" /> Add Text to Sheet
+              </Button>
+            </div>
+          </CustomizationSection>
+        );
+      default:
+        return null;
+    }
+  }
 
 
   return (
@@ -349,7 +465,17 @@ export function StickerCustomizer() {
               )}
                 {/* This area will become the sticker sheet canvas */}
                 <div className="w-full h-full border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center text-gray-500">
-                    {imageToDisplay ? (
+                    {activeDesign && activeDesign.sourceType === 'text' && activeDesign.textData ? (
+                        <div 
+                          style={{
+                            color: activeDesign.textData.color,
+                            fontFamily: activeDesign.textData.font,
+                          }}
+                          className="text-4xl lg:text-6xl font-bold p-4 break-words text-center"
+                        >
+                            {activeDesign.textData.content}
+                        </div>
+                    ) : imageToDisplay ? (
                          <Image
                             src={imageToDisplay}
                             alt="Active Sticker Preview"
@@ -361,7 +487,7 @@ export function StickerCustomizer() {
                     ) : (
                         <div className="text-center">
                             <p className="text-lg font-semibold">Sticker Sheet</p>
-                            <p className="text-sm">Upload or generate a design to get started.</p>
+                            <p className="text-sm">Select a product and add a design to start.</p>
                         </div>
                     )}
                 </div>
@@ -379,187 +505,133 @@ export function StickerCustomizer() {
         
         <ThemedCard className="group">
           <div className="flex flex-col space-y-6">
-          <header>
-              <h1 className="text-3xl md:text-4xl font-bold font-headline tracking-tight text-gray-100">
-                  Create Your Sticker
-              </h1>
-              <div className="mt-2 flex items-center gap-4">
-                  <div className="flex items-center gap-1">
-                      <div className="flex text-yellow-400">
-                          <Star className="w-5 h-5 fill-current" />
-                          <Star className="w-5 h-5 fill-current" />
-                          <Star className="w-5 h-5 fill-current" />
-                          <Star className="w-5 h-5 fill-current" />
-                          <Star className="w-5 h-5 fill-current" />
+            <header>
+                <h1 className="text-3xl md:text-4xl font-bold font-headline tracking-tight text-gray-100">
+                    Create Your Sticker
+                </h1>
+                <div className="mt-2 flex items-center gap-4">
+                    <div className="flex items-center gap-1">
+                        <div className="flex text-yellow-400">
+                            <Star className="w-5 h-5 fill-current" />
+                            <Star className="w-5 h-5 fill-current" />
+                            <Star className="w-5 h-5 fill-current" />
+                            <Star className="w-5 h-5 fill-current" />
+                            <Star className="w-5 h-5 fill-current" />
+                        </div>
+                        <p className="text-sm text-gray-300 font-medium"><span className="text-gray-100 font-semibold">5.0</span> (4,882 reviews)</p>
+                    </div>
+                </div>
+              </header>
+            
+              <CustomizationSection title="Product Type">
+                <Select value={stickerType} onValueChange={setStickerType}>
+                    <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-200 h-12 text-base">
+                        <SelectValue placeholder="Select a product type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-600 text-gray-200">
+                        <SelectItem value="die-cut">
+                            <div className="flex items-center gap-3">
+                                <Scissors className="h-5 w-5 text-green-400" />
+                                <span className="font-semibold">Die-cut Stickers</span>
+                            </div>
+                        </SelectItem>
+                        <SelectItem value="sheet">
+                            <div className="flex items-center gap-3">
+                                <SheetIcon className="h-5 w-5 text-blue-400" />
+                                <span className="font-semibold">Sticker Sheets</span>
+                            </div>
+                        </SelectItem>
+                        <SelectItem value="kiss-cut">
+                           <div className="flex items-center gap-3">
+                                <ContourCutIcon className="h-5 w-5 text-purple-400" />
+                                <span className="font-semibold">Kiss-cut Stickers</span>
+                            </div>
+                        </SelectItem>
+                        <SelectItem value="decal">
+                           <div className="flex items-center gap-3">
+                                <Type className="h-5 w-5 text-red-400" />
+                                <span className="font-semibold">Text Decals</span>
+                            </div>
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+              </CustomizationSection>
+
+              {renderDesignControls()}
+            
+              <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full">
+                <AccordionItem value="material" className="border-gray-200/10">
+                  <AccordionTrigger className="text-lg font-semibold text-gray-200">Material</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {materials.map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => !m.outOfStock && setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
+                          disabled={m.outOfStock}
+                          className={cn(
+                            "relative group rounded-lg p-3 text-center transition-all duration-200 border-2",
+                            appState.stickerSheet.material.id === m.id ? "bg-gray-700 border-green-400" : "bg-gray-800 border-gray-600 hover:border-gray-500",
+                            m.outOfStock && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {m.outOfStock && (
+                            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                              Sold Out
+                            </div>
+                          )}
+                          <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
+                          <p className="font-semibold text-sm text-gray-200 group-disabled:text-gray-500">{m.name}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="quantity" className="border-gray-200/10">
+                  <AccordionTrigger className="text-lg font-semibold text-gray-200">Quantity</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {quantityOptions.map((q) => (
+                        <Button key={q.quantity} variant={quantity === q.quantity ? "default" : "outline"} onClick={() => handleQuantityButtonClick(q.quantity)} className={cn("h-auto flex-col py-2", quantity === q.quantity ? "bg-green-500 hover:bg-green-600 text-white" : "text-gray-200 border-gray-600 hover:bg-gray-700 hover:text-white")}>
+                          <span className="font-bold text-lg">{q.quantity}</span>
+                          <span className="text-xs">${q.pricePer.toFixed(2)}/sticker</span>
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="mt-4 relative">
+                        <Input
+                            type="number"
+                            id="custom-quantity-input"
+                            className="w-full h-12 text-center text-lg font-bold bg-gray-800 border-gray-600 text-gray-200"
+                            placeholder="Custom quantity..."
+                            onChange={handleCustomQuantityChange}
+                            onFocus={() => setQuantity(0)}
+                        />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            
+              <div className="p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 mt-4 sticky bottom-4">
+                  <div className="bg-[#1a1a1a] rounded-[18px] p-4">
+                    <div className="flex flex-row items-center justify-between pb-4">
+                      <h3 className="text-lg font-headline text-gray-200">Total Price</h3>
+                      <div className="text-right">
+                         <span className="text-3xl font-bold font-headline text-green-400">${totalPrice}</span>
+                         {quantity > 0 && <p className="text-sm text-gray-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
                       </div>
-                      <p className="text-sm text-gray-300 font-medium"><span className="text-gray-100 font-semibold">5.0</span> (4,882 reviews)</p>
+                    </div>
+                    <Button size="lg" className="w-full text-lg h-14 font-bold bg-green-500 hover:bg-green-600 text-white" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
+                      Add to Cart
+                    </Button>
                   </div>
               </div>
-            </header>
-            
-            <CustomizationSection title="Product Type">
-              <Select value={stickerType} onValueChange={setStickerType}>
-                  <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-200 h-12 text-base">
-                      <SelectValue placeholder="Select a product type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600 text-gray-200">
-                      <SelectItem value="die-cut">
-                          <div className="flex items-center gap-3">
-                              <Scissors className="h-5 w-5 text-green-400" />
-                              <span className="font-semibold">Die-cut Stickers</span>
-                          </div>
-                      </SelectItem>
-                      <SelectItem value="sheet">
-                          <div className="flex items-center gap-3">
-                              <SheetIcon className="h-5 w-5 text-blue-400" />
-                              <span className="font-semibold">Sticker Sheets</span>
-                          </div>
-                      </SelectItem>
-                      <SelectItem value="kiss-cut">
-                         <div className="flex items-center gap-3">
-                              <ContourCutIcon className="h-5 w-5 text-purple-400" />
-                              <span className="font-semibold">Kiss-cut Stickers</span>
-                          </div>
-                      </SelectItem>
-                      <SelectItem value="decal">
-                         <div className="flex items-center gap-3">
-                              <Type className="h-5 w-5 text-red-400" />
-                              <span className="font-semibold">Text Decals</span>
-                          </div>
-                      </SelectItem>
-                  </SelectContent>
-              </Select>
-            </CustomizationSection>
-
-
-            <CustomizationSection title="Add a Design">
-              <Tabs defaultValue="generate" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-gray-800 text-gray-400">
-                  <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
-                  <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
-                </TabsList>
-                <TabsContent value="generate" className="mt-4">
-                  <div className="space-y-4">
-                      <Textarea
-                          placeholder="e.g., A cute baby panda developer writing code"
-                          value={prompt}
-                          onChange={(e) => setPrompt(e.target.value)}
-                          rows={3}
-                          className="bg-gray-800 border-gray-600 text-gray-200 focus:ring-green-400"
-                      />
-                      <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
-                          {isGenerating ? (
-                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
-                          ) : (
-                              <><Sparkles className="mr-2 h-4 w-4" />Generate Design</>
-                          )}
-                      </Button>
-                  </div>
-                </TabsContent>
-                <TabsContent value="upload" className="mt-4">
-                  <div className="space-y-2">
-                      <Label
-                          htmlFor="picture"
-                          className={cn(
-                              "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-[#1f1f1f] hover:bg-gray-800 transition-colors border-gray-600",
-                              isDragging && "border-green-400 bg-green-900/20",
-                              uploadedFileName && "border-green-500 bg-green-900/20"
-                          )}
-                          onDrop={handleDrop} onDragOver={handleDragOver} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave}
-                      >
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                              {uploadedFileName ? (
-                                  <>
-                                      <FileCheck2 className="w-8 h-8 mb-2 text-green-500" />
-                                      <p className="font-semibold text-green-500">File Uploaded!</p>
-                                      <p className="text-xs text-gray-400 truncate max-w-xs">{uploadedFileName}</p>
-                                  </>
-                              ) : (
-                                  <>
-                                      <ImagePlus className="w-8 h-8 mb-2 text-gray-500" />
-                                      <p className="mb-1 text-sm text-gray-400"><span className="font-semibold text-green-400">Click to upload</span> or drag and drop</p>
-                                      <p className="text-xs text-gray-500">PNG, JPG, or WEBP</p>
-                                  </>
-                              )}
-                          </div>
-                          <Input id="picture" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-                      </Label>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CustomizationSection>
-            
-            <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full">
-              <AccordionItem value="material" className="border-gray-200/10">
-                <AccordionTrigger className="text-lg font-semibold text-gray-200">Material</AccordionTrigger>
-                <AccordionContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {materials.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => !m.outOfStock && setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
-                        disabled={m.outOfStock}
-                        className={cn(
-                          "relative group rounded-lg p-3 text-center transition-all duration-200 border-2",
-                          appState.stickerSheet.material.id === m.id ? "bg-gray-700 border-green-400" : "bg-gray-800 border-gray-600 hover:border-gray-500",
-                          m.outOfStock && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        {m.outOfStock && (
-                          <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                            Sold Out
-                          </div>
-                        )}
-                        <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
-                        <p className="font-semibold text-sm text-gray-200 group-disabled:text-gray-500">{m.name}</p>
-                      </button>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="quantity" className="border-gray-200/10">
-                <AccordionTrigger className="text-lg font-semibold text-gray-200">Quantity</AccordionTrigger>
-                <AccordionContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {quantityOptions.map((q) => (
-                      <Button key={q.quantity} variant={quantity === q.quantity ? "default" : "outline"} onClick={() => handleQuantityButtonClick(q.quantity)} className={cn("h-auto flex-col py-2", quantity === q.quantity ? "bg-green-500 hover:bg-green-600 text-white" : "text-gray-200 border-gray-600 hover:bg-gray-700 hover:text-white")}>
-                        <span className="font-bold text-lg">{q.quantity}</span>
-                        <span className="text-xs">${q.pricePer.toFixed(2)}/sticker</span>
-                      </Button>
-                    ))}
-                  </div>
-                  <div className="mt-4 relative">
-                      <Input
-                          type="number"
-                          id="custom-quantity-input"
-                          className="w-full h-12 text-center text-lg font-bold bg-gray-800 border-gray-600 text-gray-200"
-                          placeholder="Custom quantity..."
-                          onChange={handleCustomQuantityChange}
-                          onFocus={() => setQuantity(0)}
-                      />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-            
-            <div className="p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 mt-4 sticky bottom-4">
-                <div className="bg-[#1a1a1a] rounded-[18px] p-4">
-                  <div className="flex flex-row items-center justify-between pb-4">
-                    <h3 className="text-lg font-headline text-gray-200">Total Price</h3>
-                    <div className="text-right">
-                       <span className="text-3xl font-bold font-headline text-green-400">${totalPrice}</span>
-                       {quantity > 0 && <p className="text-sm text-gray-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
-                    </div>
-                  </div>
-                  <Button size="lg" className="w-full text-lg h-14 font-bold bg-green-500 hover:bg-green-600 text-white" onClick={handleAddToCart} disabled={quantity <= 0}>
-                    Add to Cart
-                  </Button>
-                </div>
-            </div>
           </div>
         </ThemedCard>
       </div>
     </div>
   );
 }
+
+    
