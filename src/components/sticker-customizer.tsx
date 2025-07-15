@@ -593,17 +593,27 @@ export function StickerCustomizer() {
                   <AccordionContent>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {quantityOptions.map((q) => (
-                        <Button key={q.quantity} variant={quantity === q.quantity ? "default" : "outline"} onClick={() => handleQuantityButtonClick(q.quantity)} className={cn("h-auto flex-col py-2", quantity === q.quantity ? "bg-green-500 hover:bg-green-600 text-white" : "text-gray-200 border-gray-600 hover:bg-gray-700 hover:text-white")}>
-                          <span className="font-bold text-lg">{q.quantity}</span>
-                          <span className="text-xs">${q.pricePer.toFixed(2)}/sticker</span>
+                        <Button 
+                          key={q.quantity} 
+                          variant={quantity === q.quantity ? "default" : "outline"} 
+                          onClick={() => handleQuantityButtonClick(q.quantity)} 
+                          className={cn(
+                            "h-auto flex-col py-3 px-2 text-center",
+                            quantity === q.quantity 
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                              : "border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+                          )}
+                        >
+                          <span className="font-bold text-lg leading-none">{q.quantity}</span>
+                          <span className="text-xs text-gray-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
                         </Button>
                       ))}
                     </div>
-                    <div className="mt-4 relative">
+                    <div className="mt-4">
                         <Input
                             type="number"
                             id="custom-quantity-input"
-                            className="w-full h-12 text-center text-lg font-bold bg-gray-800 border-gray-600 text-gray-200"
+                            className="w-full h-12 text-center text-lg font-bold bg-gray-800 border-gray-600 text-gray-200 placeholder:text-gray-500 focus:ring-primary focus:border-primary"
                             placeholder="Custom quantity..."
                             onChange={handleCustomQuantityChange}
                             onFocus={() => setQuantity(0)}
@@ -633,5 +643,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
