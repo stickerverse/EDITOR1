@@ -145,6 +145,7 @@ export function StickerCustomizer() {
   const [quantity, setQuantity] = useState(quantityOptions[0].quantity);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
   const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -410,6 +411,15 @@ export function StickerCustomizer() {
                             isDraggingOverCanvas && "border-green-400 bg-green-900/20",
                             uploadedFileName && "border-green-500 bg-green-900/20"
                         )}
+                         onDragEnter={() => setIsDraggingOverCanvas(true)}
+                         onDragLeave={() => setIsDraggingOverCanvas(false)}
+                         onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDraggingOverCanvas(false);
+                            const file = e.dataTransfer.files?.[0];
+                            if (file) processFile(file);
+                         }}
+                         onDragOver={(e) => e.preventDefault()}
                     >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                             {uploadedFileName ? (
@@ -695,34 +705,33 @@ export function StickerCustomizer() {
   const renderCanvasContent = () => {
     // For sheet product type, render the grid or stickers
     if (stickerType === 'sheet') {
-      // If auto-pack is on, always show the grid layout
-      if (appState.stickerSheet.settings.autoPackEnabled) {
-        return (
-          <div 
-            className="grid w-full h-full gap-2 p-2"
-            style={{
-              gridTemplateRows: `repeat(${sheetLayout.rows}, 1fr)`,
-              gridTemplateColumns: `repeat(${sheetLayout.cols}, 1fr)`,
-            }}
-          >
-            {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-              <div key={i} className="relative w-full h-full bg-gray-700/50 rounded-md flex items-center justify-center">
-                {imageToDisplay ? (
-                  <Image
-                    src={imageToDisplay}
-                    alt={`Sticker preview ${i + 1}`}
-                    fill
-                    sizes="(max-width: 768px) 10vw, 5vw"
-                    className="object-contain p-1"
-                  />
-                ) : (
-                  <ImagePlus className="h-6 w-6 text-gray-500"/>
-                )}
-              </div>
-            ))}
-          </div>
-        )
-      }
+        if (appState.stickers.length === 0 && appState.stickerSheet.settings.autoPackEnabled) {
+          return (
+             <div 
+              className="grid w-full h-full gap-2 p-2"
+              style={{
+                gridTemplateRows: `repeat(${sheetLayout.rows}, 1fr)`,
+                gridTemplateColumns: `repeat(${sheetLayout.cols}, 1fr)`,
+              }}
+            >
+              {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
+                <div key={i} className="relative w-full h-full bg-gray-700/50 rounded-md flex items-center justify-center">
+                  {imageToDisplay ? (
+                    <Image
+                      src={imageToDisplay}
+                      alt={`Sticker preview ${i + 1}`}
+                      fill
+                      sizes="(max-width: 768px) 10vw, 5vw"
+                      className="object-contain p-1"
+                    />
+                  ) : (
+                    <ImagePlus className="h-6 w-6 text-gray-500"/>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        }
       
       // If auto-pack is off, show draggable stickers if any, or empty state
       if (appState.stickers.length > 0) {
@@ -944,5 +953,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
