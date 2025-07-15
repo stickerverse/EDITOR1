@@ -4,7 +4,6 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +14,6 @@ import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,11 +29,19 @@ const BORDER_COLORS = [
 ];
 
 const materials = [
-  { id: 'vinyl', name: 'White Vinyl', description: 'Our most popular, great for any use.' },
-  { id: 'holographic', name: 'Holographic', description: 'Eye-catching rainbow effect.' },
-  { id: 'transparent', name: 'Clear', description: 'Fully transparent material.' },
-  { id: 'glitter', name: 'Glitter', description: 'Sparkly and attention-grabbing.' },
-  { id: 'mirror', name: 'Mirror', description: 'Reflective, chrome-like finish.' },
+  { id: 'vinyl', name: 'Vinyl', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/06/08/4d0ae46e9e164daa9171d70e51cd46c7acaa2419.png' },
+  { id: 'holographic', name: 'Holographic', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/48e2c5c8c6ab57d013675b3b245daa2136e0c7cf.png' },
+  { id: 'transparent', name: 'Transparent', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/2d46e2873ec899b83a152c2f2ad52c1368398333.png' },
+  { id: 'glitter', name: 'Glitter', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/8d48777356c014861f8e174949f2a382778c0a7e.png' },
+  { id: 'mirror', name: 'Mirror', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/c5e0f009dbf3aec33b2e8d0caac5ebcd1a10348f.png' },
+  { id: 'pixie_dust', name: 'Pixie Dust', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/08/23/46dac2bd418951b1412d4225cbdaad579aed03e4.png' },
+  { id: 'prismatic', name: 'Prismatic', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/0912457c4dccf212c92e0802fd36545d90f2bfd6.png' },
+  { id: 'brushed_aluminum', name: 'Brushed Aluminum', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/573a155499c9496b21c3f404bffb6499ae99462e.png' },
+  { id: 'kraft_paper', name: 'Kraft Paper', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/e4ae8c4973e6e530cedcce836d8366638ca4c6d3.png' },
+  { id: 'hi_tack_vinyl', name: 'Hi-Tack Vinyl', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/06/08/4d0ae46e9e164daa9171d70e51cd46c7acaa2419.png' },
+  { id: 'reflective', name: 'Reflective', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2024/10/16/3980001d8c15a7ed2b727613c425f8290de317cd.png' },
+  { id: 'glow_in_the_dark', name: 'Glow In The Dark', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/c23d3c3023560c21da44135bd142dc04affa380e.png' },
+  { id: 'low_tack_vinyl', name: 'Low-Tack Vinyl', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/06/08/4d0ae46e9e164daa9171d70e51cd46c7acaa2419.png', outOfStock: true },
 ];
 
 const finishes = [
@@ -322,11 +328,15 @@ export function StickerCustomizer() {
 
   useEffect(() => {
     if (
-      sticker.source !== 'upload' ||
       !sticker.borderAdded ||
       !sticker.bgRemoved ||
       !sticker.bgRemovedUrl
     ) {
+      return;
+    }
+    
+    // Only apply border if the source was an upload
+    if (sticker.source !== 'upload' && sticker.source !== 'generate') {
       return;
     }
 
@@ -388,7 +398,7 @@ export function StickerCustomizer() {
   }, [sticker, debouncedBorderColor, debouncedBorderWidthIndex]);
 
   const showBgRemoveToggle = sticker.source === 'upload';
-  const showBorderControls = showBgRemoveToggle;
+  const showBorderControls = (sticker.source === 'upload' || sticker.source === 'generate');
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
@@ -416,18 +426,20 @@ export function StickerCustomizer() {
            {showBorderControls && (
             <ThemedCard className="w-full max-w-lg">
                 <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                        <Label htmlFor="background-switch" className="flex flex-col space-y-1">
-                            <span className="font-medium text-gray-200">Remove Background</span>
-                            <span className="text-xs text-gray-400">Automatically removes the background.</span>
-                        </Label>
-                        <Switch
-                            id="background-switch"
-                            checked={sticker.bgRemoved}
-                            onCheckedChange={handleBackgroundToggle}
-                            disabled={sticker.isLoading || !sticker.originalUrl}
-                        />
-                    </div>
+                    { showBgRemoveToggle &&
+                      <div className="flex items-center justify-between">
+                          <Label htmlFor="background-switch" className="flex flex-col space-y-1">
+                              <span className="font-medium text-gray-200">Remove Background</span>
+                              <span className="text-xs text-gray-400">Automatically removes the background.</span>
+                          </Label>
+                          <Switch
+                              id="background-switch"
+                              checked={sticker.bgRemoved}
+                              onCheckedChange={handleBackgroundToggle}
+                              disabled={sticker.isLoading || !sticker.originalUrl}
+                          />
+                      </div>
+                    }
                     <div className="flex items-center justify-between">
                         <Label htmlFor="border-switch" className="flex flex-col space-y-1">
                             <span className={cn("font-medium text-gray-200", !sticker.bgRemoved && "text-gray-500")}>Add Sticker Border</span>
@@ -582,37 +594,48 @@ export function StickerCustomizer() {
               <AccordionItem value="material" className="border-gray-200/10">
                 <AccordionTrigger className="text-lg font-semibold text-gray-200">Material</AccordionTrigger>
                 <AccordionContent>
-                  <RadioGroup value={material} onValueChange={setMaterial} className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {materials.map((m) => (
-                      <div key={m.id}>
-                        <RadioGroupItem value={m.id} id={`material-${m.id}`} className="sr-only" />
-                        <Label htmlFor={`material-${m.id}`} className={cn("cursor-pointer rounded-lg border-2 p-4 transition-all flex items-center gap-4 bg-[#1f1f1f] border-gray-600 hover:border-green-400/50", material === m.id ? "border-green-400" : "")}>
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-200">{m.name}</p>
-                            <p className="text-sm text-gray-400">{m.description}</p>
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => !m.outOfStock && setMaterial(m.id)}
+                        disabled={m.outOfStock}
+                        className={cn(
+                          "relative group rounded-lg p-3 text-center transition-all duration-200 border-2",
+                          material === m.id ? "bg-gray-700 border-green-400" : "bg-gray-800 border-gray-600 hover:border-gray-500",
+                          m.outOfStock && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {m.outOfStock && (
+                          <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            Sold Out
                           </div>
-                        </Label>
-                      </div>
+                        )}
+                        <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
+                        <p className="font-semibold text-sm text-gray-200 group-disabled:text-gray-500">{m.name}</p>
+                      </button>
                     ))}
-                  </RadioGroup>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
                <AccordionItem value="lamination" className="border-gray-200/10">
                 <AccordionTrigger className="text-lg font-semibold text-gray-200">Lamination</AccordionTrigger>
                 <AccordionContent>
-                  <RadioGroup value={finish} onValueChange={setFinish} className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-3">
                     {finishes.map((f) => (
-                       <div key={f.id}>
-                        <RadioGroupItem value={f.id} id={`finish-${f.id}`} className="sr-only" />
-                        <Label htmlFor={`finish-${f.id}`} className={cn("cursor-pointer rounded-lg border-2 p-4 transition-all flex items-center gap-4 bg-[#1f1f1f] border-gray-600 hover:border-green-400/50", finish === f.id ? "border-green-400" : "")}>
-                          <div className="flex-1">
+                       <button key={f.id} onClick={() => setFinish(f.id)}
+                        className={cn(
+                          "cursor-pointer rounded-lg border-2 p-4 transition-all flex items-center gap-4 bg-[#1f1f1f] border-gray-600 hover:border-green-400/50", 
+                          finish === f.id ? "border-green-400" : ""
+                        )}>
+                          <div className="flex-1 text-left">
                             <p className="font-semibold text-gray-200">{f.name}</p>
                             <p className="text-sm text-gray-400">{f.description}</p>
                           </div>
-                        </Label>
-                      </div>
+                       </button>
                     ))}
-                  </RadioGroup>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="quantity" className="border-gray-200/10">
