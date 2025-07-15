@@ -210,12 +210,14 @@ export function StickerCustomizer() {
   }
 
   const addStickerToSheet = (designId: string, position?: {x: number, y: number}) => {
+    const design = appState.designLibrary.find(d => d.designId === designId) ?? addDesignToLibrary({ sourceType: 'text' }, {width: 300, height: 100});
+
     const stickerId = `inst_${Math.random().toString(36).substr(2, 9)}`;
     const newSticker: StickerInstance = {
       stickerId,
       designId,
       position: position ? { ...position, unit: 'px' } : { x: 50, y: 50, unit: 'px' },
-      size: { width: 100, height: 100, unit: 'px' },
+      size: design.sourceType === 'text' ? { width: 300, height: 100, unit: 'px' } : { width: 100, height: 100, unit: 'px' },
       rotation: 0,
       cutLine: { type: stickerType === 'kiss-cut' ? 'kiss_cut' : 'die_cut', offset: 0.1, shape: 'auto' },
     };
@@ -500,6 +502,28 @@ export function StickerCustomizer() {
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (dragAction) {
+        const { type, stickerId } = dragAction;
+
+        const sticker = appState.stickers.find(s => s.stickerId === stickerId);
+        const design = sticker ? appState.designLibrary.find(d => d.designId === sticker.designId) : null;
+        
+        // If the action was resizing a text decal, measure it and snap the container to fit
+        if (design && design.sourceType === 'text' && (type === 'resize-br' || type === 'rotate')) {
+            const textElement = document.getElementById(`sticker-text-${stickerId}`);
+            if (textElement) {
+                const rect = textElement.getBoundingClientRect();
+                setAppState(current => ({
+                    ...current,
+                    stickers: current.stickers.map(s => {
+                        if (s.stickerId === stickerId) {
+                            return { ...s, size: { ...s.size, width: rect.width, height: rect.height } };
+                        }
+                        return s;
+                    })
+                }));
+            }
+        }
+
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
         setDragAction(null);
     }
@@ -821,13 +845,18 @@ export function StickerCustomizer() {
                     width: `${sticker.size.width}px`,
                     height: `${sticker.size.height}px`,
                     transform: `rotate(${sticker.rotation}deg)`,
-                    color: design.textData.color,
-                    fontFamily: design.textData.font,
-                    fontSize: `${fontSize}px`,
-                    lineHeight: 1,
                 }}
             >
-                <span className="font-bold pointer-events-none">
+                <span
+                    id={`sticker-text-${sticker.stickerId}`}
+                    className="font-bold pointer-events-none"
+                    style={{
+                        color: design.textData.color,
+                        fontFamily: design.textData.font,
+                        fontSize: `${fontSize}px`,
+                        lineHeight: 1,
+                    }}
+                >
                     {design.textData.content}
                 </span>
                 {isSelected && (
@@ -1170,3 +1199,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
