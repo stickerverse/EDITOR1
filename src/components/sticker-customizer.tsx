@@ -1,11 +1,10 @@
 
 "use client";
 
-import * as React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ContourCutIcon } from '@/components/icons';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 
 const materials = [
@@ -142,6 +146,10 @@ export function StickerCustomizer() {
   const [decalText, setDecalText] = useState('Your Text Here');
   const [decalFont, setDecalFont] = useState('serif');
   const [decalColor, setDecalColor] = useState('#FFFFFF');
+  
+  // State for Sheet Configuration
+  const [sheetLayout, setSheetLayout] = useState({ rows: 2, cols: 2 });
+  const [hoveredLayout, setHoveredLayout] = useState({ rows: 0, cols: 0 });
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -391,16 +399,58 @@ export function StickerCustomizer() {
         );
       case 'sheet':
         return (
-          <CustomizationSection title="Design Library">
-            <div className="space-y-4">
-                <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-4 text-center text-gray-400">
-                  <Library className="mx-auto h-8 w-8 mb-2" />
-                  <p>Your design library will appear here.</p>
-                  <p className="text-xs">Add designs by using the controls below.</p>
-                </div>
-                 <Button className="w-full" variant="outline"><ImagePlus className="mr-2 h-4 w-4"/>Add New Design</Button>
-            </div>
-          </CustomizationSection>
+          <>
+            <CustomizationSection title="Sheet Configuration">
+              <DropdownMenu onOpenChange={() => setHoveredLayout({rows: 0, cols: 0})}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between bg-gray-800 border-gray-600 text-gray-200 h-12 text-base">
+                    <span>{sheetLayout.rows} &times; {sheetLayout.cols} Layout</span>
+                    <LayoutGrid className="h-5 w-5 text-gray-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[200px] bg-gray-800 border-gray-600 p-2">
+                  <div 
+                    className="grid grid-cols-5 gap-1"
+                    onMouseLeave={() => setHoveredLayout({rows: 0, cols: 0})}
+                  >
+                    {Array.from({ length: 25 }).map((_, i) => {
+                      const row = Math.floor(i / 5) + 1;
+                      const col = (i % 5) + 1;
+                      const isHovered = row <= hoveredLayout.rows && col <= hoveredLayout.cols;
+                      const isSelected = row === sheetLayout.rows && col === sheetLayout.cols;
+
+                      return (
+                        <div
+                          key={i}
+                          onMouseEnter={() => setHoveredLayout({ rows: row, cols: col })}
+                          onClick={() => setSheetLayout({ rows: row, cols: col })}
+                          className={cn(
+                            "w-8 h-8 rounded-sm cursor-pointer transition-colors duration-150",
+                            "border border-gray-600",
+                            isHovered ? "bg-green-500/50 border-green-400" : "bg-gray-700",
+                            isSelected && "bg-green-500 !border-green-300 ring-2 ring-white"
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+                   <div className="text-center text-gray-400 text-sm mt-2 h-4">
+                     {hoveredLayout.rows > 0 && `${hoveredLayout.rows} \u00D7 ${hoveredLayout.cols}`}
+                   </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </CustomizationSection>
+            <CustomizationSection title="Design Library">
+              <div className="space-y-4">
+                  <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-4 text-center text-gray-400">
+                    <Library className="mx-auto h-8 w-8 mb-2" />
+                    <p>Your design library will appear here.</p>
+                    <p className="text-xs">Add designs by using the controls below.</p>
+                  </div>
+                   <Button className="w-full" variant="outline"><ImagePlus className="mr-2 h-4 w-4"/>Add New Design</Button>
+              </div>
+            </CustomizationSection>
+          </>
         );
       case 'decal':
         return (
@@ -643,3 +693,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
