@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -103,9 +102,20 @@ function CustomizationSection({ title, children, className }: { title: string; c
   );
 }
 
+const GlassmorphicCard = ({ className, ...props }: React.ComponentProps<typeof Card>) => (
+  <Card
+    className={cn(
+      "bg-white/40 backdrop-blur-lg border border-white/20 shadow-lg rounded-2xl",
+      className
+    )}
+    {...props}
+  />
+);
+
 export function StickerCustomizer() {
   const { toast } = useToast();
   const stableToast = useCallback(toast, []);
+  
   const [sticker, setSticker] = useState<StickerState>(initialState);
   
   const debouncedBorderWidthIndex = useDebounce(sticker.borderWidthIndex, 300);
@@ -372,35 +382,37 @@ export function StickerCustomizer() {
   const showBorderControls = showBgRemoveToggle;
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
+    <div className="container mx-auto px-0 py-0 md:py-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4">
-          <div className="relative w-full max-w-lg aspect-square bg-white rounded-xl shadow-lg overflow-hidden border">
-            {sticker.isLoading && (
-              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
-                <Loader2 className="h-12 w-12 animate-spin text-white" />
-                <p className="text-white mt-4 font-semibold">{sticker.loadingText}</p>
+          <GlassmorphicCard className="w-full max-w-lg aspect-square overflow-hidden">
+            <CardContent className="p-0 h-full w-full">
+              {sticker.isLoading && (
+                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
+                  <Loader2 className="h-12 w-12 animate-spin text-white" />
+                  <p className="text-white mt-4 font-semibold">{sticker.loadingText}</p>
+                </div>
+              )}
+               <div className="relative w-full h-full flex items-center justify-center p-4">
+                <Image
+                    src={imageToDisplay || "https://placehold.co/800x800.png"}
+                    alt="Custom Sticker Preview"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-contain transition-transform duration-300 hover:scale-105"
+                    data-ai-hint="sticker design"
+                    priority
+                />
               </div>
-            )}
-             <div className="relative w-full h-full flex items-center justify-center bg-gray-50 p-4">
-              <Image
-                  src={imageToDisplay || "https://placehold.co/800x800.png"}
-                  alt="Custom Sticker Preview"
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-contain transition-transform duration-300 hover:scale-105"
-                  data-ai-hint="sticker design"
-                  priority
-              />
-            </div>
-          </div>
+            </CardContent>
+          </GlassmorphicCard>
            {showBorderControls && (
-            <Card className="w-full max-w-lg">
+            <GlassmorphicCard className="w-full max-w-lg">
                 <CardContent className="p-4 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                         <Label htmlFor="background-switch" className="flex flex-col space-y-1">
-                            <span className="font-medium">Remove Background</span>
-                            <span className="text-xs text-muted-foreground">Automatically removes the background.</span>
+                            <span className="font-medium text-gray-800">Remove Background</span>
+                            <span className="text-xs text-gray-600">Automatically removes the background.</span>
                         </Label>
                         <Switch
                             id="background-switch"
@@ -411,8 +423,8 @@ export function StickerCustomizer() {
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="border-switch" className="flex flex-col space-y-1">
-                            <span className={cn("font-medium", !sticker.bgRemoved && "text-muted-foreground/50")}>Add Sticker Border</span>
-                            <span className={cn("text-xs text-muted-foreground", !sticker.bgRemoved && "text-muted-foreground/50")}>Adds a classic die-cut border.</span>
+                            <span className={cn("font-medium text-gray-800", !sticker.bgRemoved && "text-gray-400")}>Add Sticker Border</span>
+                            <span className={cn("text-xs text-gray-600", !sticker.bgRemoved && "text-gray-400")}>Adds a classic die-cut border.</span>
                         </Label>
                         <Switch
                             id="border-switch"
@@ -422,9 +434,9 @@ export function StickerCustomizer() {
                         />
                     </div>
                     {sticker.borderAdded && sticker.bgRemoved && (
-                    <div className="space-y-4 pt-4 border-t">
+                    <div className="space-y-4 pt-4 border-t border-white/30">
                         <div className="grid gap-2">
-                          <Label className="text-sm font-medium">Border Width</Label>
+                          <Label className="text-sm font-medium text-gray-800">Border Width</Label>
                           <Slider
                             value={[sticker.borderWidthIndex]}
                             onValueChange={handleBorderWidthChange}
@@ -435,7 +447,7 @@ export function StickerCustomizer() {
                           />
                         </div>
                         <div className="grid gap-2">
-                            <Label className="text-sm font-medium">Border Color</Label>
+                            <Label className="text-sm font-medium text-gray-800">Border Color</Label>
                             <div className="flex items-center gap-2">
                                 {BORDER_COLORS.map(color => (
                                     <button
@@ -445,7 +457,7 @@ export function StickerCustomizer() {
                                         onClick={() => handleBorderColorChange(color.value)}
                                         className={cn(
                                             "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
-                                            sticker.borderColor === color.value ? "ring-2 ring-offset-2 ring-primary" : "border-muted",
+                                            sticker.borderColor === color.value ? "ring-2 ring-offset-2 ring-primary" : "border-white/50",
                                             sticker.isLoading && "cursor-not-allowed opacity-50"
                                         )}
                                         style={{ backgroundColor: color.color }}
@@ -459,13 +471,13 @@ export function StickerCustomizer() {
                     </div>
                     )}
                 </CardContent>
-            </Card>
+            </GlassmorphicCard>
            )}
         </div>
         
-        <div className="flex flex-col space-y-6">
+        <GlassmorphicCard className="flex flex-col space-y-6 p-6">
           <header>
-              <h1 className="text-3xl md:text-4xl font-bold font-headline tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-bold font-headline tracking-tight text-gray-900">
                   Custom Die Cut Stickers
               </h1>
               <div className="mt-2 flex items-center gap-4">
@@ -477,7 +489,7 @@ export function StickerCustomizer() {
                           <Star className="w-5 h-5 fill-current" />
                           <Star className="w-5 h-5 fill-current" />
                       </div>
-                      <p className="text-sm text-muted-foreground font-medium"><span className="text-foreground">5.0</span> (4,882 reviews)</p>
+                      <p className="text-sm text-gray-700 font-medium"><span className="text-gray-900 font-semibold">5.0</span> (4,882 reviews)</p>
                   </div>
               </div>
             </header>
@@ -510,7 +522,7 @@ export function StickerCustomizer() {
                       <Label
                           htmlFor="picture"
                           className={cn(
-                              "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-muted transition-colors",
+                              "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-white/30 hover:bg-white/50 transition-colors",
                               isDragging && "border-primary bg-primary/10",
                               uploadedFileName && "border-green-500 bg-green-500/10"
                           )}
@@ -540,18 +552,18 @@ export function StickerCustomizer() {
             
             <Accordion type="multiple" defaultValue={['size', 'quantity']} className="w-full">
               <AccordionItem value="size">
-                <AccordionTrigger className="text-lg font-semibold">Size</AccordionTrigger>
+                <AccordionTrigger className="text-lg font-semibold text-gray-800">Size</AccordionTrigger>
                 <AccordionContent>
                   <div className="flex items-center gap-4">
                       <div className="flex flex-1 items-center rounded-md border border-input">
                           <Button variant="ghost" size="icon" className="h-full rounded-r-none" onClick={() => handleSizeChange('w', width - 1)}><Minus className="h-4 w-4"/></Button>
-                          <Input type="number" value={width} onChange={(e) => handleSizeChange('w', Number(e.target.value))} className="w-full text-base h-12 text-center border-y-0 border-x !ring-0 focus-visible:!ring-0" aria-label="Width in inches" />
+                          <Input type="number" value={width} onChange={(e) => handleSizeChange('w', Number(e.target.value))} className="w-full text-base h-12 text-center border-y-0 border-x !ring-0 focus-visible:!ring-0 bg-transparent" aria-label="Width in inches" />
                           <Button variant="ghost" size="icon" className="h-full rounded-l-none" onClick={() => handleSizeChange('w', width + 1)}><Plus className="h-4 w-4"/></Button>
                       </div>
                       <span className="text-muted-foreground font-semibold">x</span>
                       <div className="flex flex-1 items-center rounded-md border border-input">
                           <Button variant="ghost" size="icon" className="h-full rounded-r-none" onClick={() => handleSizeChange('h', height - 1)}><Minus className="h-4 w-4"/></Button>
-                          <Input type="number" value={height} onChange={(e) => handleSizeChange('h', Number(e.target.value))} className="w-full text-base h-12 text-center border-y-0 border-x !ring-0 focus-visible:!ring-0" aria-label="Height in inches" />
+                          <Input type="number" value={height} onChange={(e) => handleSizeChange('h', Number(e.target.value))} className="w-full text-base h-12 text-center border-y-0 border-x !ring-0 focus-visible:!ring-0 bg-transparent" aria-label="Height in inches" />
                           <Button variant="ghost" size="icon" className="h-full rounded-l-none" onClick={() => handleSizeChange('h', height + 1)}><Plus className="h-4 w-4"/></Button>
                       </div>
                       <div className="text-sm font-medium text-muted-foreground">inches</div>
@@ -559,16 +571,16 @@ export function StickerCustomizer() {
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="material">
-                <AccordionTrigger className="text-lg font-semibold">Material</AccordionTrigger>
+                <AccordionTrigger className="text-lg font-semibold text-gray-800">Material</AccordionTrigger>
                 <AccordionContent>
                   <RadioGroup value={material} onValueChange={setMaterial} className="grid grid-cols-1 gap-3">
                     {materials.map((m) => (
                       <div key={m.id}>
                         <RadioGroupItem value={m.id} id={`material-${m.id}`} className="sr-only" />
-                        <Label htmlFor={`material-${m.id}`} className={cn("cursor-pointer rounded-lg border-2 p-4 transition-all flex items-center gap-4", material === m.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50")}>
+                        <Label htmlFor={`material-${m.id}`} className={cn("cursor-pointer rounded-lg border-2 p-4 transition-all flex items-center gap-4 border-white/30 bg-white/20 hover:bg-white/40", material === m.id ? "border-primary bg-primary/10" : "hover:border-primary/50")}>
                           <div className="flex-1">
-                            <p className="font-semibold">{m.name}</p>
-                            <p className="text-sm text-muted-foreground">{m.description}</p>
+                            <p className="font-semibold text-gray-800">{m.name}</p>
+                            <p className="text-sm text-gray-600">{m.description}</p>
                           </div>
                         </Label>
                       </div>
@@ -577,16 +589,16 @@ export function StickerCustomizer() {
                 </AccordionContent>
               </AccordionItem>
                <AccordionItem value="lamination">
-                <AccordionTrigger className="text-lg font-semibold">Lamination</AccordionTrigger>
+                <AccordionTrigger className="text-lg font-semibold text-gray-800">Lamination</AccordionTrigger>
                 <AccordionContent>
                   <RadioGroup value={finish} onValueChange={setFinish} className="grid grid-cols-1 gap-3">
                     {finishes.map((f) => (
                        <div key={f.id}>
                         <RadioGroupItem value={f.id} id={`finish-${f.id}`} className="sr-only" />
-                        <Label htmlFor={`finish-${f.id}`} className={cn("cursor-pointer rounded-lg border-2 p-4 transition-all flex items-center gap-4", finish === f.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50")}>
+                        <Label htmlFor={`finish-${f.id}`} className={cn("cursor-pointer rounded-lg border-2 p-4 transition-all flex items-center gap-4 border-white/30 bg-white/20 hover:bg-white/40", finish === f.id ? "border-primary bg-primary/10" : "hover:border-primary/50")}>
                           <div className="flex-1">
-                            <p className="font-semibold">{f.name}</p>
-                            <p className="text-sm text-muted-foreground">{f.description}</p>
+                            <p className="font-semibold text-gray-800">{f.name}</p>
+                            <p className="text-sm text-gray-600">{f.description}</p>
                           </div>
                         </Label>
                       </div>
@@ -595,7 +607,7 @@ export function StickerCustomizer() {
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="quantity">
-                <AccordionTrigger className="text-lg font-semibold">Quantity</AccordionTrigger>
+                <AccordionTrigger className="text-lg font-semibold text-gray-800">Quantity</AccordionTrigger>
                 <AccordionContent>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {quantityOptions.map((q) => (
@@ -609,7 +621,7 @@ export function StickerCustomizer() {
                       <Input
                           type="number"
                           id="custom-quantity-input"
-                          className="w-full h-12 text-center text-lg font-bold"
+                          className="w-full h-12 text-center text-lg font-bold bg-white/50"
                           placeholder="Custom quantity..."
                           onChange={handleCustomQuantityChange}
                           onFocus={() => setQuantity(0)}
@@ -619,9 +631,9 @@ export function StickerCustomizer() {
               </AccordionItem>
             </Accordion>
 
-            <Card className="mt-4 shadow-md border-primary/20 sticky bottom-4">
+            <GlassmorphicCard className="mt-4 sticky bottom-4">
               <CardHeader className="flex-row items-center justify-between pb-4">
-                <CardTitle className="text-lg font-headline">Total Price</CardTitle>
+                <CardTitle className="text-lg font-headline text-gray-800">Total Price</CardTitle>
                 <div className="text-right">
                    <span className="text-3xl font-bold font-headline text-primary">${totalPrice}</span>
                    {quantity > 0 && <p className="text-sm text-muted-foreground">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
@@ -632,8 +644,8 @@ export function StickerCustomizer() {
                   Add to Cart
                 </Button>
               </CardContent>
-            </Card>
-        </div>
+            </GlassmorphicCard>
+        </GlassmorphicCard>
       </div>
     </div>
   );
