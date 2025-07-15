@@ -1,10 +1,10 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, Trash2, GripVertical, Settings } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, Trash2, GripVertical, Settings, Lock, Unlock } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -63,7 +63,7 @@ interface Design {
   designId: string;
   sourceType: 'upload' | 'ai_generated' | 'library' | 'text';
   sourceUrl?: string; // Optional for text
-  originalDimensions?: { width: number; height: number; unit: string; };
+  originalDimensions: { width: number; height: number; };
   fileName?: string;
   aiPrompt?: string;
   textData?: {
@@ -155,8 +155,10 @@ export function StickerCustomizer() {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Drag states
+  // Drag states for updating UI smoothly without re-rendering everything
   const [draggedItem, setDraggedItem] = useState<DragDataType | null>(null);
+  const [draggedOffset, setDraggedOffset] = useState<{ x: number, y: number } | null>(null);
+  
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
   const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
   
@@ -172,7 +174,8 @@ export function StickerCustomizer() {
   const [sheetLayout, setSheetLayout] = useState({ rows: 2, cols: 2 });
   const [hoveredLayout, setHoveredLayout] = useState({ rows: 0, cols: 0 });
   
-
+  // State for sticker properties
+  const [isAspectRatioLocked, setIsAspectRatioLocked] = useState(true);
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -200,9 +203,13 @@ export function StickerCustomizer() {
     }
   };
 
-  const addDesignToLibrary = (design: Omit<Design, 'designId'>) => {
+  const addDesignToLibrary = (design: Omit<Design, 'designId' | 'originalDimensions'>, dimensions: {width: number, height: number}) => {
     const designId = `design_${Math.random().toString(36).substr(2, 9)}`;
-    const newDesign: Design = { ...design, designId };
+    const newDesign: Design = {
+      ...design,
+      designId,
+      originalDimensions: dimensions,
+    };
     
     setAppState(current => ({
       ...current,
@@ -236,20 +243,24 @@ export function StickerCustomizer() {
         reader.onload = (event) => {
             const dataUrl = event.target?.result as string;
             
-            const newDesign = addDesignToLibrary({
-              sourceType: 'upload',
-              sourceUrl: dataUrl,
-              fileName: file.name,
-              originalDimensions: { width: 0, height: 0, unit: 'px' } // Placeholder
-            });
-
-            addStickerToSheet(newDesign.designId);
-            
-            setUploadedFileName(file.name);
-            toast({
-                title: "Image Uploaded",
-                description: `${file.name} is added to your library.`,
-            });
+            const img = new window.Image();
+            img.onload = () => {
+              const newDesign = addDesignToLibrary(
+                {
+                  sourceType: 'upload',
+                  sourceUrl: dataUrl,
+                  fileName: file.name,
+                },
+                { width: img.width, height: img.height }
+              );
+              addStickerToSheet(newDesign.designId);
+              setUploadedFileName(file.name);
+              toast({
+                  title: "Image Uploaded",
+                  description: `${file.name} is added to your library.`,
+              });
+            };
+            img.src = dataUrl;
         };
         reader.readAsDataURL(file);
     } else {
@@ -283,17 +294,23 @@ export function StickerCustomizer() {
     try {
       const result = await generateSticker({ prompt });
       if (result.imageDataUri) {
-        const newDesign = addDesignToLibrary({
-          sourceType: 'ai_generated',
-          sourceUrl: result.imageDataUri,
-          aiPrompt: prompt,
-          originalDimensions: { width: 0, height: 0, unit: 'px' } // Placeholder
-        });
-        addStickerToSheet(newDesign.designId);
-        toast({
-          title: "Sticker Generated!",
-          description: "Your new design has been added.",
-        });
+        const img = new window.Image();
+        img.onload = () => {
+            const newDesign = addDesignToLibrary(
+              {
+                sourceType: 'ai_generated',
+                sourceUrl: result.imageDataUri,
+                aiPrompt: prompt,
+              },
+              { width: img.width, height: img.height }
+            );
+            addStickerToSheet(newDesign.designId);
+            toast({
+              title: "Sticker Generated!",
+              description: "Your new design has been added.",
+            });
+        };
+        img.src = result.imageDataUri;
       } else {
         throw new Error("Image generation failed to return data.");
       }
@@ -323,7 +340,14 @@ export function StickerCustomizer() {
   
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-  }
+    if (draggedItem) {
+        const canvasRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setDraggedOffset({ 
+            x: e.clientX - canvasRect.left - draggedItem.offsetX, 
+            y: e.clientY - canvasRect.top - draggedItem.offsetY
+        });
+    }
+  };
 
 
   const handleDropOnCanvas = (e: React.DragEvent<HTMLDivElement>) => {
@@ -349,6 +373,7 @@ export function StickerCustomizer() {
         addStickerToSheet(data.id, { x, y });
     }
     setDraggedItem(null);
+    setDraggedOffset(null);
   };
   
   const handleDropOnTrash = (e: React.DragEvent<HTMLDivElement>) => {
@@ -363,24 +388,31 @@ export function StickerCustomizer() {
             ...current,
             stickers: current.stickers.filter(s => s.stickerId !== data.id)
         }));
+        if (activeStickerId === data.id) {
+          setActiveStickerId(null);
+        }
         toast({
             title: "Sticker Removed",
             description: "The sticker has been removed from your sheet.",
         });
     }
     setDraggedItem(null);
+    setDraggedOffset(null);
   };
 
 
   const handleAddTextDecal = () => {
-    const newDesign = addDesignToLibrary({
-      sourceType: 'text',
-      textData: {
-        content: decalText,
-        font: decalFont,
-        color: decalColor,
-      }
-    });
+    const newDesign = addDesignToLibrary(
+      {
+        sourceType: 'text',
+        textData: {
+          content: decalText,
+          font: decalFont,
+          color: decalColor,
+        },
+      },
+      { width: 300, height: 100 } // Placeholder dimensions for text
+    );
     addStickerToSheet(newDesign.designId);
     toast({
       title: "Text Decal Added",
@@ -393,8 +425,35 @@ export function StickerCustomizer() {
   const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
   const activeDesign = activeSticker ? appState.designLibrary.find(d => d.designId === activeSticker.designId) : null;
   
-  const imageToDisplay = activeSticker ? activeDesign?.sourceUrl : appState.designLibrary[0]?.sourceUrl;
+  const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text')?.sourceUrl;
 
+  const handleStickerSizeChange = (dimension: 'width' | 'height', value: string) => {
+    const numValue = parseInt(value, 10);
+    if (!activeSticker || !activeDesign || isNaN(numValue) || numValue <= 0) return;
+
+    let newWidth = activeSticker.size.width;
+    let newHeight = activeSticker.size.height;
+    const aspectRatio = activeDesign.originalDimensions.width / activeDesign.originalDimensions.height;
+
+    if (dimension === 'width') {
+      newWidth = numValue;
+      if (isAspectRatioLocked) {
+        newHeight = Math.round(numValue / aspectRatio);
+      }
+    } else {
+      newHeight = numValue;
+      if (isAspectRatioLocked) {
+        newWidth = Math.round(numValue * aspectRatio);
+      }
+    }
+
+    setAppState(current => ({
+      ...current,
+      stickers: current.stickers.map(s => 
+        s.stickerId === activeStickerId ? { ...s, size: { ...s.size, width: newWidth, height: newHeight } } : s
+      )
+    }));
+  };
 
   const renderDesignControls = () => {
     switch (stickerType) {
@@ -431,18 +490,9 @@ export function StickerCustomizer() {
                         htmlFor="picture"
                         className={cn(
                             "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
-                            isDraggingOverCanvas && "border-indigo-500 bg-indigo-900/20",
+                             "border-indigo-500 bg-indigo-900/20",
                             uploadedFileName && "border-emerald-500 bg-emerald-900/20"
                         )}
-                         onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-500', 'bg-indigo-900/20'); }}
-                         onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20'); }}
-                         onDrop={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');
-                            const file = e.dataTransfer.files?.[0];
-                            if (file) processFile(file);
-                         }}
-                         onDragOver={(e) => e.preventDefault()}
                     >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                             {uploadedFileName ? (
@@ -562,79 +612,76 @@ export function StickerCustomizer() {
                       ))
                     )}
                   </div>
-              </div>
-            </CustomizationSection>
-
-            <CustomizationSection title="Add New Design" icon={ImagePlus}>
-                <Tabs defaultValue="generate" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 text-slate-400">
-                    <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
-                    <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
-                    <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
-                </TabsList>
-                <TabsContent value="generate" className="mt-4">
-                    <div className="space-y-2">
-                        <Textarea
-                            placeholder="e.g., A cute baby panda developer"
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            rows={2}
-                            className="bg-slate-800 border-slate-700 text-slate-200"
-                        />
-                        <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
-                            {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating</> : <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>}
-                        </Button>
-                    </div>
-                </TabsContent>
-                <TabsContent value="upload" className="mt-4">
-                    <Label
-                        htmlFor="picture-library"
-                        className={cn(
-                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-800/50 hover:bg-slate-700/50 transition-colors border-slate-700",
-                             uploadedFileName && "border-emerald-500 bg-emerald-900/20"
-                        )}
-                        onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-500', 'bg-indigo-900/20');}}
-                        onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');}}
-                        onDrop={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');
-                            const file = e.dataTransfer.files?.[0];
-                            if (file) processFile(file);
-                        }}
-                        onDragOver={(e) => e.preventDefault()}
-                    >
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                            {uploadedFileName ? (
-                                <>
-                                    <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
-                                    <p className="font-semibold text-emerald-500">File Uploaded!</p>
-                                    <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
-                                </>
-                            ) : (
-                                <>
-                                    <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
-                                    <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
-                                </>
-                            )}
+                  <Tabs defaultValue="generate" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 text-slate-400">
+                        <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
+                        <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
+                        <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="generate" className="mt-4">
+                        <div className="space-y-2">
+                            <Textarea
+                                placeholder="e.g., A cute baby panda developer"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                rows={2}
+                                className="bg-slate-800 border-slate-700 text-slate-200"
+                            />
+                            <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
+                                {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating</> : <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>}
+                            </Button>
                         </div>
-                        <Input id="picture-library" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-                    </Label>
-                </TabsContent>
-                <TabsContent value="text" className="mt-4">
-                    <div className="space-y-2">
-                        <Input 
-                            placeholder="Your Text Here"
-                            value={decalText}
-                            onChange={(e) => setDecalText(e.target.value)}
-                            className="bg-slate-800 border-slate-700 text-slate-200"
-                        />
-                        <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
-                            <Type className="mr-2 h-4 w-4" /> Add Text to Library
-                        </Button>
-                    </div>
-                </TabsContent>
-                </Tabs>
+                    </TabsContent>
+                    <TabsContent value="upload" className="mt-4">
+                        <Label
+                            htmlFor="picture-library"
+                            className={cn(
+                                "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-800/50 hover:bg-slate-700/50 transition-colors border-slate-700",
+                                uploadedFileName && "border-emerald-500 bg-emerald-900/20"
+                            )}
+                            onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-500', 'bg-indigo-900/20');}}
+                            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');}}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');
+                                const file = e.dataTransfer.files?.[0];
+                                if (file) processFile(file);
+                            }}
+                            onDragOver={(e) => e.preventDefault()}
+                        >
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                                {uploadedFileName ? (
+                                    <>
+                                        <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
+                                        <p className="font-semibold text-emerald-500">File Uploaded!</p>
+                                        <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
+                                        <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
+                                        <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
+                                    </>
+                                )}
+                            </div>
+                            <Input id="picture-library" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+                        </Label>
+                    </TabsContent>
+                    <TabsContent value="text" className="mt-4">
+                        <div className="space-y-2">
+                            <Input 
+                                placeholder="Your Text Here"
+                                value={decalText}
+                                onChange={(e) => setDecalText(e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-slate-200"
+                            />
+                            <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
+                                <Type className="mr-2 h-4 w-4" /> Add Text to Library
+                            </Button>
+                        </div>
+                    </TabsContent>
+                  </Tabs>
+              </div>
             </CustomizationSection>
           </>
         );
@@ -733,14 +780,14 @@ export function StickerCustomizer() {
                     "absolute select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
                     activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-indigo-400 rounded-md",
-                    draggedItem?.id === sticker.stickerId && "opacity-50"
                 )}
                 style={{
-                    left: `${sticker.position.x}px`,
-                    top: `${sticker.position.y}px`,
+                    left: `${draggedItem?.id === sticker.stickerId && draggedOffset ? draggedOffset.x : sticker.position.x}px`,
+                    top: `${draggedItem?.id === sticker.stickerId && draggedOffset ? draggedOffset.y : sticker.position.y}px`,
                     width: `${sticker.size.width}px`,
                     height: `${sticker.size.height}px`,
                     transform: `rotate(${sticker.rotation}deg)`,
+                    opacity: draggedItem?.id === sticker.stickerId ? 0.5 : 1,
                 }}
             >
                 <Image
@@ -761,7 +808,9 @@ export function StickerCustomizer() {
   const renderCanvasContent = () => {
     // For sheet product type, render the grid or stickers
     if (stickerType === 'sheet') {
-        if (appState.stickerSheet.settings.autoPackEnabled) {
+      const showGrid = appState.stickerSheet.settings.autoPackEnabled || appState.stickers.length === 0;
+      
+      if (showGrid) {
           return (
              <div 
               className="grid w-full h-full gap-2 p-2"
@@ -772,7 +821,7 @@ export function StickerCustomizer() {
             >
               {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
                 <div key={i} className="relative w-full h-full bg-slate-800/50 rounded-md flex items-center justify-center">
-                  {imageToDisplay ? (
+                  {appState.stickerSheet.settings.autoPackEnabled && imageToDisplay ? (
                     <Image
                       src={imageToDisplay}
                       alt={`Sticker preview ${i + 1}`}
@@ -787,29 +836,10 @@ export function StickerCustomizer() {
               ))}
             </div>
           )
-        }
-      
-      // If auto-pack is off, show draggable stickers if any, or empty state
-      if (appState.stickers.length > 0) {
-        return appState.stickers.map(renderStickerInstance);
       }
       
-      // If no stickers and auto-pack is off, show the grid structure as a guide
-      return (
-        <div 
-          className="grid w-full h-full gap-2 p-2"
-          style={{
-            gridTemplateRows: `repeat(${sheetLayout.rows}, 1fr)`,
-            gridTemplateColumns: `repeat(${sheetLayout.cols}, 1fr)`,
-          }}
-        >
-          {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-            <div key={i} className="w-full h-full bg-slate-800/10 border border-dashed border-slate-700/50 rounded-md flex items-center justify-center">
-               <ImagePlus className="h-6 w-6 text-slate-600/50"/>
-            </div>
-          ))}
-        </div>
-      );
+      // If auto-pack is off and there are stickers, render them
+      return appState.stickers.map(renderStickerInstance);
     }
     
     // For other product types (die-cut, kiss-cut, decal)
@@ -827,7 +857,7 @@ export function StickerCustomizer() {
 
 
   return (
-    <div className="container mx-auto px-0 py-0 md:py-4" onDragOver={handleDragOver}>
+    <div className="container mx-auto px-0 py-0 md:py-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
             <ThemedCard className="w-full max-w-lg aspect-square">
@@ -838,7 +868,7 @@ export function StickerCustomizer() {
                   isDraggingOverCanvas && "outline-dashed outline-2 outline-offset-4 outline-indigo-500"
                 )}
                 onDrop={handleDropOnCanvas}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={handleDragOver}
                 onDragEnter={() => setIsDraggingOverCanvas(true)}
                 onDragLeave={() => setIsDraggingOverCanvas(false)}
               >
@@ -925,6 +955,40 @@ export function StickerCustomizer() {
               </CustomizationSection>
 
               {renderDesignControls()}
+
+              {activeSticker && activeDesign && (
+                 <CustomizationSection title="Sticker Properties" icon={Settings}>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2 items-center">
+                        <div>
+                            <Label htmlFor="width" className="text-xs font-medium text-slate-400">Width (px)</Label>
+                            <Input
+                                id="width"
+                                type="number"
+                                value={Math.round(activeSticker.size.width)}
+                                onChange={(e) => handleStickerSizeChange('width', e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-slate-200"
+                            />
+                        </div>
+                        <div className="self-end pb-2.5">
+                            <Button variant="ghost" size="icon" onClick={() => setIsAspectRatioLocked(!isAspectRatioLocked)} className="h-8 w-8 text-slate-400 hover:bg-slate-700 hover:text-white">
+                                {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                        <div>
+                            <Label htmlFor="height" className="text-xs font-medium text-slate-400">Height (px)</Label>
+                            <Input
+                                id="height"
+                                type="number"
+                                value={Math.round(activeSticker.size.height)}
+                                onChange={(e) => handleStickerSizeChange('height', e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-slate-200"
+                            />
+                        </div>
+                    </div>
+                  </div>
+                </CustomizationSection>
+              )}
             
               <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full space-y-6">
                 <CustomizationSection title="Material" icon={Palette}>
@@ -1004,3 +1068,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
