@@ -109,15 +109,18 @@ type DragDataType = {
     offsetY: number;
 }
 
-function CustomizationSection({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+function CustomizationSection({ title, icon: Icon, children, className }: { title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="p-4 rounded-lg animated-gradient-bg">
-        <div className="p-4 rounded-md glass-card-bg">
-            <h2 className="text-xl font-semibold font-headline text-gray-100 mb-3">{title}</h2>
+        <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                <Icon className="h-4 w-4" />
+            </div>
+            <h2 className="text-lg font-semibold text-white">{title}</h2>
+        </div>
+        <div className="rounded-lg bg-slate-900/50 p-4">
             {children}
         </div>
-      </div>
     </div>
   );
 }
@@ -126,13 +129,14 @@ const ThemedCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       className={cn(
-        "relative rounded-2xl slick-card",
-        "bg-[linear-gradient(135deg,_#1e1e24_10%,_#050505_60%)]",
+        "group relative flex w-full flex-col rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/20",
         className
       )}
       {...props}
     >
-      <div className="relative z-10 p-6 h-full">
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20 blur-sm transition-opacity duration-300 group-hover:opacity-30"></div>
+      <div className="absolute inset-px rounded-[11px] bg-slate-950"></div>
+      <div className="relative h-full">
         {children}
       </div>
     </div>
@@ -153,7 +157,6 @@ export function StickerCustomizer() {
 
   // Drag states
   const [draggedItem, setDraggedItem] = useState<DragDataType | null>(null);
-  const [draggedOffset, setDraggedOffset] = useState({ x: 0, y: 0 });
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
   const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
   
@@ -320,9 +323,6 @@ export function StickerCustomizer() {
   
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (draggedItem) {
-        setDraggedOffset({ x: e.clientX, y: e.clientY });
-    }
   }
 
 
@@ -401,9 +401,9 @@ export function StickerCustomizer() {
       case 'die-cut':
       case 'kiss-cut':
         return (
-          <CustomizationSection title="Add a Design">
+          <CustomizationSection title="Add a Design" icon={ImagePlus}>
             <Tabs defaultValue="generate" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-gray-800 text-gray-400">
+              <TabsList className="grid w-full grid-cols-2 bg-slate-800 text-slate-400">
                 <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
                 <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
               </TabsList>
@@ -414,9 +414,9 @@ export function StickerCustomizer() {
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         rows={3}
-                        className="bg-gray-800 border-gray-600 text-gray-200 focus:ring-green-400"
+                        className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
                     />
-                    <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold btn-animated-gradient">
+                    <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
                         {isGenerating ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
                         ) : (
@@ -430,15 +430,15 @@ export function StickerCustomizer() {
                     <Label
                         htmlFor="picture"
                         className={cn(
-                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-[#1f1f1f] hover:bg-gray-800 transition-colors border-gray-600",
-                            isDraggingOverCanvas && "border-green-400 bg-green-900/20",
-                            uploadedFileName && "border-green-500 bg-green-900/20"
+                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
+                            isDraggingOverCanvas && "border-indigo-500 bg-indigo-900/20",
+                            uploadedFileName && "border-emerald-500 bg-emerald-900/20"
                         )}
-                         onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-green-400', 'bg-green-900/20'); }}
-                         onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-green-400', 'bg-green-900/20'); }}
+                         onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-500', 'bg-indigo-900/20'); }}
+                         onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20'); }}
                          onDrop={(e) => {
                             e.preventDefault();
-                            e.currentTarget.classList.remove('border-green-400', 'bg-green-900/20');
+                            e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');
                             const file = e.dataTransfer.files?.[0];
                             if (file) processFile(file);
                          }}
@@ -447,15 +447,15 @@ export function StickerCustomizer() {
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                             {uploadedFileName ? (
                                 <>
-                                    <FileCheck2 className="w-8 h-8 mb-2 text-green-500" />
-                                    <p className="font-semibold text-green-500">File Uploaded!</p>
-                                    <p className="text-xs text-gray-400 truncate max-w-xs">{uploadedFileName}</p>
+                                    <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
+                                    <p className="font-semibold text-emerald-500">File Uploaded!</p>
+                                    <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
                                 </>
                             ) : (
                                 <>
-                                    <ImagePlus className="w-8 h-8 mb-2 text-gray-500" />
-                                    <p className="mb-1 text-sm text-gray-400"><span className="font-semibold text-green-400">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-gray-500">PNG, JPG, or WEBP</p>
+                                    <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
+                                    <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
                                 </>
                             )}
                         </div>
@@ -469,11 +469,11 @@ export function StickerCustomizer() {
       case 'sheet':
         return (
           <>
-            <CustomizationSection title="Sheet Configuration">
-                <div className="flex items-center space-x-4 rounded-lg bg-gray-800/50 p-3 border border-gray-600">
+            <CustomizationSection title="Sheet Configuration" icon={LayoutGrid}>
+                <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
                     <div className="flex-1">
-                      <Label htmlFor="auto-pack" className="text-gray-200 font-semibold">Auto-pack stickers</Label>
-                      <p className="text-xs text-gray-400">Automatically arrange stickers for best fit.</p>
+                      <Label htmlFor="auto-pack" className="text-slate-200 font-semibold">Auto-pack stickers</Label>
+                      <p className="text-xs text-slate-400">Automatically arrange stickers for best fit.</p>
                     </div>
                     <Switch
                       id="auto-pack"
@@ -483,12 +483,12 @@ export function StickerCustomizer() {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <Button variant="outline" className="w-full justify-between bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white">
                       <span>Sheet Layout: {sheetLayout.rows} x {sheetLayout.cols}</span>
                       <Settings className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-gray-800 border-gray-600 text-white">
+                  <DropdownMenuContent className="w-56 bg-slate-900 border-slate-700 text-white">
                       <div className="p-2">
                         <div 
                           className="grid grid-cols-5 gap-1"
@@ -503,8 +503,8 @@ export function StickerCustomizer() {
                               <div
                                 key={i}
                                 className={cn(
-                                  "w-8 h-8 border border-gray-600 rounded-sm transition-colors",
-                                  (isHovered || isSelected) ? "bg-green-500" : "bg-gray-700"
+                                  "w-8 h-8 border border-slate-700 rounded-sm transition-colors",
+                                  (isHovered || isSelected) ? "bg-indigo-500" : "bg-slate-800"
                                 )}
                                 onMouseEnter={() => setHoveredLayout({rows: row, cols: col})}
                                 onClick={() => setSheetLayout({rows: row, cols: col})}
@@ -517,11 +517,11 @@ export function StickerCustomizer() {
                 </DropdownMenu>
             </CustomizationSection>
             
-            <CustomizationSection title="Design Library">
+            <CustomizationSection title="Design Library" icon={Library}>
               <div className="space-y-4">
-                  <div className="min-h-[120px] bg-gray-800/50 border-gray-600 rounded-lg p-2 flex gap-2 overflow-x-auto">
+                  <div className="min-h-[120px] bg-slate-800/50 border border-slate-700 rounded-lg p-2 flex gap-2 overflow-x-auto">
                     {appState.designLibrary.length === 0 ? (
-                       <div className="w-full text-center text-gray-400 flex flex-col justify-center items-center p-4">
+                       <div className="w-full text-center text-slate-400 flex flex-col justify-center items-center p-4">
                           <Library className="h-8 w-8 mb-2" />
                           <p className="text-sm">Your design library is empty.</p>
                           <p className="text-xs">Add a design to start.</p>
@@ -536,7 +536,7 @@ export function StickerCustomizer() {
                         >
                            {design.sourceType === 'text' && design.textData ? (
                              <div 
-                                className="w-full h-full flex items-center justify-center bg-gray-700 rounded-md p-1 overflow-hidden"
+                                className="w-full h-full flex items-center justify-center bg-slate-700 rounded-md p-1 overflow-hidden"
                                 style={{
                                     color: design.textData.color,
                                     fontFamily: design.textData.font,
@@ -552,7 +552,7 @@ export function StickerCustomizer() {
                                 alt={design.fileName || design.aiPrompt || 'sticker design'}
                                 fill
                                 sizes="96px"
-                                className="object-contain bg-gray-700/50 rounded-md"
+                                className="object-contain bg-slate-700/50 rounded-md"
                               />
                            ) : null}
                            <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -565,9 +565,9 @@ export function StickerCustomizer() {
               </div>
             </CustomizationSection>
 
-            <CustomizationSection title="Add New Design">
+            <CustomizationSection title="Add New Design" icon={ImagePlus}>
                 <Tabs defaultValue="generate" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-gray-800/50 text-gray-400">
+                <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 text-slate-400">
                     <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
                     <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
                     <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
@@ -579,9 +579,9 @@ export function StickerCustomizer() {
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             rows={2}
-                            className="bg-gray-800 border-gray-600 text-gray-200"
+                            className="bg-slate-800 border-slate-700 text-slate-200"
                         />
-                        <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold btn-animated-gradient">
+                        <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
                             {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating</> : <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>}
                         </Button>
                     </div>
@@ -590,14 +590,14 @@ export function StickerCustomizer() {
                     <Label
                         htmlFor="picture-library"
                         className={cn(
-                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-800/50 hover:bg-gray-700/50 transition-colors border-gray-600",
-                             uploadedFileName && "border-green-500 bg-green-900/20"
+                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-800/50 hover:bg-slate-700/50 transition-colors border-slate-700",
+                             uploadedFileName && "border-emerald-500 bg-emerald-900/20"
                         )}
-                        onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-green-400', 'bg-green-900/20');}}
-                        onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-green-400', 'bg-green-900/20');}}
+                        onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-500', 'bg-indigo-900/20');}}
+                        onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');}}
                         onDrop={(e) => {
                             e.preventDefault();
-                            e.currentTarget.classList.remove('border-green-400', 'bg-green-900/20');
+                            e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');
                             const file = e.dataTransfer.files?.[0];
                             if (file) processFile(file);
                         }}
@@ -606,15 +606,15 @@ export function StickerCustomizer() {
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                             {uploadedFileName ? (
                                 <>
-                                    <FileCheck2 className="w-8 h-8 mb-2 text-green-500" />
-                                    <p className="font-semibold text-green-500">File Uploaded!</p>
-                                    <p className="text-xs text-gray-400 truncate max-w-xs">{uploadedFileName}</p>
+                                    <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
+                                    <p className="font-semibold text-emerald-500">File Uploaded!</p>
+                                    <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
                                 </>
                             ) : (
                                 <>
-                                    <ImagePlus className="w-8 h-8 mb-2 text-gray-500" />
-                                    <p className="mb-1 text-sm text-gray-400"><span className="font-semibold text-green-400">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-gray-500">PNG, JPG, or WEBP</p>
+                                    <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
+                                    <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
                                 </>
                             )}
                         </div>
@@ -627,9 +627,9 @@ export function StickerCustomizer() {
                             placeholder="Your Text Here"
                             value={decalText}
                             onChange={(e) => setDecalText(e.target.value)}
-                            className="bg-gray-800 border-gray-600 text-gray-200"
+                            className="bg-slate-800 border-slate-700 text-slate-200"
                         />
-                        <Button onClick={handleAddTextDecal} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold btn-animated-gradient">
+                        <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
                             <Type className="mr-2 h-4 w-4" /> Add Text to Library
                         </Button>
                     </div>
@@ -640,23 +640,23 @@ export function StickerCustomizer() {
         );
       case 'decal':
         return (
-          <CustomizationSection title="Create Text Decal">
+          <CustomizationSection title="Create Text Decal" icon={Type}>
             <div className="space-y-4">
               <Textarea
                 placeholder="Your Text Here"
                 value={decalText}
                 onChange={(e) => setDecalText(e.target.value)}
                 rows={3}
-                className="bg-gray-800 border-gray-600 text-gray-200 focus:ring-green-400 text-lg"
+                className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500 text-lg"
               />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="font-select" className="text-gray-400 mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
+                  <Label htmlFor="font-select" className="text-slate-400 mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
                   <Select value={decalFont} onValueChange={setDecalFont}>
-                    <SelectTrigger id="font-select" className="bg-gray-800 border-gray-600 text-gray-200">
+                    <SelectTrigger id="font-select" className="bg-slate-800 border-slate-700 text-slate-200">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600 text-gray-200">
+                    <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
                       <SelectItem value="serif">Serif</SelectItem>
                       <SelectItem value="sans-serif">Sans-Serif</SelectItem>
                       <SelectItem value="monospace">Monospace</SelectItem>
@@ -665,17 +665,17 @@ export function StickerCustomizer() {
                   </Select>
                 </div>
                 <div>
-                   <Label htmlFor="color-picker" className="text-gray-400 mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
+                   <Label htmlFor="color-picker" className="text-slate-400 mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
                    <Input 
                       id="color-picker"
                       type="color" 
                       value={decalColor}
                       onChange={(e) => setDecalColor(e.target.value)}
-                      className="w-full h-10 p-1 bg-gray-800 border-gray-600"
+                      className="w-full h-10 p-1 bg-slate-800 border-slate-700"
                     />
                 </div>
               </div>
-              <Button onClick={handleAddTextDecal} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold btn-animated-gradient">
+              <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
                 <Type className="mr-2 h-4 w-4" /> Add Text to Sheet
               </Button>
             </div>
@@ -702,7 +702,7 @@ export function StickerCustomizer() {
                 className={cn(
                     "absolute flex items-center justify-center p-2 break-words text-center select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
-                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-green-400",
+                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-indigo-400",
                     draggedItem?.id === sticker.stickerId && "opacity-50"
                 )}
                 style={{
@@ -732,7 +732,7 @@ export function StickerCustomizer() {
                 className={cn(
                     "absolute select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
-                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-green-400 rounded-md",
+                    activeStickerId === sticker.stickerId && "outline-dashed outline-2 outline-indigo-400 rounded-md",
                     draggedItem?.id === sticker.stickerId && "opacity-50"
                 )}
                 style={{
@@ -771,7 +771,7 @@ export function StickerCustomizer() {
               }}
             >
               {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-                <div key={i} className="relative w-full h-full bg-gray-700/50 rounded-md flex items-center justify-center">
+                <div key={i} className="relative w-full h-full bg-slate-800/50 rounded-md flex items-center justify-center">
                   {imageToDisplay ? (
                     <Image
                       src={imageToDisplay}
@@ -781,7 +781,7 @@ export function StickerCustomizer() {
                       className="object-contain p-1"
                     />
                   ) : (
-                    <ImagePlus className="h-6 w-6 text-gray-500"/>
+                    <ImagePlus className="h-6 w-6 text-slate-500"/>
                   )}
                 </div>
               ))}
@@ -804,8 +804,8 @@ export function StickerCustomizer() {
           }}
         >
           {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-            <div key={i} className="w-full h-full bg-gray-700/10 border border-dashed border-gray-600/50 rounded-md flex items-center justify-center">
-               <ImagePlus className="h-6 w-6 text-gray-500/50"/>
+            <div key={i} className="w-full h-full bg-slate-800/10 border border-dashed border-slate-700/50 rounded-md flex items-center justify-center">
+               <ImagePlus className="h-6 w-6 text-slate-600/50"/>
             </div>
           ))}
         </div>
@@ -818,7 +818,7 @@ export function StickerCustomizer() {
     }
 
     return (
-      <div className="text-center text-gray-500">
+      <div className="text-center text-slate-500">
         <p className="text-lg font-semibold">Sticker Canvas</p>
         <p className="text-sm">Select a product and add a design to start.</p>
       </div>
@@ -830,12 +830,12 @@ export function StickerCustomizer() {
     <div className="container mx-auto px-0 py-0 md:py-4" onDragOver={handleDragOver}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
-            <div className="relative w-full max-w-lg aspect-square overflow-visible slick-card rounded-2xl bg-[linear-gradient(135deg,_#1e1e24_10%,_#050505_60%)]">
+            <ThemedCard className="w-full max-w-lg aspect-square">
               <div 
                 className={cn(
-                  "relative bg-transparent rounded-[18px] w-full h-full p-0 transition-all duration-200",
-                  "border-2 border-dashed border-gray-600",
-                  isDraggingOverCanvas && "outline-dashed outline-2 outline-offset-4 outline-green-400"
+                  "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
+                  "border-2 border-dashed border-slate-700",
+                  isDraggingOverCanvas && "outline-dashed outline-2 outline-offset-4 outline-indigo-500"
                 )}
                 onDrop={handleDropOnCanvas}
                 onDragOver={(e) => e.preventDefault()}
@@ -843,7 +843,7 @@ export function StickerCustomizer() {
                 onDragLeave={() => setIsDraggingOverCanvas(false)}
               >
               {isLoading && (
-                <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 rounded-[18px]">
+                <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
                   <p className="text-white mt-4 font-semibold">{loadingText}</p>
                 </div>
@@ -853,7 +853,7 @@ export function StickerCustomizer() {
                   {renderCanvasContent()}
                 </div>
               </div>
-            </div>
+            </ThemedCard>
            {stickerType === 'sheet' && (
              <div 
                 onDrop={handleDropOnTrash}
@@ -861,7 +861,7 @@ export function StickerCustomizer() {
                 onDragLeave={() => setIsDraggingOverTrash(false)}
                 className={cn(
                     "flex items-center justify-center gap-2 rounded-lg p-3 w-48 transition-colors",
-                    isDraggingOverTrash ? "bg-red-500/20 text-red-400" : "bg-gray-800 text-gray-500"
+                    isDraggingOverTrash ? "bg-red-500/20 text-red-400" : "bg-slate-800 text-slate-500"
                 )}
             >
                 <Trash2 className="h-5 w-5" />
@@ -870,10 +870,10 @@ export function StickerCustomizer() {
            )}
         </div>
         
-        <ThemedCard className="group">
+        <ThemedCard>
           <div className="flex flex-col space-y-6">
             <header>
-                <h1 className="text-3xl md:text-4xl font-bold font-headline tracking-tight text-gray-100">
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
                     Create Your Sticker
                 </h1>
                 <div className="mt-2 flex items-center gap-4">
@@ -885,38 +885,38 @@ export function StickerCustomizer() {
                             <Star className="w-5 h-5 fill-current" />
                             <Star className="w-5 h-5 fill-current" />
                         </div>
-                        <p className="text-sm text-gray-300 font-medium"><span className="text-gray-100 font-semibold">5.0</span> (4,882 reviews)</p>
+                        <p className="text-sm text-slate-300 font-medium"><span className="text-white font-semibold">5.0</span> (4,882 reviews)</p>
                     </div>
                 </div>
               </header>
             
-              <CustomizationSection title="Product Type">
+              <CustomizationSection title="Product Type" icon={Scissors}>
                 <Select value={stickerType} onValueChange={setStickerType}>
-                    <SelectTrigger className="w-full bg-gray-800/50 border-gray-600 text-gray-200 h-12 text-base">
+                    <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
                         <SelectValue placeholder="Select a product type" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600 text-gray-200">
+                    <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
                         <SelectItem value="die-cut">
                             <div className="flex items-center gap-3">
-                                <Scissors className="h-5 w-5 text-green-400" />
+                                <Scissors className="h-5 w-5 text-indigo-400" />
                                 <span className="font-semibold">Die-cut Stickers</span>
                             </div>
                         </SelectItem>
                         <SelectItem value="sheet">
                             <div className="flex items-center gap-3">
-                                <SheetIcon className="h-5 w-5 text-blue-400" />
+                                <SheetIcon className="h-5 w-5 text-purple-400" />
                                 <span className="font-semibold">Sticker Sheets</span>
                             </div>
                         </SelectItem>
                         <SelectItem value="kiss-cut">
                            <div className="flex items-center gap-3">
-                                <ContourCutIcon className="h-5 w-5 text-purple-400" />
+                                <ContourCutIcon className="h-5 w-5 text-pink-400" />
                                 <span className="font-semibold">Kiss-cut Stickers</span>
                             </div>
                         </SelectItem>
                         <SelectItem value="decal">
                            <div className="flex items-center gap-3">
-                                <Type className="h-5 w-5 text-red-400" />
+                                <Type className="h-5 w-5 text-emerald-400" />
                                 <span className="font-semibold">Text Decals</span>
                             </div>
                         </SelectItem>
@@ -926,82 +926,74 @@ export function StickerCustomizer() {
 
               {renderDesignControls()}
             
-              <div className="p-4 rounded-lg animated-gradient-bg">
-                  <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full glass-card-bg p-4 rounded-md">
-                    <AccordionItem value="material" className="border-gray-200/10">
-                      <AccordionTrigger className="text-lg font-semibold text-gray-200">Material</AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {materials.map((m) => (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => !m.outOfStock && setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
-                              disabled={m.outOfStock}
-                              className={cn(
-                                "relative group rounded-lg p-3 text-center transition-all duration-200 border-2",
-                                appState.stickerSheet.material.id === m.id ? "bg-gray-700/80 border-green-400" : "bg-gray-800/80 border-gray-600 hover:border-gray-500",
-                                m.outOfStock && "opacity-50 cursor-not-allowed"
-                              )}
-                            >
-                              {m.outOfStock && (
-                                <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                  Sold Out
-                                </div>
-                              )}
-                              <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
-                              <p className="font-semibold text-sm text-gray-200 group-disabled:text-gray-500">{m.name}</p>
-                            </button>
-                          ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="quantity" className="border-gray-200/10">
-                      <AccordionTrigger className="text-lg font-semibold text-gray-200">Quantity</AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {quantityOptions.map((q) => (
-                            <Button 
-                              key={q.quantity} 
-                              variant={quantity === q.quantity ? "default" : "outline"} 
-                              onClick={() => handleQuantityButtonClick(q.quantity)} 
-                              className={cn(
-                                "h-auto flex-col py-3 px-2 text-center btn-animated-gradient",
-                                quantity === q.quantity 
-                                  ? "bg-green-500 text-white hover:bg-green-600" 
-                                  : "border-gray-600 bg-gray-800/80 text-gray-300 hover:bg-gray-700/80 hover:text-white"
-                              )}
-                            >
-                              <span className="font-bold text-lg leading-none">{q.quantity}</span>
-                              <span className="text-xs text-gray-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
-                            </Button>
-                          ))}
-                        </div>
-                        <div className="mt-4">
-                            <Input
-                                type="number"
-                                id="custom-quantity-input"
-                                className="w-full h-12 text-center text-lg font-bold bg-gray-800/80 border-gray-600 text-gray-200 placeholder:text-gray-500 focus:ring-green-400 focus:border-green-400"
-                                placeholder="Custom quantity..."
-                                onChange={handleCustomQuantityChange}
-                                onFocus={() => setQuantity(0)}
-                            />
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-              </div>
+              <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full space-y-6">
+                <CustomizationSection title="Material" icon={Palette}>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {materials.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => !m.outOfStock && setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
+                        disabled={m.outOfStock}
+                        className={cn(
+                          "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50",
+                          appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600",
+                          m.outOfStock && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {m.outOfStock && (
+                          <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            Sold Out
+                          </div>
+                        )}
+                        <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
+                        <p className="font-semibold text-sm text-slate-200 group-disabled:text-slate-500">{m.name}</p>
+                      </button>
+                    ))}
+                  </div>
+                </CustomizationSection>
+                <CustomizationSection title="Quantity" icon={Sparkles}>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {quantityOptions.map((q) => (
+                      <Button 
+                        key={q.quantity} 
+                        variant={quantity === q.quantity ? "default" : "outline"} 
+                        onClick={() => handleQuantityButtonClick(q.quantity)} 
+                        className={cn(
+                          "h-auto flex-col py-3 px-2 text-center",
+                          quantity === q.quantity 
+                            ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-purple-500" 
+                            : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                        )}
+                      >
+                        <span className="font-bold text-lg leading-none">{q.quantity}</span>
+                        <span className="text-xs text-slate-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="mt-4">
+                      <Input
+                          type="number"
+                          id="custom-quantity-input"
+                          className="w-full h-12 text-center text-lg font-bold bg-slate-800/80 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Custom quantity..."
+                          onChange={handleCustomQuantityChange}
+                          onFocus={() => setQuantity(0)}
+                      />
+                  </div>
+                </CustomizationSection>
+              </Accordion>
             
-              <div className="p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 mt-4 sticky bottom-4">
-                  <div className="bg-[#1a1a1a] rounded-[18px] p-4">
+              <div className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
+                  <div className="bg-slate-900 rounded-lg p-4">
                     <div className="flex flex-row items-center justify-between pb-4">
-                      <h3 className="text-lg font-headline text-gray-200">Total Price</h3>
+                      <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
                       <div className="text-right">
-                         <span className="text-3xl font-bold font-headline text-green-400">${totalPrice}</span>
-                         {quantity > 0 && <p className="text-sm text-gray-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
+                         <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
+                         {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
                       </div>
                     </div>
-                    <Button size="lg" className="w-full text-lg h-14 font-bold bg-green-500 hover:bg-green-600 text-white btn-animated-gradient" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
+                    <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
                       Add to Cart
                     </Button>
                   </div>
