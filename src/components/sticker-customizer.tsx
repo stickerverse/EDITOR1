@@ -88,7 +88,7 @@ const initialAppState: AppState = {
     lastModified: new Date().toISOString(),
     dimensions: { width: 8.5, height: 11, unit: 'inches' },
     material: { id: materials[0].id, name: materials[0].name },
-    settings: { autoPackEnabled: false, showBleedArea: true },
+    settings: { autoPackEnabled: true, showBleedArea: true },
   },
   designLibrary: [],
   stickers: [],
@@ -447,8 +447,10 @@ export function StickerCustomizer() {
 
     const dx = e.clientX - dragAction.startX;
     const dy = e.clientY - dragAction.startY;
+    
+    const isDraggable = stickerType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled;
 
-    if (dragAction.type === 'move') {
+    if (dragAction.type === 'move' && isDraggable) {
         const newX = dragAction.originalSticker.position.x + dx;
         const newY = dragAction.originalSticker.position.y + dy;
         setAppState(current => ({
@@ -460,7 +462,7 @@ export function StickerCustomizer() {
         const design = appState.designLibrary.find(d => d.designId === originalSticker.designId);
         if (!design) return;
 
-        const newWidth = originalSticker.size.width + dx;
+        let newWidth = originalSticker.size.width + dx;
         let newHeight = originalSticker.size.height + dy;
         
         if(isAspectRatioLocked) {
@@ -508,7 +510,7 @@ export function StickerCustomizer() {
         const design = sticker ? appState.designLibrary.find(d => d.designId === sticker.designId) : null;
         
         // If the action was resizing a text decal, measure it and snap the container to fit
-        if (design && design.sourceType === 'text' && (type === 'resize-br' || type === 'rotate')) {
+        if (design && design.sourceType === 'text') {
             const textElement = document.getElementById(`sticker-text-${stickerId}`);
             if (textElement) {
                 const rect = textElement.getBoundingClientRect();
@@ -596,13 +598,13 @@ export function StickerCustomizer() {
             <CustomizationSection title="Sheet Configuration" icon={LayoutGrid}>
                 <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
                     <div className="flex-1">
-                      <Label htmlFor="auto-pack" className="text-slate-200 font-semibold">Auto-pack stickers</Label>
-                      <p className="text-xs text-slate-400">Automatically arrange stickers for best fit.</p>
+                      <Label htmlFor="custom-layout" className="text-slate-200 font-semibold">Custom Layout</Label>
+                      <p className="text-xs text-slate-400">Manually arrange and resize stickers.</p>
                     </div>
                     <Switch
-                      id="auto-pack"
-                      checked={appState.stickerSheet.settings.autoPackEnabled}
-                      onCheckedChange={(checked) => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, settings: {...s.stickerSheet.settings, autoPackEnabled: checked}}}))}
+                      id="custom-layout"
+                      checked={!appState.stickerSheet.settings.autoPackEnabled}
+                      onCheckedChange={(checked) => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, settings: {...s.stickerSheet.settings, autoPackEnabled: !checked}}}))}
                     />
                 </div>
                 <DropdownMenu>
@@ -824,8 +826,10 @@ export function StickerCustomizer() {
     const design = appState.designLibrary.find(d => d.designId === sticker.designId);
     if (!design) return null;
 
-    const isDraggable = stickerType === 'sheet' && !appState.stickerSheet.settings.autoPackEnabled;
+    const isDraggable = stickerType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled;
     const isSelected = activeStickerId === sticker.stickerId;
+    
+    const showControls = isSelected && isDraggable;
 
     if (design.sourceType === 'text' && design.textData) {
         const fontSize = sticker.size.width / 10;
@@ -833,10 +837,11 @@ export function StickerCustomizer() {
             <div
                 id={`sticker-${sticker.stickerId}`}
                 key={sticker.stickerId}
-                onPointerDown={(e) => handlePointerDown(e, 'move', sticker.stickerId)}
+                onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
                 onClick={() => setActiveStickerId(sticker.stickerId)}
                 className={cn(
-                    "absolute flex items-center justify-center p-2 break-words text-center select-none cursor-grab active:cursor-grabbing",
+                    "absolute flex items-center justify-center p-2 break-words text-center select-none",
+                    isDraggable && "cursor-grab active:cursor-grabbing",
                     isSelected && "outline-dashed outline-2 outline-indigo-400 rounded-md",
                 )}
                 style={{
@@ -859,7 +864,7 @@ export function StickerCustomizer() {
                 >
                     {design.textData.content}
                 </span>
-                {isSelected && (
+                {showControls && (
                     <>
                         <div
                             className="absolute -bottom-2 -right-2 w-4 h-4 bg-indigo-400 rounded-full cursor-se-resize"
@@ -882,10 +887,11 @@ export function StickerCustomizer() {
             <div
                 id={`sticker-${sticker.stickerId}`}
                 key={sticker.stickerId}
-                onPointerDown={(e) => handlePointerDown(e, 'move', sticker.stickerId)}
+                onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
                 onClick={() => setActiveStickerId(sticker.stickerId)}
                 className={cn(
-                    "absolute select-none cursor-grab active:cursor-grabbing",
+                    "absolute select-none",
+                    isDraggable && "cursor-grab active:cursor-grabbing",
                     isSelected && "outline-dashed outline-2 outline-indigo-400 rounded-md",
                 )}
                 style={{
@@ -904,7 +910,7 @@ export function StickerCustomizer() {
                     className="object-contain pointer-events-none"
                     priority={sticker.stickerId === activeStickerId}
                 />
-                 {isSelected && (
+                 {showControls && (
                     <>
                         <div
                             className="absolute -bottom-2 -right-2 w-4 h-4 bg-indigo-400 rounded-full cursor-se-resize"
@@ -926,7 +932,7 @@ export function StickerCustomizer() {
   }
 
   const renderCanvasContent = () => {
-    const showGrid = stickerType === 'sheet' && (appState.stickerSheet.settings.autoPackEnabled || appState.stickers.length === 0);
+    const showGrid = stickerType === 'sheet' && appState.stickerSheet.settings.autoPackEnabled;
       
       if (showGrid) {
           return (
@@ -1199,5 +1205,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
