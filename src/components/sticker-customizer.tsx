@@ -326,7 +326,8 @@ export function StickerCustomizer() {
   
   const handleDropOnCanvas = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const canvasRect = e.currentTarget.getBoundingClientRect();
+    if (!canvasRef.current) return;
+    const canvasRect = canvasRef.current.getBoundingClientRect();
     const dataString = e.dataTransfer.getData('application/json');
     if (!dataString) return;
 
@@ -504,7 +505,7 @@ export function StickerCustomizer() {
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (dragAction) {
-        const { type, stickerId } = dragAction;
+        const { stickerId } = dragAction;
 
         const sticker = appState.stickers.find(s => s.stickerId === stickerId);
         const design = sticker ? appState.designLibrary.find(d => d.designId === sticker.designId) : null;
@@ -528,6 +529,60 @@ export function StickerCustomizer() {
 
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
         setDragAction(null);
+    }
+  };
+
+  const handleToggleCustomLayout = (checked: boolean) => {
+    if (checked) {
+      // Switching to Custom Layout
+      const currentDesign = appState.designLibrary.find(d => d.sourceType !== 'text');
+      if (!currentDesign || !canvasRef.current) {
+        setAppState(s => ({
+          ...s,
+          stickerSheet: { ...s.stickerSheet, settings: { ...s.stickerSheet.settings, autoPackEnabled: false } },
+          stickers: [] // Clear stickers if no design is available
+        }));
+        return;
+      }
+  
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const newStickers: StickerInstance[] = [];
+      const { rows, cols } = sheetLayout;
+      const cellWidth = canvasRect.width / cols;
+      const cellHeight = canvasRect.height / rows;
+      const padding = 8; // p-2
+      
+      const stickerWidth = cellWidth - (padding * 2);
+      const stickerHeight = cellHeight - (padding * 2);
+  
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+          const x = (j * cellWidth) + padding;
+          const y = (i * cellHeight) + padding;
+          const stickerId = `inst_grid_${i}_${j}`;
+  
+          newStickers.push({
+            stickerId,
+            designId: currentDesign.designId,
+            position: { x, y, unit: 'px' },
+            size: { width: stickerWidth, height: stickerHeight, unit: 'px' },
+            rotation: 0,
+            cutLine: { type: 'kiss_cut', offset: 0.1, shape: 'auto' },
+          });
+        }
+      }
+      setAppState(s => ({
+        ...s,
+        stickerSheet: { ...s.stickerSheet, settings: { ...s.stickerSheet.settings, autoPackEnabled: false } },
+        stickers: newStickers
+      }));
+    } else {
+      // Switching back to Auto Layout
+      setAppState(s => ({
+        ...s,
+        stickerSheet: { ...s.stickerSheet, settings: { ...s.stickerSheet.settings, autoPackEnabled: true } },
+        stickers: [] // Clear custom stickers
+      }));
     }
   };
 
@@ -604,7 +659,7 @@ export function StickerCustomizer() {
                     <Switch
                       id="custom-layout"
                       checked={!appState.stickerSheet.settings.autoPackEnabled}
-                      onCheckedChange={(checked) => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, settings: {...s.stickerSheet.settings, autoPackEnabled: !checked}}}))}
+                      onCheckedChange={handleToggleCustomLayout}
                     />
                 </div>
                 <DropdownMenu>
@@ -945,7 +1000,7 @@ export function StickerCustomizer() {
             >
               {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
                 <div key={i} className="relative w-full h-full bg-slate-800/50 rounded-md flex items-center justify-center">
-                  {appState.stickerSheet.settings.autoPackEnabled && imageToDisplay ? (
+                  {imageToDisplay ? (
                     <Image
                       src={imageToDisplay}
                       alt={`Sticker preview ${i + 1}`}
@@ -1205,3 +1260,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
