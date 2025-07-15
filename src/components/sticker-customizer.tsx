@@ -119,18 +119,19 @@ function CustomizationSection({ title, children, className }: { title: string; c
 }
 
 const ThemedCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, children, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 transition-all duration-300 hover:shadow-[0_0_30px_1px_rgba(0,255,117,0.30)]",
-      className
-    )}
-    {...props}
-  >
-    <div className="bg-[#1a1a1a] rounded-[18px] p-6 transition-all duration-200 group-hover:scale-[0.98]">
-      {children}
+    <div
+      ref={ref}
+      className={cn(
+        "relative rounded-2xl slick-card",
+        "bg-[linear-gradient(135deg,_#1e1e24_10%,_#050505_60%)]",
+        className
+      )}
+      {...props}
+    >
+      <div className="relative z-10 p-6 h-full">
+        {children}
+      </div>
     </div>
-  </div>
 ));
 ThemedCard.displayName = "ThemedCard";
 
@@ -826,10 +827,11 @@ export function StickerCustomizer() {
     <div className="container mx-auto px-0 py-0 md:py-4" onDragOver={handleDragOver}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
-            <div className="w-full max-w-lg aspect-square overflow-hidden p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 transition-all duration-300 hover:shadow-[0_0_30px_1px_rgba(0,255,117,0.30)]">
+            <div className="relative w-full max-w-lg aspect-square overflow-visible slick-card rounded-2xl bg-[linear-gradient(135deg,_#1e1e24_10%,_#050505_60%)]">
               <div 
                 className={cn(
-                  "relative bg-gray-800 rounded-[18px] w-full h-full p-0 transition-all duration-200 group-hover:scale-[0.98]",
+                  "relative bg-transparent rounded-[18px] w-full h-full p-0 transition-all duration-200",
+                  "border-2 border-dashed border-gray-600",
                   isDraggingOverCanvas && "outline-dashed outline-2 outline-offset-4 outline-green-400"
                 )}
                 onDrop={handleDropOnCanvas}
@@ -844,7 +846,7 @@ export function StickerCustomizer() {
                 </div>
               )}
                 {/* This area will become the sticker sheet canvas */}
-                <div className="w-full h-full border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center relative overflow-hidden">
+                <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
                   {renderCanvasContent()}
                 </div>
               </div>

@@ -83,3 +83,61 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .slick-card {
+    background-size: 200% 200%;
+    animation: gradient-shift 5s ease-in-out infinite;
+  }
+  .slick-card::before,
+  .slick-card::after {
+    content: "";
+    position: absolute;
+    border-radius: inherit;
+  }
+  .slick-card::after {
+    --size: 2px;
+    top: calc(var(--size) / -2);
+    left: calc(var(--size) / -2);
+    width: calc(100% + var(--size));
+    height: calc(100% + var(--size));
+    background: radial-gradient(circle at 0 0, hsl(27deg 93% 60%), transparent),
+      radial-gradient(circle at 100% 0, #00a6ff, transparent),
+      radial-gradient(circle at 0 100%, #ff0056, transparent),
+      radial-gradient(circle at 100% 100%, #6500ff, transparent);
+    z-index: -1;
+  }
+  .slick-card::before {
+    --size: 10px;
+    top: calc(var(--size) / -2);
+    left: calc(var(--size) / -2);
+    width: calc(100% + var(--size));
+    height: calc(100% + var(--size));
+    background: radial-gradient(circle at 0 0, hsl(27deg 93% 60%), transparent),
+      radial-gradient(circle at 100% 0, #00a6ff, transparent),
+      radial-gradient(circle at 0 100%, #ff0056, transparent),
+      radial-gradient(circle at 100% 100%, #6500ff, transparent);
+    z-index: -2;
+    filter: blur(2vmin);
+    animation: blur-animation 3s ease-in-out alternate infinite;
+  }
+}
+
+@keyframes blur-animation {
+  to {
+    filter: blur(3vmin);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
