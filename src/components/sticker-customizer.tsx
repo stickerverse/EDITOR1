@@ -59,47 +59,58 @@ const quantityOptions = [
 ];
 
 
-interface StickerState {
-  source: 'upload' | 'generate' | null;
-  originalUrl: string | null;
-  bgRemovedUrl: string | null;
-  borderedUrls: Record<string, string>;
-  bgRemoved: boolean;
-  borderAdded: boolean;
-  borderWidthIndex: number;
-  borderColor: string;
-  isLoading: boolean;
-  loadingText: string;
+// Data models based on the new JSON structure
+interface StickerSheet {
+  sheetId: string;
+  userId: string;
+  title: string;
+  lastModified: string;
+  dimensions: { width: number; height: number; unit: string; };
+  material: { id: string; name: string; };
+  settings: { autoPackEnabled: boolean; showBleedArea: boolean; };
 }
 
-const initialState: StickerState = {
-  source: null,
-  originalUrl: null,
-  bgRemovedUrl: null,
-  borderedUrls: {},
-  bgRemoved: false,
-  borderAdded: false,
-  borderWidthIndex: 1, 
-  borderColor: BORDER_COLORS[0].value,
-  isLoading: false,
-  loadingText: "",
+interface Design {
+  designId: string;
+  sourceType: 'upload' | 'ai_generated' | 'library';
+  sourceUrl: string;
+  originalDimensions: { width: number; height: number; unit: string; };
+  fileName?: string;
+  aiPrompt?: string;
+  // Client-side only properties for processing
+  bgRemovedUrl?: string;
+  borderedUrls?: Record<string, string>;
+}
+
+interface StickerInstance {
+  stickerId: string;
+  designId: string;
+  position: { x: number; y: number; unit: string; };
+  size: { width: number; height: number; unit: string; };
+  rotation: number;
+  cutLine: { type: 'kiss_cut' | 'die_cut'; offset: number; shape: 'auto' | 'custom'; pathData?: string; };
+}
+
+interface AppState {
+  stickerSheet: StickerSheet;
+  designLibrary: Design[];
+  stickers: StickerInstance[];
+}
+
+const initialAppState: AppState = {
+  stickerSheet: {
+    sheetId: `sheet_${Math.random().toString(36).substr(2, 9)}`,
+    userId: `user_${Math.random().toString(36).substr(2, 9)}`,
+    title: 'My Awesome Project',
+    lastModified: new Date().toISOString(),
+    dimensions: { width: 8.5, height: 11, unit: 'inches' },
+    material: { id: materials[0].id, name: materials[0].name },
+    settings: { autoPackEnabled: false, showBleedArea: true },
+  },
+  designLibrary: [],
+  stickers: [],
 };
 
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 function CustomizationSection({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
@@ -129,14 +140,11 @@ ThemedCard.displayName = "ThemedCard";
 
 export function StickerCustomizer() {
   const { toast } = useToast();
-  const stableToast = useCallback(toast, []);
-  
-  const [sticker, setSticker] = useState<StickerState>(initialState);
-  
-  const debouncedBorderWidthIndex = useDebounce(sticker.borderWidthIndex, 300);
-  const debouncedBorderColor = useDebounce(sticker.borderColor, 300);
+  const [appState, setAppState] = useState<AppState>(initialAppState);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("");
+  const [activeStickerId, setActiveStickerId] = useState<string | null>(null);
 
-  const [material, setMaterial] = useState(materials[0].id);
   const [finish, setFinish] = useState(finishes[0].id);
   const [width, setWidth] = useState(3);
   const [height, setHeight] = useState(3);
@@ -148,7 +156,7 @@ export function StickerCustomizer() {
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
-  
+
   const handleAddToCart = () => {
     toast({
       title: "Added to Cart!",
@@ -172,29 +180,54 @@ export function StickerCustomizer() {
     }
   };
 
-  const handleStickerUpdate = useCallback((newImage: string, source: 'upload' | 'generate') => {
-    setSticker(s => ({
-      ...initialState,
-      originalUrl: newImage,
-      source: source,
-      bgRemoved: source === 'generate',
-      bgRemovedUrl: source === 'generate' ? newImage : null,
-      borderAdded: s.borderAdded,
-      borderColor: s.borderColor,
-      borderWidthIndex: s.borderWidthIndex,
+  const addDesignToLibrary = (design: Omit<Design, 'designId'>) => {
+    const designId = `design_${Math.random().toString(36).substr(2, 9)}`;
+    const newDesign: Design = { ...design, designId };
+    
+    setAppState(current => ({
+      ...current,
+      designLibrary: [...current.designLibrary, newDesign],
     }));
-  }, []);
+    return newDesign;
+  }
+
+  const addStickerToSheet = (designId: string) => {
+    const stickerId = `inst_${Math.random().toString(36).substr(2, 9)}`;
+    const newSticker: StickerInstance = {
+      stickerId,
+      designId,
+      position: { x: 1, y: 1, unit: 'inches' },
+      size: { width: 3, height: 3, unit: 'inches' },
+      rotation: 0,
+      cutLine: { type: 'die_cut', offset: 0.1, shape: 'auto' },
+    };
+
+    setAppState(current => ({
+      ...current,
+      stickers: [...current.stickers, newSticker],
+    }));
+    setActiveStickerId(stickerId);
+  }
 
   const processFile = (file: File) => {
     if (file && file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (event) => {
             const dataUrl = event.target?.result as string;
-            handleStickerUpdate(dataUrl, 'upload');
+            
+            const newDesign = addDesignToLibrary({
+              sourceType: 'upload',
+              sourceUrl: dataUrl,
+              fileName: file.name,
+              originalDimensions: { width: 0, height: 0, unit: 'px' } // Placeholder
+            });
+
+            addStickerToSheet(newDesign.designId);
+            
             setUploadedFileName(file.name);
             toast({
                 title: "Image Uploaded",
-                description: `${file.name} is ready for printing.`,
+                description: `${file.name} is added to your sheet.`,
             });
         };
         reader.readAsDataURL(file);
@@ -255,10 +288,16 @@ export function StickerCustomizer() {
     try {
       const result = await generateSticker({ prompt });
       if (result.imageDataUri) {
-        handleStickerUpdate(result.imageDataUri, 'generate');
+        const newDesign = addDesignToLibrary({
+          sourceType: 'ai_generated',
+          sourceUrl: result.imageDataUri,
+          aiPrompt: prompt,
+          originalDimensions: { width: 0, height: 0, unit: 'px' } // Placeholder
+        });
+        addStickerToSheet(newDesign.designId);
         toast({
           title: "Sticker Generated!",
-          description: "Your new sticker design is ready.",
+          description: "Your new design has been added to the sheet.",
         });
       } else {
         throw new Error("Image generation failed to return data.");
@@ -282,213 +321,53 @@ export function StickerCustomizer() {
     }
   }
 
-  const handleBackgroundToggle = async (checked: boolean) => {
-    if (sticker.source !== 'upload' || !sticker.originalUrl) return;
-
-    setSticker(s => ({ ...s, bgRemoved: checked, borderAdded: checked ? s.borderAdded : false }));
-
-    if (checked) {
-      if (sticker.bgRemovedUrl) return;
-      
-      setSticker(s => ({ ...s, isLoading: true, loadingText: "Removing Background..." }));
-      try {
-        const result = await removeBackground({ imageDataUri: sticker.originalUrl });
-        if (result.imageDataUri) {
-          setSticker(s => ({ ...s, bgRemovedUrl: result.imageDataUri, isLoading: false, loadingText: "" }));
-          stableToast({
-            title: 'Success!',
-            description: 'The background has been removed.',
-          });
-        } else {
-          throw new Error('Background removal failed to return data.');
-        }
-      } catch (error) {
-        console.error('Background removal failed:', error);
-        stableToast({
-          variant: 'destructive',
-          title: 'Background Removal Failed',
-          description: 'Could not remove background. Please try again.',
-        });
-        setSticker(s => ({ ...s, bgRemoved: false, isLoading: false, loadingText: "" }));
-      }
-    }
-  };
+  // Find the active sticker and its design
+  const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
+  const activeDesign = activeSticker ? appState.designLibrary.find(d => d.designId === activeSticker.designId) : null;
   
-  const handleBorderToggle = (checked: boolean) => {
-    setSticker(s => ({ ...s, borderAdded: checked }));
-  };
-  
-  const handleBorderWidthChange = (value: number[]) => {
-    setSticker(s => ({...s, borderWidthIndex: value[0]}));
-  };
+  // NOTE: The remove background and add border logic will need to be adapted
+  // to work with the new data model. For now, it is non-functional.
 
-  const handleBorderColorChange = (colorValue: string) => {
-    setSticker(s => ({...s, borderColor: colorValue}));
-  };
+  const imageToDisplay = activeDesign?.sourceUrl;
 
-  useEffect(() => {
-    if (
-      !sticker.borderAdded ||
-      !sticker.bgRemoved ||
-      !sticker.bgRemovedUrl
-    ) {
-      return;
-    }
-    
-    // Only apply border if the source was an upload
-    if (sticker.source !== 'upload' && sticker.source !== 'generate') {
-      return;
-    }
-
-    const applyBorder = async () => {
-      const key = `${debouncedBorderWidthIndex}-${debouncedBorderColor}`;
-      if (sticker.borderedUrls[key]) return;
-      
-      setSticker(s => ({ ...s, isLoading: true, loadingText: "Applying Border..." }));
-      try {
-        const result = await addBorder({
-          imageDataUri: sticker.bgRemovedUrl!,
-          borderWidth: BORDER_WIDTHS[debouncedBorderWidthIndex],
-          borderColor: debouncedBorderColor,
-        });
-
-        if (result.imageDataUri) {
-          setSticker(s => ({ 
-            ...s, 
-            borderedUrls: { ...s.borderedUrls, [key]: result.imageDataUri },
-            isLoading: false,
-            loadingText: ""
-          }));
-        } else {
-          throw new Error('Border addition failed to return data.');
-        }
-      } catch (error) {
-        console.error('Adding border failed:', error);
-        stableToast({
-          variant: 'destructive',
-          title: 'Border Addition Failed',
-          description: 'Could not add border. Please try again.',
-        });
-        setSticker(s => ({ ...s, isLoading: false, loadingText: "" }));
-      }
-    };
-    
-    applyBorder();
-  }, [
-    sticker.source,
-    debouncedBorderWidthIndex, 
-    debouncedBorderColor, 
-    sticker.borderAdded,
-    sticker.bgRemoved, 
-    sticker.bgRemovedUrl, 
-    sticker.borderedUrls,
-    stableToast
-  ]);
-
-
-  const imageToDisplay = useMemo(() => {
-    const borderKey = `${debouncedBorderWidthIndex}-${debouncedBorderColor}`;
-    if (sticker.borderAdded && sticker.bgRemoved && sticker.borderedUrls[borderKey]) {
-      return sticker.borderedUrls[borderKey];
-    }
-    if (sticker.bgRemoved && sticker.bgRemovedUrl) {
-      return sticker.bgRemovedUrl;
-    }
-    return sticker.originalUrl;
-  }, [sticker, debouncedBorderColor, debouncedBorderWidthIndex]);
-
-  const showBgRemoveToggle = sticker.source === 'upload';
-  const showBorderControls = (sticker.source === 'upload' || sticker.source === 'generate');
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
             <div className="w-full max-w-lg aspect-square overflow-hidden p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 transition-all duration-300 hover:shadow-[0_0_30px_1px_rgba(0,255,117,0.30)]">
-              <div className="relative bg-[#1a1a1a] rounded-[18px] w-full h-full flex items-center justify-center p-4 transition-all duration-200 group-hover:scale-[0.98]">
-              {sticker.isLoading && (
+              <div className="relative bg-gray-800 rounded-[18px] w-full h-full flex items-center justify-center p-4 transition-all duration-200 group-hover:scale-[0.98]">
+              {isLoading && (
                 <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10 rounded-[18px]">
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
-                  <p className="text-white mt-4 font-semibold">{sticker.loadingText}</p>
+                  <p className="text-white mt-4 font-semibold">{loadingText}</p>
                 </div>
               )}
-                <Image
-                    src={imageToDisplay || "https://placehold.co/800x800.png"}
-                    alt="Custom Sticker Preview"
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-contain transition-transform duration-300 hover:scale-105"
-                    data-ai-hint="sticker design"
-                    priority
-                />
+                {/* This area will become the sticker sheet canvas */}
+                <div className="w-full h-full border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center text-gray-500">
+                    {imageToDisplay ? (
+                         <Image
+                            src={imageToDisplay}
+                            alt="Active Sticker Preview"
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-contain"
+                            priority
+                        />
+                    ) : (
+                        <div className="text-center">
+                            <p className="text-lg font-semibold">Sticker Sheet</p>
+                            <p className="text-sm">Upload or generate a design to get started.</p>
+                        </div>
+                    )}
+                </div>
               </div>
             </div>
-           {showBorderControls && (
+           {activeStickerId && (
             <ThemedCard className="w-full max-w-lg">
                 <div className="flex flex-col gap-4">
-                    { showBgRemoveToggle &&
-                      <div className="flex items-center justify-between">
-                          <Label htmlFor="background-switch" className="flex flex-col space-y-1">
-                              <span className="font-medium text-gray-200">Remove Background</span>
-                              <span className="text-xs text-gray-400">Automatically removes the background.</span>
-                          </Label>
-                          <Switch
-                              id="background-switch"
-                              checked={sticker.bgRemoved}
-                              onCheckedChange={handleBackgroundToggle}
-                              disabled={sticker.isLoading || !sticker.originalUrl}
-                          />
-                      </div>
-                    }
-                    <div className="flex items-center justify-between">
-                        <Label htmlFor="border-switch" className="flex flex-col space-y-1">
-                            <span className={cn("font-medium text-gray-200", !sticker.bgRemoved && "text-gray-500")}>Add Sticker Border</span>
-                            <span className={cn("text-xs text-gray-400", !sticker.bgRemoved && "text-gray-500")}>Adds a classic die-cut border.</span>
-                        </Label>
-                        <Switch
-                            id="border-switch"
-                            checked={sticker.borderAdded}
-                            onCheckedChange={handleBorderToggle}
-                            disabled={sticker.isLoading || !sticker.bgRemoved}
-                        />
-                    </div>
-                    {sticker.borderAdded && sticker.bgRemoved && (
-                    <div className="space-y-4 pt-4 border-t border-gray-200/10">
-                        <div className="grid gap-2">
-                          <Label className="text-sm font-medium text-gray-200">Border Width</Label>
-                          <Slider
-                            value={[sticker.borderWidthIndex]}
-                            onValueChange={handleBorderWidthChange}
-                            min={0}
-                            max={BORDER_WIDTHS.length - 1}
-                            step={1}
-                            disabled={sticker.isLoading}
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label className="text-sm font-medium text-gray-200">Border Color</Label>
-                            <div className="flex items-center gap-2">
-                                {BORDER_COLORS.map(color => (
-                                    <button
-                                        key={color.value}
-                                        type="button"
-                                        title={color.label}
-                                        onClick={() => handleBorderColorChange(color.value)}
-                                        className={cn(
-                                            "w-8 h-8 rounded-full border-2 border-gray-600 transition-transform hover:scale-110",
-                                            sticker.borderColor === color.value && "ring-2 ring-offset-2 ring-offset-gray-800 ring-green-400",
-                                            sticker.isLoading && "cursor-not-allowed opacity-50"
-                                        )}
-                                        style={{ backgroundColor: color.color }}
-                                        disabled={sticker.isLoading}
-                                    >
-                                      <span className="sr-only">{color.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    )}
+                    {/* Controls for the selected sticker will go here */}
+                    <p className="text-gray-300 text-center">Controls for active sticker (ID: {activeStickerId}) will appear here.</p>
                 </div>
             </ThemedCard>
            )}
@@ -498,7 +377,7 @@ export function StickerCustomizer() {
           <div className="flex flex-col space-y-6">
           <header>
               <h1 className="text-3xl md:text-4xl font-bold font-headline tracking-tight text-gray-100">
-                  Custom Die Cut Stickers
+                  Sticker Sheet Editor
               </h1>
               <div className="mt-2 flex items-center gap-4">
                   <div className="flex items-center gap-1">
@@ -514,10 +393,10 @@ export function StickerCustomizer() {
               </div>
             </header>
             
-            <CustomizationSection title="Upload your artwork">
+            <CustomizationSection title="Add a Design">
               <Tabs defaultValue="generate" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-gray-800 text-gray-400">
-                  <TabsTrigger value="generate" onClick={() => { setUploadedFileName(null); handleStickerUpdate('', 'generate'); }}><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
+                  <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
                   <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
                 </TabsList>
                 <TabsContent value="generate" className="mt-4">
@@ -533,7 +412,7 @@ export function StickerCustomizer() {
                           {isGenerating ? (
                               <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
                           ) : (
-                              <><Sparkles className="mr-2 h-4 w-4" />Generate Sticker</>
+                              <><Sparkles className="mr-2 h-4 w-4" />Generate Design</>
                           )}
                       </Button>
                   </div>
@@ -571,23 +450,13 @@ export function StickerCustomizer() {
               </Tabs>
             </CustomizationSection>
             
-            <Accordion type="multiple" defaultValue={['size', 'quantity']} className="w-full">
-              <AccordionItem value="size" className="border-gray-200/10">
-                <AccordionTrigger className="text-lg font-semibold text-gray-200">Size</AccordionTrigger>
+            <Accordion type="multiple" defaultValue={['sheet-settings', 'quantity']} className="w-full">
+              <AccordionItem value="sheet-settings" className="border-gray-200/10">
+                <AccordionTrigger className="text-lg font-semibold text-gray-200">Sheet Settings</AccordionTrigger>
                 <AccordionContent>
                   <div className="flex items-center gap-4">
-                      <div className="flex flex-1 items-center rounded-md border border-gray-600">
-                          <Button variant="ghost" size="icon" className="h-full rounded-r-none text-gray-300 hover:bg-gray-700" onClick={() => handleSizeChange('w', width - 1)}><Minus className="h-4 w-4"/></Button>
-                          <Input type="number" value={width} onChange={(e) => handleSizeChange('w', Number(e.target.value))} className="w-full text-base h-12 text-center border-y-0 border-x border-gray-600 !ring-0 focus-visible:!ring-0 bg-transparent text-gray-200" aria-label="Width in inches" />
-                          <Button variant="ghost" size="icon" className="h-full rounded-l-none text-gray-300 hover:bg-gray-700" onClick={() => handleSizeChange('w', width + 1)}><Plus className="h-4 w-4"/></Button>
-                      </div>
-                      <span className="text-gray-400 font-semibold">x</span>
-                      <div className="flex flex-1 items-center rounded-md border border-gray-600">
-                          <Button variant="ghost" size="icon" className="h-full rounded-r-none text-gray-300 hover:bg-gray-700" onClick={() => handleSizeChange('h', height - 1)}><Minus className="h-4 w-4"/></Button>
-                          <Input type="number" value={height} onChange={(e) => handleSizeChange('h', Number(e.target.value))} className="w-full text-base h-12 text-center border-y-0 border-x border-gray-600 !ring-0 focus-visible:!ring-0 bg-transparent text-gray-200" aria-label="Height in inches" />
-                          <Button variant="ghost" size="icon" className="h-full rounded-l-none text-gray-300 hover:bg-gray-700" onClick={() => handleSizeChange('h', height + 1)}><Plus className="h-4 w-4"/></Button>
-                      </div>
-                      <div className="text-sm font-medium text-gray-400">inches</div>
+                      {/* Sheet settings like size and auto-pack will go here */}
+                      <p className="text-gray-400 text-sm">Sheet configuration options will be available here.</p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -599,11 +468,11 @@ export function StickerCustomizer() {
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => !m.outOfStock && setMaterial(m.id)}
+                        onClick={() => !m.outOfStock && setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
                         disabled={m.outOfStock}
                         className={cn(
                           "relative group rounded-lg p-3 text-center transition-all duration-200 border-2",
-                          material === m.id ? "bg-gray-700 border-green-400" : "bg-gray-800 border-gray-600 hover:border-gray-500",
+                          appState.stickerSheet.material.id === m.id ? "bg-gray-700 border-green-400" : "bg-gray-800 border-gray-600 hover:border-gray-500",
                           m.outOfStock && "opacity-50 cursor-not-allowed"
                         )}
                       >
@@ -615,25 +484,6 @@ export function StickerCustomizer() {
                         <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
                         <p className="font-semibold text-sm text-gray-200 group-disabled:text-gray-500">{m.name}</p>
                       </button>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-               <AccordionItem value="lamination" className="border-gray-200/10">
-                <AccordionTrigger className="text-lg font-semibold text-gray-200">Lamination</AccordionTrigger>
-                <AccordionContent>
-                  <div className="grid grid-cols-1 gap-3">
-                    {finishes.map((f) => (
-                       <button key={f.id} onClick={() => setFinish(f.id)}
-                        className={cn(
-                          "cursor-pointer rounded-lg border-2 p-4 transition-all flex items-center gap-4 bg-[#1f1f1f] border-gray-600 hover:border-green-400/50", 
-                          finish === f.id ? "border-green-400" : ""
-                        )}>
-                          <div className="flex-1 text-left">
-                            <p className="font-semibold text-gray-200">{f.name}</p>
-                            <p className="text-sm text-gray-400">{f.description}</p>
-                          </div>
-                       </button>
                     ))}
                   </div>
                 </AccordionContent>
