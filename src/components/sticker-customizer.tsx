@@ -580,7 +580,42 @@ export function StickerCustomizer() {
                     </div>
                 </TabsContent>
                 <TabsContent value="upload" className="mt-4">
-                    <Input id="picture-library" type="file" accept="image/*" className="w-full bg-gray-800 border-gray-600" onChange={handleImageUpload} />
+                    <div className="space-y-2">
+                        <Label
+                            htmlFor="picture-library"
+                            className={cn(
+                                "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-[#1f1f1f] hover:bg-gray-800 transition-colors border-gray-600",
+                                isDraggingOverCanvas && "border-green-400 bg-green-900/20",
+                                uploadedFileName && "border-green-500 bg-green-900/20"
+                            )}
+                            onDragEnter={(e) => { e.preventDefault(); setIsDraggingOverCanvas(true); }}
+                            onDragLeave={(e) => { e.preventDefault(); setIsDraggingOverCanvas(false); }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                setIsDraggingOverCanvas(false);
+                                const file = e.dataTransfer.files?.[0];
+                                if (file) processFile(file);
+                            }}
+                            onDragOver={(e) => e.preventDefault()}
+                        >
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                                {uploadedFileName ? (
+                                    <>
+                                        <FileCheck2 className="w-8 h-8 mb-2 text-green-500" />
+                                        <p className="font-semibold text-green-500">File Uploaded!</p>
+                                        <p className="text-xs text-gray-400 truncate max-w-xs">{uploadedFileName}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ImagePlus className="w-8 h-8 mb-2 text-gray-500" />
+                                        <p className="mb-1 text-sm text-gray-400"><span className="font-semibold text-green-400">Click to upload</span> or drag and drop</p>
+                                        <p className="text-xs text-gray-500">PNG, JPG, or WEBP</p>
+                                    </>
+                                )}
+                            </div>
+                            <Input id="picture-library" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+                        </Label>
+                    </div>
                 </TabsContent>
                 <TabsContent value="text" className="mt-4">
                     <div className="space-y-2">
