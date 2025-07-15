@@ -112,8 +112,12 @@ type DragDataType = {
 function CustomizationSection({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("space-y-3", className)}>
-      <h2 className="text-xl font-semibold font-headline text-gray-100">{title}</h2>
-      {children}
+      <div className="p-4 rounded-lg animated-gradient-bg">
+        <div className="p-4 rounded-md glass-card-bg">
+            <h2 className="text-xl font-semibold font-headline text-gray-100 mb-3">{title}</h2>
+            {children}
+        </div>
+      </div>
     </div>
   );
 }
@@ -147,8 +151,12 @@ export function StickerCustomizer() {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Drag states
+  const [draggedItem, setDraggedItem] = useState<DragDataType | null>(null);
+  const [draggedOffset, setDraggedOffset] = useState({ x: 0, y: 0 });
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
   const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
+  
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [stickerType, setStickerType] = useState('die-cut');
 
@@ -161,9 +169,6 @@ export function StickerCustomizer() {
   const [sheetLayout, setSheetLayout] = useState({ rows: 2, cols: 2 });
   const [hoveredLayout, setHoveredLayout] = useState({ rows: 0, cols: 0 });
   
-  // State for Drag and Drop
-  const [draggedItem, setDraggedItem] = useState<DragDataType | null>(null);
-  const [draggedOffset, setDraggedOffset] = useState({ x: 0, y: 0 });
 
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
@@ -324,7 +329,7 @@ export function StickerCustomizer() {
   const handleDropOnCanvas = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingOverCanvas(false);
-    setDraggedItem(null);
+    
     const canvasRect = e.currentTarget.getBoundingClientRect();
     const dataString = e.dataTransfer.getData('application/json');
     if (!dataString) return;
@@ -343,12 +348,12 @@ export function StickerCustomizer() {
     } else if (data.type === 'design') { // Adding a new sticker from the library
         addStickerToSheet(data.id, { x, y });
     }
+    setDraggedItem(null);
   };
   
   const handleDropOnTrash = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingOverTrash(false);
-    setDraggedItem(null);
     const dataString = e.dataTransfer.getData('application/json');
     if (!dataString) return;
 
@@ -363,6 +368,7 @@ export function StickerCustomizer() {
             description: "The sticker has been removed from your sheet.",
         });
     }
+    setDraggedItem(null);
   };
 
 
@@ -410,7 +416,7 @@ export function StickerCustomizer() {
                         rows={3}
                         className="bg-gray-800 border-gray-600 text-gray-200 focus:ring-green-400"
                     />
-                    <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
+                    <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold btn-animated-gradient">
                         {isGenerating ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
                         ) : (
@@ -428,11 +434,11 @@ export function StickerCustomizer() {
                             isDraggingOverCanvas && "border-green-400 bg-green-900/20",
                             uploadedFileName && "border-green-500 bg-green-900/20"
                         )}
-                         onDragEnter={(e) => { e.preventDefault(); setIsDraggingOverCanvas(true); }}
-                         onDragLeave={(e) => { e.preventDefault(); setIsDraggingOverCanvas(false); }}
+                         onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-green-400', 'bg-green-900/20'); }}
+                         onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-green-400', 'bg-green-900/20'); }}
                          onDrop={(e) => {
                             e.preventDefault();
-                            setIsDraggingOverCanvas(false);
+                            e.currentTarget.classList.remove('border-green-400', 'bg-green-900/20');
                             const file = e.dataTransfer.files?.[0];
                             if (file) processFile(file);
                          }}
@@ -464,7 +470,7 @@ export function StickerCustomizer() {
         return (
           <>
             <CustomizationSection title="Sheet Configuration">
-                <div className="flex items-center space-x-4 rounded-lg bg-gray-800 p-3 border border-gray-600">
+                <div className="flex items-center space-x-4 rounded-lg bg-gray-800/50 p-3 border border-gray-600">
                     <div className="flex-1">
                       <Label htmlFor="auto-pack" className="text-gray-200 font-semibold">Auto-pack stickers</Label>
                       <p className="text-xs text-gray-400">Automatically arrange stickers for best fit.</p>
@@ -477,7 +483,7 @@ export function StickerCustomizer() {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <Button variant="outline" className="w-full justify-between bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
                       <span>Sheet Layout: {sheetLayout.rows} x {sheetLayout.cols}</span>
                       <Settings className="h-4 w-4" />
                     </Button>
@@ -513,12 +519,12 @@ export function StickerCustomizer() {
             
             <CustomizationSection title="Design Library">
               <div className="space-y-4">
-                  <div className="min-h-[120px] bg-gray-800 border-gray-600 rounded-lg p-2 flex gap-2 overflow-x-auto">
+                  <div className="min-h-[120px] bg-gray-800/50 border-gray-600 rounded-lg p-2 flex gap-2 overflow-x-auto">
                     {appState.designLibrary.length === 0 ? (
                        <div className="w-full text-center text-gray-400 flex flex-col justify-center items-center p-4">
                           <Library className="h-8 w-8 mb-2" />
                           <p className="text-sm">Your design library is empty.</p>
-                          <p className="text-xs">Generate or upload a design to start.</p>
+                          <p className="text-xs">Add a design to start.</p>
                         </div>
                     ) : (
                       appState.designLibrary.map(design => (
@@ -561,7 +567,7 @@ export function StickerCustomizer() {
 
             <CustomizationSection title="Add New Design">
                 <Tabs defaultValue="generate" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-gray-800 text-gray-400">
+                <TabsList className="grid w-full grid-cols-3 bg-gray-800/50 text-gray-400">
                     <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
                     <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
                     <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
@@ -575,48 +581,45 @@ export function StickerCustomizer() {
                             rows={2}
                             className="bg-gray-800 border-gray-600 text-gray-200"
                         />
-                        <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
+                        <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold btn-animated-gradient">
                             {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating</> : <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>}
                         </Button>
                     </div>
                 </TabsContent>
                 <TabsContent value="upload" className="mt-4">
-                    <div className="space-y-2">
-                        <Label
-                            htmlFor="picture-library"
-                            className={cn(
-                                "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-[#1f1f1f] hover:bg-gray-800 transition-colors border-gray-600",
-                                isDraggingOverCanvas && "border-green-400 bg-green-900/20",
-                                uploadedFileName && "border-green-500 bg-green-900/20"
+                    <Label
+                        htmlFor="picture-library"
+                        className={cn(
+                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-800/50 hover:bg-gray-700/50 transition-colors border-gray-600",
+                             uploadedFileName && "border-green-500 bg-green-900/20"
+                        )}
+                        onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-green-400', 'bg-green-900/20');}}
+                        onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-green-400', 'bg-green-900/20');}}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.classList.remove('border-green-400', 'bg-green-900/20');
+                            const file = e.dataTransfer.files?.[0];
+                            if (file) processFile(file);
+                        }}
+                        onDragOver={(e) => e.preventDefault()}
+                    >
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                            {uploadedFileName ? (
+                                <>
+                                    <FileCheck2 className="w-8 h-8 mb-2 text-green-500" />
+                                    <p className="font-semibold text-green-500">File Uploaded!</p>
+                                    <p className="text-xs text-gray-400 truncate max-w-xs">{uploadedFileName}</p>
+                                </>
+                            ) : (
+                                <>
+                                    <ImagePlus className="w-8 h-8 mb-2 text-gray-500" />
+                                    <p className="mb-1 text-sm text-gray-400"><span className="font-semibold text-green-400">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-gray-500">PNG, JPG, or WEBP</p>
+                                </>
                             )}
-                            onDragEnter={(e) => { e.preventDefault(); setIsDraggingOverCanvas(true); }}
-                            onDragLeave={(e) => { e.preventDefault(); setIsDraggingOverCanvas(false); }}
-                            onDrop={(e) => {
-                                e.preventDefault();
-                                setIsDraggingOverCanvas(false);
-                                const file = e.dataTransfer.files?.[0];
-                                if (file) processFile(file);
-                            }}
-                            onDragOver={(e) => e.preventDefault()}
-                        >
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                                {uploadedFileName ? (
-                                    <>
-                                        <FileCheck2 className="w-8 h-8 mb-2 text-green-500" />
-                                        <p className="font-semibold text-green-500">File Uploaded!</p>
-                                        <p className="text-xs text-gray-400 truncate max-w-xs">{uploadedFileName}</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <ImagePlus className="w-8 h-8 mb-2 text-gray-500" />
-                                        <p className="mb-1 text-sm text-gray-400"><span className="font-semibold text-green-400">Click to upload</span> or drag and drop</p>
-                                        <p className="text-xs text-gray-500">PNG, JPG, or WEBP</p>
-                                    </>
-                                )}
-                            </div>
-                            <Input id="picture-library" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-                        </Label>
-                    </div>
+                        </div>
+                        <Input id="picture-library" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+                    </Label>
                 </TabsContent>
                 <TabsContent value="text" className="mt-4">
                     <div className="space-y-2">
@@ -626,7 +629,7 @@ export function StickerCustomizer() {
                             onChange={(e) => setDecalText(e.target.value)}
                             className="bg-gray-800 border-gray-600 text-gray-200"
                         />
-                        <Button onClick={handleAddTextDecal} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
+                        <Button onClick={handleAddTextDecal} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold btn-animated-gradient">
                             <Type className="mr-2 h-4 w-4" /> Add Text to Library
                         </Button>
                     </div>
@@ -672,7 +675,7 @@ export function StickerCustomizer() {
                     />
                 </div>
               </div>
-              <Button onClick={handleAddTextDecal} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">
+              <Button onClick={handleAddTextDecal} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold btn-animated-gradient">
                 <Type className="mr-2 h-4 w-4" /> Add Text to Sheet
               </Button>
             </div>
@@ -889,7 +892,7 @@ export function StickerCustomizer() {
             
               <CustomizationSection title="Product Type">
                 <Select value={stickerType} onValueChange={setStickerType}>
-                    <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-200 h-12 text-base">
+                    <SelectTrigger className="w-full bg-gray-800/50 border-gray-600 text-gray-200 h-12 text-base">
                         <SelectValue placeholder="Select a product type" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-600 text-gray-200">
@@ -923,69 +926,71 @@ export function StickerCustomizer() {
 
               {renderDesignControls()}
             
-              <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full">
-                <AccordionItem value="material" className="border-gray-200/10">
-                  <AccordionTrigger className="text-lg font-semibold text-gray-200">Material</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {materials.map((m) => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => !m.outOfStock && setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
-                          disabled={m.outOfStock}
-                          className={cn(
-                            "relative group rounded-lg p-3 text-center transition-all duration-200 border-2",
-                            appState.stickerSheet.material.id === m.id ? "bg-gray-700 border-green-400" : "bg-gray-800 border-gray-600 hover:border-gray-500",
-                            m.outOfStock && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          {m.outOfStock && (
-                            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                              Sold Out
-                            </div>
-                          )}
-                          <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
-                          <p className="font-semibold text-sm text-gray-200 group-disabled:text-gray-500">{m.name}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="quantity" className="border-gray-200/10">
-                  <AccordionTrigger className="text-lg font-semibold text-gray-200">Quantity</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {quantityOptions.map((q) => (
-                        <Button 
-                          key={q.quantity} 
-                          variant={quantity === q.quantity ? "default" : "outline"} 
-                          onClick={() => handleQuantityButtonClick(q.quantity)} 
-                          className={cn(
-                            "h-auto flex-col py-3 px-2 text-center",
-                            quantity === q.quantity 
-                              ? "bg-green-500 text-white hover:bg-green-600" 
-                              : "border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
-                          )}
-                        >
-                          <span className="font-bold text-lg leading-none">{q.quantity}</span>
-                          <span className="text-xs text-gray-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
-                        </Button>
-                      ))}
-                    </div>
-                    <div className="mt-4">
-                        <Input
-                            type="number"
-                            id="custom-quantity-input"
-                            className="w-full h-12 text-center text-lg font-bold bg-gray-800 border-gray-600 text-gray-200 placeholder:text-gray-500 focus:ring-green-400 focus:border-green-400"
-                            placeholder="Custom quantity..."
-                            onChange={handleCustomQuantityChange}
-                            onFocus={() => setQuantity(0)}
-                        />
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+              <div className="p-4 rounded-lg animated-gradient-bg">
+                  <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full glass-card-bg p-4 rounded-md">
+                    <AccordionItem value="material" className="border-gray-200/10">
+                      <AccordionTrigger className="text-lg font-semibold text-gray-200">Material</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {materials.map((m) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => !m.outOfStock && setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
+                              disabled={m.outOfStock}
+                              className={cn(
+                                "relative group rounded-lg p-3 text-center transition-all duration-200 border-2",
+                                appState.stickerSheet.material.id === m.id ? "bg-gray-700/80 border-green-400" : "bg-gray-800/80 border-gray-600 hover:border-gray-500",
+                                m.outOfStock && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              {m.outOfStock && (
+                                <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                  Sold Out
+                                </div>
+                              )}
+                              <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
+                              <p className="font-semibold text-sm text-gray-200 group-disabled:text-gray-500">{m.name}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="quantity" className="border-gray-200/10">
+                      <AccordionTrigger className="text-lg font-semibold text-gray-200">Quantity</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {quantityOptions.map((q) => (
+                            <Button 
+                              key={q.quantity} 
+                              variant={quantity === q.quantity ? "default" : "outline"} 
+                              onClick={() => handleQuantityButtonClick(q.quantity)} 
+                              className={cn(
+                                "h-auto flex-col py-3 px-2 text-center btn-animated-gradient",
+                                quantity === q.quantity 
+                                  ? "bg-green-500 text-white hover:bg-green-600" 
+                                  : "border-gray-600 bg-gray-800/80 text-gray-300 hover:bg-gray-700/80 hover:text-white"
+                              )}
+                            >
+                              <span className="font-bold text-lg leading-none">{q.quantity}</span>
+                              <span className="text-xs text-gray-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
+                            </Button>
+                          ))}
+                        </div>
+                        <div className="mt-4">
+                            <Input
+                                type="number"
+                                id="custom-quantity-input"
+                                className="w-full h-12 text-center text-lg font-bold bg-gray-800/80 border-gray-600 text-gray-200 placeholder:text-gray-500 focus:ring-green-400 focus:border-green-400"
+                                placeholder="Custom quantity..."
+                                onChange={handleCustomQuantityChange}
+                                onFocus={() => setQuantity(0)}
+                            />
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+              </div>
             
               <div className="p-0.5 rounded-2xl bg-gradient-to-tr from-green-400 to-blue-600 mt-4 sticky bottom-4">
                   <div className="bg-[#1a1a1a] rounded-[18px] p-4">
@@ -996,7 +1001,7 @@ export function StickerCustomizer() {
                          {quantity > 0 && <p className="text-sm text-gray-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
                       </div>
                     </div>
-                    <Button size="lg" className="w-full text-lg h-14 font-bold bg-green-500 hover:bg-green-600 text-white" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
+                    <Button size="lg" className="w-full text-lg h-14 font-bold bg-green-500 hover:bg-green-600 text-white btn-animated-gradient" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
                       Add to Cart
                     </Button>
                   </div>

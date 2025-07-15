@@ -121,6 +121,26 @@
     filter: blur(2vmin);
     animation: blur-animation 3s ease-in-out alternate infinite;
   }
+
+  .animated-gradient-bg {
+    background: linear-gradient(270deg, #ce68d9, #45c6db, #45db79);
+    background-size: 800% 800%;
+    animation: gradient-animation 3s ease infinite;
+  }
+
+  .glass-card-bg {
+      background: rgba(30, 31, 38, 0.575);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+  }
+
+  .btn-animated-gradient:active {
+      color: transparent;
+      background: linear-gradient(90deg, #ce68d9, #45c6db, #45db79, #9f45b0, #e54ed0, #ffe4f2);
+      background-size: 800% 800%;
+      animation: gradient-animation 1s ease infinite;
+      transform: scale(1.05);
+  }
 }
 
 @keyframes blur-animation {
@@ -139,5 +159,19 @@
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+@keyframes gradient-animation {
+  0% {
+    background-position: 0% 50%
+  }
+
+  50% {
+    background-position: 100% 50%
+  }
+
+  100% {
+    background-position: 0% 50%
   }
 }
