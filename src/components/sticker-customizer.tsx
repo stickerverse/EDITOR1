@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, Trash2, GripVertical } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, Trash2, GripVertical, Settings } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -437,17 +437,56 @@ export function StickerCustomizer() {
         return (
           <>
             <CustomizationSection title="Sheet Configuration">
-              <div className="flex items-center space-x-4 rounded-lg bg-gray-800 p-3 border border-gray-600">
-                <div className="flex-1">
-                  <Label htmlFor="auto-pack" className="text-gray-200 font-semibold">Auto-pack stickers</Label>
-                  <p className="text-xs text-gray-400">Automatically arrange stickers for best fit.</p>
+                <div className="flex items-center space-x-4 rounded-lg bg-gray-800 p-3 border border-gray-600">
+                    <div className="flex-1">
+                      <Label htmlFor="auto-pack" className="text-gray-200 font-semibold">Auto-pack stickers</Label>
+                      <p className="text-xs text-gray-400">Automatically arrange stickers for best fit.</p>
+                    </div>
+                    <Switch
+                      id="auto-pack"
+                      checked={appState.stickerSheet.settings.autoPackEnabled}
+                      onCheckedChange={(checked) => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, settings: {...s.stickerSheet.settings, autoPackEnabled: checked}}}))}
+                    />
                 </div>
-                <Switch
-                  id="auto-pack"
-                  checked={appState.stickerSheet.settings.autoPackEnabled}
-                  onCheckedChange={(checked) => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, settings: {...s.stickerSheet.settings, autoPackEnabled: checked}}}))}
-                />
-              </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
+                      <span>Sheet Layout: {sheetLayout.rows} x {sheetLayout.cols}</span>
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-gray-800 border-gray-600 text-white">
+                      <div className="p-2">
+                        <div 
+                          className="grid grid-cols-5 gap-1"
+                          onMouseLeave={() => setHoveredLayout({rows: 0, cols: 0})}
+                        >
+                          {Array.from({length: 25}).map((_, i) => {
+                            const row = Math.floor(i / 5) + 1;
+                            const col = (i % 5) + 1;
+                            const isHovered = row <= hoveredLayout.rows && col <= hoveredLayout.cols;
+                            const isSelected = row === sheetLayout.rows && col === sheetLayout.cols;
+                            return (
+                              <div
+                                key={i}
+                                className={cn(
+                                  "w-8 h-8 border border-gray-600 rounded-sm transition-colors",
+                                  (isHovered || isSelected) ? "bg-green-500" : "bg-gray-700"
+                                )}
+                                onMouseEnter={() => setHoveredLayout({rows: row, cols: col})}
+                                onClick={() => setSheetLayout({rows: row, cols: col})}
+                              />
+                            )
+                          })}
+                        </div>
+                      </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+            </CustomizationSection>
+            <CustomizationSection title="Add New Design">
+                <Button className="w-full" variant="outline">
+                    <ImagePlus className="mr-2 h-4 w-4"/> Add Design to Library
+                </Button>
             </CustomizationSection>
             <CustomizationSection title="Design Library">
               <div className="space-y-4">
@@ -706,7 +745,8 @@ export function StickerCustomizer() {
                   isDraggingOverCanvas && "outline-dashed outline-2 outline-offset-4 outline-green-400"
                 )}
                 onDrop={handleDropOnCanvas}
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingOverCanvas(true); }}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                onDragEnter={() => setIsDraggingOverCanvas(true)}
                 onDragLeave={() => setIsDraggingOverCanvas(false)}
               >
               {isLoading && (
@@ -724,7 +764,7 @@ export function StickerCustomizer() {
            {stickerType === 'sheet' && (
              <div 
                 onDrop={handleDropOnTrash}
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingOverTrash(true); }}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setIsDraggingOverTrash(true); }}
                 onDragLeave={() => setIsDraggingOverTrash(false)}
                 className={cn(
                     "flex items-center justify-center gap-2 rounded-lg p-3 w-48 transition-colors",
@@ -834,7 +874,7 @@ export function StickerCustomizer() {
                           className={cn(
                             "h-auto flex-col py-3 px-2 text-center",
                             quantity === q.quantity 
-                              ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                              ? "bg-green-500 text-white hover:bg-green-600" 
                               : "border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
                           )}
                         >
@@ -847,7 +887,7 @@ export function StickerCustomizer() {
                         <Input
                             type="number"
                             id="custom-quantity-input"
-                            className="w-full h-12 text-center text-lg font-bold bg-gray-800 border-gray-600 text-gray-200 placeholder:text-gray-500 focus:ring-primary focus:border-primary"
+                            className="w-full h-12 text-center text-lg font-bold bg-gray-800 border-gray-600 text-gray-200 placeholder:text-gray-500 focus:ring-green-400 focus:border-green-400"
                             placeholder="Custom quantity..."
                             onChange={handleCustomQuantityChange}
                             onFocus={() => setQuantity(0)}
