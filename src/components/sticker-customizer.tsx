@@ -500,6 +500,70 @@ export function StickerCustomizer() {
     }
   }
 
+  const renderCanvasContent = () => {
+    if (stickerType === 'sheet') {
+      return (
+        <div 
+          className="grid w-full h-full gap-2 p-2"
+          style={{
+            gridTemplateRows: `repeat(${sheetLayout.rows}, 1fr)`,
+            gridTemplateColumns: `repeat(${sheetLayout.cols}, 1fr)`,
+          }}
+        >
+          {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
+            <div key={i} className="relative w-full h-full bg-gray-700/50 rounded-md flex items-center justify-center">
+              {imageToDisplay ? (
+                <Image
+                  src={imageToDisplay}
+                  alt={`Sticker preview ${i + 1}`}
+                  fill
+                  sizes="(max-width: 768px) 10vw, 5vw"
+                  className="object-contain p-1"
+                />
+              ) : (
+                <ImagePlus className="h-6 w-6 text-gray-500"/>
+              )}
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    if (activeDesign && activeDesign.sourceType === 'text' && activeDesign.textData) {
+      return (
+        <div 
+          style={{
+            color: activeDesign.textData.color,
+            fontFamily: activeDesign.textData.font,
+          }}
+          className="text-4xl lg:text-6xl font-bold p-4 break-words text-center"
+        >
+            {activeDesign.textData.content}
+        </div>
+      );
+    }
+
+    if (imageToDisplay) {
+      return (
+        <Image
+          src={imageToDisplay}
+          alt="Active Sticker Preview"
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-contain"
+          priority
+        />
+      );
+    }
+
+    return (
+      <div className="text-center text-gray-500">
+        <p className="text-lg font-semibold">Sticker Sheet</p>
+        <p className="text-sm">Select a product and add a design to start.</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
@@ -514,32 +578,8 @@ export function StickerCustomizer() {
                 </div>
               )}
                 {/* This area will become the sticker sheet canvas */}
-                <div className="w-full h-full border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center text-gray-500">
-                    {activeDesign && activeDesign.sourceType === 'text' && activeDesign.textData ? (
-                        <div 
-                          style={{
-                            color: activeDesign.textData.color,
-                            fontFamily: activeDesign.textData.font,
-                          }}
-                          className="text-4xl lg:text-6xl font-bold p-4 break-words text-center"
-                        >
-                            {activeDesign.textData.content}
-                        </div>
-                    ) : imageToDisplay ? (
-                         <Image
-                            src={imageToDisplay}
-                            alt="Active Sticker Preview"
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-contain"
-                            priority
-                        />
-                    ) : (
-                        <div className="text-center">
-                            <p className="text-lg font-semibold">Sticker Sheet</p>
-                            <p className="text-sm">Select a product and add a design to start.</p>
-                        </div>
-                    )}
+                <div className="w-full h-full border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center">
+                  {renderCanvasContent()}
                 </div>
               </div>
             </div>
@@ -693,5 +733,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
