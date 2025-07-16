@@ -6,6 +6,7 @@ import { CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 import { CursorCardsContainer, CursorCard } from '@/components/ui/cursor-cards';
 import { useTheme } from 'next-themes';
+import { useState, useEffect } from 'react';
 
 const stickerCategories = [
   {
@@ -47,7 +48,18 @@ const stickerCategories = [
 
 export default function HomePage() {
   const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const borderColor = theme === "dark" ? "#1F2937" : "#D1D5DB";
+
+  if (!mounted) {
+    return null;
+  }
+  
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="w-full max-w-6xl mx-auto p-4 sm:p-8">
@@ -64,7 +76,7 @@ export default function HomePage() {
           {stickerCategories.map((category) => (
             <Link href={category.href} key={category.title} className="group block">
               <CursorCard
-                borderColor={theme === "dark" ? "#1F2937" : "#D1D5DB"}
+                borderColor={borderColor}
                 className="rounded-lg h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 border-border/50 bg-card text-card-foreground"
               >
                 <div className="relative h-48 w-full">

@@ -196,6 +196,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('vertical');
   const { theme } = useTheme();
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const calculatePrice = () => {
     // 1. Calculate Size Multiplier
     const stickerArea = size.width * size.height;
@@ -1365,6 +1371,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
           </div>
       );
 
+      const borderColor = theme === "dark" ? "#1F2937" : "#D1D5DB";
+      if (!mounted) {
+        return null;
+      }
+
       return (
         <>
             <header className="mb-6">
@@ -1428,6 +1439,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       )
   }
 
+  const borderColor = theme === "dark" ? "#1F2937" : "#D1D5DB";
+  if (!mounted) {
+    return null;
+  }
+  
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className={cn(
@@ -1439,7 +1455,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full self-center lg:max-w-2xl'
         )}>
            <CursorCard
-              borderColor={theme === "dark" ? "#1F2937" : "#D1D5DB"}
+              borderColor={borderColor}
               className="w-full aspect-square rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:shadow-indigo-500/20"
             >
               <div
@@ -1475,7 +1491,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full'
         )}>
            <CursorCard
-            borderColor={theme === "dark" ? "#1F2937" : "#D1D5DB"}
+            borderColor={borderColor}
             className="rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300"
           >
             <div className="relative h-full">
