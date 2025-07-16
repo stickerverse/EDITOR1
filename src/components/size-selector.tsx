@@ -71,13 +71,14 @@ export function SizeSelector({ size, onSizeChange }: SizeSelectorProps) {
                             onClick={() => handlePresetClick(preset)}
                             aria-pressed={isActive}
                             className={cn(
-                                "h-auto flex-col py-2 px-2 text-center transition-all duration-200",
+                                "h-auto flex-row justify-center items-baseline gap-1.5 py-3 px-2 text-center transition-all duration-200",
                                 "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
                                 isActive && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
                             )}
                         >
                             <span className="font-bold text-base leading-none">{preset.label.split(' ')[0]}</span>
-                            <span className="text-xs text-slate-400 mt-1">x {preset.label.split(' ')[2]}</span>
+                            <span className="text-xs text-slate-400">x</span>
+                             <span className="font-bold text-base leading-none">{preset.label.split(' ')[2]}</span>
                         </Button>
                     );
                 })}
