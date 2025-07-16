@@ -207,8 +207,37 @@ export function StickerCustomizer() {
 
   const [isTourActive, setIsTourActive] = useState(false);
 
-  const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
-  const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
+  const calculatePrice = () => {
+    // 1. Calculate Size Multiplier
+    const stickerArea = size.width * size.height;
+    const baseArea = 4; // Base size is 2"x2" = 4 sq in
+    // For every square inch larger than the base, increase price by 8%
+    const sizeMultiplier = Math.max(1, 1 + (stickerArea - baseArea) * 0.08);
+
+    // 2. Find base price from quantity
+    const selectedQtyOption = quantityOptions.find(q => q.quantity === quantity);
+    
+    let pricePerSticker: number;
+    if (selectedQtyOption) {
+        pricePerSticker = selectedQtyOption.pricePer;
+    } else {
+        // Simple linear interpolation for custom quantities
+        if (quantity <= 50) pricePerSticker = quantityOptions[0].pricePer;
+        else if (quantity >= 1000) pricePerSticker = quantityOptions[4].pricePer;
+        else pricePerSticker = 1.25; // Default for custom quantities
+    }
+
+    const finalPricePerSticker = pricePerSticker * sizeMultiplier;
+    const totalPrice = (finalPricePerSticker * (quantity > 0 ? quantity : 0)).toFixed(2);
+
+    return {
+        pricePerSticker: finalPricePerSticker,
+        totalPrice,
+    };
+  };
+
+  const { pricePerSticker, totalPrice } = calculatePrice();
+
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const PIXELS_PER_INCH = 96;
@@ -1082,38 +1111,40 @@ export function StickerCustomizer() {
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-8">
-        <div className="lg:col-span-3 lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 perspective-container group">
-          <div className="item-3d">
-            <span className="ground"></span>
-            <div className="item-img">
-              <ThemedCard className="w-full aspect-square">
-                <div
-                  id="canvas-container"
-                  ref={canvasRef}
-                  className={cn(
-                    "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
-                    "border-2 border-dashed border-white"
-                  )}
-                  onDrop={handleDropOnCanvas}
-                  onDragOver={(e) => e.preventDefault()}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onClick={closeContextMenu}
-                >
-                  {isLoading && (
-                    <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
-                      <Loader2 className="h-12 w-12 animate-spin text-white" />
-                      <p className="text-white mt-4 font-semibold">
-                        {loadingText}
-                      </p>
+        <div className="lg:col-span-3 lg:sticky lg:top-8 h-max flex flex-col items-center gap-4">
+          <div className="perspective-container group w-full">
+            <div className="item-3d">
+              <span className="ground"></span>
+              <div className="item-img">
+                <ThemedCard className="w-full aspect-square">
+                  <div
+                    id="canvas-container"
+                    ref={canvasRef}
+                    className={cn(
+                      "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
+                      "border-2 border-dashed border-white"
+                    )}
+                    onDrop={handleDropOnCanvas}
+                    onDragOver={(e) => e.preventDefault()}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onClick={closeContextMenu}
+                  >
+                    {isLoading && (
+                      <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
+                        <Loader2 className="h-12 w-12 animate-spin text-white" />
+                        <p className="text-white mt-4 font-semibold">
+                          {loadingText}
+                        </p>
+                      </div>
+                    )}
+                    {/* This area will become the sticker sheet canvas */}
+                    <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
+                      {renderCanvasContent()}
                     </div>
-                  )}
-                  {/* This area will become the sticker sheet canvas */}
-                  <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
-                    {renderCanvasContent()}
                   </div>
-                </div>
-              </ThemedCard>
+                </ThemedCard>
+              </div>
             </div>
           </div>
         </div>
@@ -1242,22 +1273,29 @@ export function StickerCustomizer() {
 
                 <CustomizationSection id="quantity-section" title="Quantity" icon={Sparkles}>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {quantityOptions.map((q) => (
-                      <Button 
-                        key={q.quantity} 
-                        variant={quantity === q.quantity ? "default" : "outline"} 
-                        onClick={() => handleQuantityButtonClick(q.quantity)} 
-                        className={cn(
-                          "h-auto flex-col py-3 px-2 text-center",
-                          quantity === q.quantity 
-                            ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-purple-500" 
-                            : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
-                        )}
-                      >
-                        <span className="font-bold text-lg leading-none">{q.quantity}</span>
-                        <span className="text-xs text-slate-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
-                      </Button>
-                    ))}
+                    {quantityOptions.map((q) => {
+                      const stickerArea = size.width * size.height;
+                      const baseArea = 4;
+                      const sizeMultiplier = Math.max(1, 1 + (stickerArea - baseArea) * 0.08);
+                      const finalPricePer = q.pricePer * sizeMultiplier;
+
+                      return (
+                        <Button 
+                          key={q.quantity} 
+                          variant={quantity === q.quantity ? "default" : "outline"} 
+                          onClick={() => handleQuantityButtonClick(q.quantity)} 
+                          className={cn(
+                            "h-auto flex-col py-3 px-2 text-center",
+                            quantity === q.quantity 
+                              ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-purple-500" 
+                              : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                          )}
+                        >
+                          <span className="font-bold text-lg leading-none">{q.quantity}</span>
+                          <span className="text-xs text-slate-400 mt-1">${finalPricePer.toFixed(2)}/sticker</span>
+                        </Button>
+                      );
+                    })}
                   </div>
                   <div className="mt-4">
                       <Input
@@ -1277,7 +1315,7 @@ export function StickerCustomizer() {
                         <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
                         <div className="text-right">
                           <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
-                          {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
+                          {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${pricePerSticker.toFixed(2)} each</p>}
                         </div>
                       </div>
                       <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
