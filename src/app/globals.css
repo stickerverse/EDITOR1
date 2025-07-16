@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "./sticker-shapes.css";
+
 @layer base {
   :root {
     --background: 222 84% 4.9%;
