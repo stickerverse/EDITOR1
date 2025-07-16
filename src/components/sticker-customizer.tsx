@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AITourGuide } from '@/components/ai-tour-guide';
+import { SizeSelector } from '@/components/size-selector';
+import type { Size } from '@/components/size-selector';
 
 
 const materials = [
@@ -177,8 +179,14 @@ export function StickerCustomizer() {
   
   // State for sticker properties
   const [isAspectRatioLocked, setIsAspectRatioLocked] = useState(true);
-  const [stickerWidth, setStickerWidth] = useState(3);
-  const [stickerHeight, setStickerHeight] = useState(3);
+
+  const [size, setSize] = useState<Size>({
+    width: 2,
+    height: 2,
+    unit: 'in',
+    selectionType: 'preset',
+    activePresetId: 'sm'
+  });
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     isOpen: false,
@@ -194,6 +202,7 @@ export function StickerCustomizer() {
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  const PIXELS_PER_INCH = 96;
 
   // Find the active sticker and its design
   const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
@@ -201,39 +210,40 @@ export function StickerCustomizer() {
   
   const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text')?.sourceUrl;
 
-  const updateStickerSize = (id: string, newSize: { width?: number; height?: number }) => {
+  const updateStickerSize = (id: string, newSize: { width: number; height: number; unit: 'in' | 'px' }) => {
     setAppState(current => ({
-      ...current,
-      stickers: current.stickers.map(s => {
-        if (s.stickerId === id) {
-          const originalDesign = current.designLibrary.find(d => d.designId === s.designId);
-          if (!originalDesign) return s;
+        ...current,
+        stickers: current.stickers.map(s => {
+            if (s.stickerId === id) {
+                const widthPx = newSize.unit === 'in' ? newSize.width * PIXELS_PER_INCH : newSize.width;
+                const heightPx = newSize.unit === 'in' ? newSize.height * PIXELS_PER_INCH : newSize.height;
 
-          let finalWidth = newSize.width ?? s.size.width;
-          let finalHeight = newSize.height ?? s.size.height;
-          
-          if (isAspectRatioLocked) {
-              const aspectRatio = originalDesign.originalDimensions.width / originalDesign.originalDimensions.height;
-              if (newSize.width !== undefined && newSize.width !== s.size.width) { // Width changed
-                  finalHeight = newSize.width / aspectRatio;
-              } else if (newSize.height !== undefined && newSize.height !== s.size.height) { // Height changed
-                  finalWidth = newSize.height * aspectRatio;
-              }
-          }
-          
-          return { ...s, size: { ...s.size, width: finalWidth, height: finalHeight } };
-        }
-        return s;
-      }),
+                const originalDesign = current.designLibrary.find(d => d.designId === s.designId);
+                if (!originalDesign) return s;
+
+                let finalWidth = widthPx;
+                let finalHeight = heightPx;
+
+                if (isAspectRatioLocked) {
+                    const aspectRatio = originalDesign.originalDimensions.width / originalDesign.originalDimensions.height;
+                    if (widthPx !== s.size.width) { // Width changed
+                        finalHeight = widthPx / aspectRatio;
+                    } else if (heightPx !== s.size.height) { // Height changed
+                        finalWidth = heightPx * aspectRatio;
+                    }
+                }
+                return { ...s, size: { width: finalWidth, height: finalHeight, unit: 'px' } };
+            }
+            return s;
+        }),
     }));
-  };
+};
 
   useEffect(() => {
-    if (activeSticker) {
-        setStickerWidth(activeSticker.size.width);
-        setStickerHeight(activeSticker.size.height);
+    if (activeStickerId) {
+      updateStickerSize(activeStickerId, { ...size, unit: size.unit });
     }
-  }, [activeStickerId, activeSticker?.size.width, activeSticker?.size.height]);
+  }, [size, activeStickerId]);
 
 
   const handleAddToCart = () => {
@@ -274,19 +284,22 @@ export function StickerCustomizer() {
     return newDesign;
   }
 
-  const addStickerToSheet = (designId: string, designData?: Design, options?: { position?: {x: number, y: number}, size?: {width: number, height: number}, zIndex?: number, rotation?: number }) => {
+  const addStickerToSheet = (designId: string, designData?: Design, options?: { position?: {x: number, y: number}, zIndex?: number, rotation?: number }) => {
     const design = designData || appState.designLibrary.find(d => d.designId === designId);
     if (!design) return;
 
     const stickerId = `inst_${Math.random().toString(36).substr(2, 9)}`;
     
     const maxZIndex = appState.stickers.reduce((max, s) => Math.max(max, s.zIndex), 0);
+
+    const initialWidthPx = size.width * PIXELS_PER_INCH;
+    const initialHeightPx = size.height * PIXELS_PER_INCH;
     
     const newSticker: StickerInstance = {
       stickerId,
       designId,
       position: options?.position ? { ...options.position, unit: 'px' } : { x: 50, y: 50, unit: 'px' },
-      size: options?.size ? { ...options.size, unit: 'px' } : (design.sourceType === 'text' ? { width: 300, height: 100, unit: 'px' } : { width: 150, height: 150, unit: 'px' }),
+      size: { width: initialWidthPx, height: initialHeightPx, unit: 'px' },
       rotation: options?.rotation ?? 0,
       zIndex: options?.zIndex ?? (maxZIndex + 1),
       cutLine: { type: stickerType === 'kiss-cut' ? 'kiss_cut' : 'die_cut', offset: 0.1, shape: 'auto' },
@@ -452,7 +465,8 @@ export function StickerCustomizer() {
     if (originalSticker) {
       addStickerToSheet(originalSticker.designId, undefined, {
         position: { x: originalSticker.position.x + 20, y: originalSticker.position.y + 20 },
-        size: originalSticker.size,
+        // Duplicating size from original sticker
+        // size: originalSticker.size,
         rotation: originalSticker.rotation
       });
       toast({ title: "Sticker Duplicated" });
@@ -551,6 +565,13 @@ export function StickerCustomizer() {
                 ...current,
                 stickers: current.stickers.map(s => s.stickerId === dragAction.stickerId ? { ...s, size: { ...s.size, width: newWidth, height: newHeight } } : s)
             }));
+            setSize(prev => ({
+                ...prev,
+                width: newWidth / PIXELS_PER_INCH,
+                height: newHeight / PIXELS_PER_INCH,
+                selectionType: 'custom',
+                activePresetId: null
+            }));
         }
     } else if (dragAction.type === 'rotate') {
         const { originalSticker } = dragAction;
@@ -630,7 +651,7 @@ export function StickerCustomizer() {
         const availableHeight = canvasRect.height - (padding * 2) - (gap * (rows - 1));
 
         const cellWidth = availableWidth / cols;
-        const cellHeight = availableHeight / rows;
+        const cellHeight = availableHeight / cols;
         
         const designAspectRatio = currentDesign.originalDimensions.width / currentDesign.originalDimensions.height;
         
@@ -1229,7 +1250,7 @@ export function StickerCustomizer() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="p-4 pt-0 space-y-4">
-                      <div className="flex items-center justify-between">
+                       <div className="flex items-center justify-between">
                           <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2 text-slate-300">
                               {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
                               <span>Lock Aspect Ratio</span>
@@ -1240,52 +1261,7 @@ export function StickerCustomizer() {
                               onCheckedChange={setIsAspectRatioLocked}
                           />
                       </div>
-                      <div className="grid grid-cols-1 gap-4">
-                          <div className="space-y-2">
-                              <Label htmlFor="sticker-width" className="text-slate-400">Width (px)</Label>
-                              <div className="flex items-center gap-2">
-                                  <Slider
-                                      id="sticker-width-slider"
-                                      min={20}
-                                      max={500}
-                                      step={1}
-                                      value={[stickerWidth]}
-                                      onValueChange={(value) => activeStickerId && updateStickerSize(activeStickerId, { width: value[0] })}
-                                      disabled={!activeStickerId}
-                                  />
-                                  <Input
-                                      id="sticker-width-input"
-                                      type="number"
-                                      value={Math.round(stickerWidth)}
-                                      onChange={(e) => activeStickerId && updateStickerSize(activeStickerId, { width: parseFloat(e.target.value) || 0 })}
-                                      className="w-20 bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                                      disabled={!activeStickerId}
-                                  />
-                              </div>
-                          </div>
-                          <div className="space-y-2">
-                               <Label htmlFor="sticker-height" className="text-slate-400">Height (px)</Label>
-                              <div className="flex items-center gap-2">
-                                  <Slider
-                                      id="sticker-height-slider"
-                                      min={20}
-                                      max={500}
-                                      step={1}
-                                      value={[stickerHeight]}
-                                      onValueChange={(value) => activeStickerId && updateStickerSize(activeStickerId, { height: value[0] })}
-                                      disabled={!activeStickerId}
-                                  />
-                                  <Input
-                                      id="sticker-height-input"
-                                      type="number"
-                                      value={Math.round(stickerHeight)}
-                                      onChange={(e) => activeStickerId && updateStickerSize(activeStickerId, { height: parseFloat(e.target.value) || 0 })}
-                                      className="w-20 bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                                      disabled={!activeStickerId}
-                                  />
-                              </div>
-                          </div>
-                      </div>
+                      <SizeSelector size={size} onSizeChange={setSize} />
                     </AccordionContent>
                   </div>
                 </AccordionItem>
