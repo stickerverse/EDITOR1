@@ -1096,41 +1096,43 @@ export function StickerCustomizer() {
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-        <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group perspective-container">
-            <div className="item-3d">
-              <span className="ground"></span>
-              <div className="item-img">
-                <ThemedCard className="w-full max-w-lg aspect-square">
-                  <div 
-                    id="canvas-container"
-                    ref={canvasRef}
-                    className={cn(
-                      "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
-                      "border-2 border-dashed border-white",
-                    )}
-                    style={getCanvasStyle()}
-                    onDrop={handleDropOnCanvas}
-                    onDragOver={(e) => e.preventDefault()}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onClick={closeContextMenu}
-                  >
+        <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 perspective-container group">
+          <div className="item-3d">
+            <span className="ground"></span>
+            <div className="item-img">
+              <ThemedCard className="w-full max-w-lg aspect-square">
+                <div
+                  id="canvas-container"
+                  ref={canvasRef}
+                  className={cn(
+                    "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
+                    "border-2 border-dashed border-white"
+                  )}
+                  style={getCanvasStyle()}
+                  onDrop={handleDropOnCanvas}
+                  onDragOver={(e) => e.preventDefault()}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onClick={closeContextMenu}
+                >
                   {isLoading && (
                     <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
                       <Loader2 className="h-12 w-12 animate-spin text-white" />
-                      <p className="text-white mt-4 font-semibold">{loadingText}</p>
+                      <p className="text-white mt-4 font-semibold">
+                        {loadingText}
+                      </p>
                     </div>
                   )}
-                    {/* This area will become the sticker sheet canvas */}
-                    <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
-                      {renderCanvasContent()}
-                    </div>
+                  {/* This area will become the sticker sheet canvas */}
+                  <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
+                    {renderCanvasContent()}
                   </div>
-                </ThemedCard>
-              </div>
+                </div>
+              </ThemedCard>
             </div>
+          </div>
         </div>
-        
+
         <ThemedCard>
           <div className="flex flex-col space-y-6">
             <header>
@@ -1330,9 +1332,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
-
-    
-
-    
