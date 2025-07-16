@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -42,6 +41,7 @@ const quantityOptions = [
 ];
 
 export type StickerShapeType = 'die-cut' | 'circle' | 'square' | 'rounded' | 'rectangle';
+export type ProductType = 'die-cut' | 'sheet' | 'kiss-cut' | 'decal';
 
 const shapeOptions: { id: StickerShapeType; name: string; icon: React.ElementType }[] = [
     { id: 'die-cut', name: 'Die-cut', icon: ContourCutIcon },
@@ -123,6 +123,10 @@ type ContextMenuState = {
 
 type LayoutMode = 'vertical' | 'horizontal';
 
+interface StickerCustomizerProps {
+    productType: ProductType;
+}
+
 const CustomizationSection = React.memo(function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
     <div id={id} className={cn("space-y-3 h-full flex flex-col", className)}>
@@ -158,7 +162,7 @@ const ThemedCard = React.memo(React.forwardRef<HTMLDivElement, React.HTMLAttribu
 ThemedCard.displayName = "ThemedCard";
 
 
-export function StickerCustomizer() {
+export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState>(initialAppState);
   const [isLoading, setIsLoading] = useState(false);
@@ -172,7 +176,6 @@ export function StickerCustomizer() {
   const [dragAction, setDragAction] = useState<DragAction>(null);
   
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
-  const [stickerType, setStickerType] = useState('die-cut');
   const [stickerShape, setStickerShape] = useState<StickerShapeType>('die-cut');
 
   // State for Text Decals
@@ -337,7 +340,7 @@ export function StickerCustomizer() {
       size: { width: initialWidthPx, height: initialHeightPx, unit: 'px' },
       rotation: options?.rotation ?? 0,
       zIndex: options?.zIndex ?? (maxZIndex + 1),
-      cutLine: { type: stickerType === 'kiss-cut' ? 'kiss_cut' : 'die_cut', offset: 0.1, shape: 'auto' },
+      cutLine: { type: productType === 'kiss-cut' ? 'kiss_cut' : 'die_cut', offset: 0.1, shape: 'auto' },
     };
 
     setAppState(current => {
@@ -571,7 +574,7 @@ export function StickerCustomizer() {
     const dx = e.clientX - dragAction.startX;
     const dy = e.clientY - dragAction.startY;
     
-    const isDraggable = stickerType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled;
+    const isDraggable = productType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled;
 
     if (dragAction.type === 'move' && isDraggable) {
         const newX = dragAction.originalSticker.position.x + dx;
@@ -741,11 +744,11 @@ export function StickerCustomizer() {
 
 
   const renderDesignControls = () => {
-    const showTextTab = stickerType !== 'die-cut';
+    const showTextTab = productType !== 'die-cut';
 
     return (
         <div className="space-y-6">
-            {stickerType === 'sheet' && (
+            {productType === 'sheet' && (
                 <>
                     <CustomizationSection id="sheet-config-section" title="Sheet Configuration" icon={LayoutGrid}>
                         <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
@@ -952,7 +955,7 @@ export function StickerCustomizer() {
     const design = appState.designLibrary.find(d => d.designId === sticker.designId);
     if (!design) return null;
 
-    const isDraggable = stickerType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled;
+    const isDraggable = productType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled;
     const isSelected = activeStickerId === sticker.stickerId;
     
     const showControls = isSelected && isDraggable;
@@ -1062,7 +1065,7 @@ export function StickerCustomizer() {
   }
 
   const renderCanvasContent = () => {
-    const showGrid = stickerType === 'sheet' && appState.stickerSheet.settings.autoPackEnabled;
+    const showGrid = productType === 'sheet' && appState.stickerSheet.settings.autoPackEnabled;
       
       if (showGrid) {
           return (
@@ -1106,43 +1109,20 @@ export function StickerCustomizer() {
     );
   }
 
+  const getProductTitle = () => {
+    switch (productType) {
+        case 'die-cut': return 'Create Your Die-cut Sticker';
+        case 'sheet': return 'Create Your Sticker Sheet';
+        case 'kiss-cut': return 'Create Your Kiss-cut Sticker';
+        case 'decal': return 'Create Your Text Decal';
+        default: return 'Create Your Sticker';
+    }
+  };
+
+
   const renderPropertiesMenu = () => {
       const verticalLayout = (
           <div className="flex flex-col space-y-6">
-              <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
-                  <Select value={stickerType} onValueChange={setStickerType}>
-                      <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
-                          <SelectValue placeholder="Select a product type" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
-                          <SelectItem value="die-cut">
-                              <div className="flex items-center gap-3">
-                                  <Scissors className="h-5 w-5 text-indigo-400" />
-                                  <span className="font-semibold">Die-cut Stickers</span>
-                              </div>
-                          </SelectItem>
-                          <SelectItem value="sheet">
-                              <div className="flex items-center gap-3">
-                                  <SheetIcon className="h-5 w-5 text-purple-400" />
-                                  <span className="font-semibold">Sticker Sheets</span>
-                              </div>
-                          </SelectItem>
-                          <SelectItem value="kiss-cut">
-                            <div className="flex items-center gap-3">
-                                  <ContourCutIcon className="h-5 w-5 text-pink-400" />
-                                  <span className="font-semibold">Kiss-cut Stickers</span>
-                              </div>
-                          </SelectItem>
-                          <SelectItem value="decal">
-                            <div className="flex items-center gap-3">
-                                  <Type className="h-5 w-5 text-emerald-400" />
-                                  <span className="font-semibold">Text Decals</span>
-                              </div>
-                          </SelectItem>
-                      </SelectContent>
-                  </Select>
-                </CustomizationSection>
-
                 <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
                     <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                         {shapeOptions.map((shape) => (
@@ -1231,40 +1211,6 @@ export function StickerCustomizer() {
           <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-6 flex flex-col">
-                      <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
-                        <Select value={stickerType} onValueChange={setStickerType}>
-                            <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
-                                <SelectValue placeholder="Select a product type" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
-                                <SelectItem value="die-cut">
-                                    <div className="flex items-center gap-3">
-                                        <Scissors className="h-5 w-5 text-indigo-400" />
-                                        <span className="font-semibold">Die-cut Stickers</span>
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="sheet">
-                                    <div className="flex items-center gap-3">
-                                        <SheetIcon className="h-5 w-5 text-purple-400" />
-                                        <span className="font-semibold">Sticker Sheets</span>
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="kiss-cut">
-                                  <div className="flex items-center gap-3">
-                                        <ContourCutIcon className="h-5 w-5 text-pink-400" />
-                                        <span className="font-semibold">Kiss-cut Stickers</span>
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="decal">
-                                  <div className="flex items-center gap-3">
-                                        <Type className="h-5 w-5 text-emerald-400" />
-                                        <span className="font-semibold">Text Decals</span>
-                                    </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                      </CustomizationSection>
-
                       <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
                           <div className="grid grid-cols-3 gap-3">
                               {shapeOptions.map((shape) => (
@@ -1363,7 +1309,7 @@ export function StickerCustomizer() {
             <header className="mb-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-                        Create Your Sticker
+                        {getProductTitle()}
                     </h1>
                     <div className="flex items-center gap-2">
                       <div className="hidden sm:flex items-center gap-2">
@@ -1428,8 +1374,8 @@ export function StickerCustomizer() {
         layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col'
       )}>
         <div className={cn(
-            "h-max flex flex-col gap-4 self-center",
-            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:max-w-2xl'
+            "h-max flex flex-col",
+            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full self-center lg:max-w-2xl'
         )}>
           <div className="group w-full">
             <ThemedCard className="w-full aspect-square">
@@ -1485,5 +1431,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
