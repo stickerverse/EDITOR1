@@ -1424,11 +1424,11 @@ export function StickerCustomizer() {
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className={cn(
         "gap-12 lg:gap-8",
-        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col items-center'
+        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col'
       )}>
         <div className={cn(
             "h-max flex flex-col items-center gap-4",
-            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:w-3/4'
+            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:w-3/4 self-center'
         )}>
           <div className="group w-full">
             <ThemedCard className="w-full aspect-square">
@@ -1463,7 +1463,7 @@ export function StickerCustomizer() {
         </div>
 
         <div className={cn(
-            layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full lg:max-w-6xl'
+            layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full'
         )}>
           <ThemedCard>
             <div className="flex flex-col">
@@ -1484,8 +1484,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
-
-    
-
