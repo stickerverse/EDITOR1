@@ -1430,45 +1430,40 @@ export function StickerCustomizer() {
             "h-max flex flex-col items-center gap-4",
             layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:w-3/4'
         )}>
-          <div className="perspective-container group w-full">
-            <div className="item-3d">
-              <span className="ground"></span>
-              <div className="item-img">
-                <ThemedCard className="w-full aspect-square">
-                  <div
-                    id="canvas-container"
-                    ref={canvasRef}
-                    className={cn(
-                      "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
-                      "border-2 border-dashed border-white"
-                    )}
-                    onDrop={handleDropOnCanvas}
-                    onDragOver={(e) => e.preventDefault()}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onClick={closeContextMenu}
-                  >
-                    {isLoading && (
-                      <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
-                        <Loader2 className="h-12 w-12 animate-spin text-white" />
-                        <p className="text-white mt-4 font-semibold">
-                          {loadingText}
-                        </p>
-                      </div>
-                    )}
-                    {/* This area will become the sticker sheet canvas */}
-                    <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
-                      {renderCanvasContent()}
-                    </div>
+          <div className="group w-full">
+            <ThemedCard className="w-full aspect-square">
+              <div
+                id="canvas-container"
+                ref={canvasRef}
+                className={cn(
+                  "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
+                  "border-2 border-dashed border-white"
+                )}
+                onDrop={handleDropOnCanvas}
+                onDragOver={(e) => e.preventDefault()}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onClick={closeContextMenu}
+              >
+                {isLoading && (
+                  <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
+                    <Loader2 className="h-12 w-12 animate-spin text-white" />
+                    <p className="text-white mt-4 font-semibold">
+                      {loadingText}
+                    </p>
                   </div>
-                </ThemedCard>
+                )}
+                {/* This area will become the sticker sheet canvas */}
+                <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
+                  {renderCanvasContent()}
+                </div>
               </div>
-            </div>
+            </ThemedCard>
           </div>
         </div>
 
         <div className={cn(
-            layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full lg:max-w-4xl'
+            layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full lg:max-w-6xl'
         )}>
           <ThemedCard>
             <div className="flex flex-col">
@@ -1493,3 +1488,4 @@ export function StickerCustomizer() {
     
 
     
+
