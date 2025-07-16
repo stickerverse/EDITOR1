@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIcon } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -111,6 +111,8 @@ type ContextMenuState = {
   stickerId: string | null;
 };
 
+type StickerShape = 'die-cut' | 'circle' | 'square' | 'rectangle';
+
 
 function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
@@ -182,6 +184,8 @@ export function StickerCustomizer() {
   });
 
   const [isTourActive, setIsTourActive] = useState(false);
+
+  const [stickerShape, setStickerShape] = useState<StickerShape>('die-cut');
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -1020,7 +1024,17 @@ export function StickerCustomizer() {
                 className={cn(
                   "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
                   "border-2 border-dashed border-slate-700",
+                  {
+                    'rounded-full': stickerShape === 'circle',
+                    'rounded-lg': stickerShape === 'square' || stickerShape === 'rectangle',
+                    'clip-none': stickerShape === 'die-cut',
+                    'clip-circle': stickerShape === 'circle',
+                    'clip-rect': stickerShape === 'square' || stickerShape === 'rectangle',
+                  }
                 )}
+                style={{
+                  clipPath: stickerShape === 'circle' ? 'circle(50% at 50% 50%)' : 'none',
+                }}
                 onDrop={handleDropOnCanvas}
                 onDragOver={(e) => e.preventDefault()}
                 onPointerMove={handlePointerMove}
@@ -1104,6 +1118,36 @@ export function StickerCustomizer() {
                         </SelectItem>
                     </SelectContent>
                 </Select>
+              </CustomizationSection>
+
+              <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {(['die-cut', 'circle', 'square', 'rectangle'] as StickerShape[]).map(shape => {
+                    const icons: Record<StickerShape, React.ElementType> = {
+                      'die-cut': ContourCutIcon,
+                      circle: Circle,
+                      square: SquareIcon,
+                      rectangle: RectangleHorizontal
+                    };
+                    const Icon = icons[shape];
+                    return (
+                      <Button
+                        key={shape}
+                        variant={stickerShape === shape ? 'default' : 'outline'}
+                        onClick={() => setStickerShape(shape)}
+                        className={cn(
+                          "h-auto flex-col py-3 px-2 text-center capitalize",
+                          stickerShape === shape 
+                            ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-purple-500" 
+                            : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                        )}
+                      >
+                        <Icon className="h-6 w-6 mb-1.5" />
+                        <span className="font-semibold text-sm">{shape.replace('-', ' ')}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
               </CustomizationSection>
 
               {renderDesignControls()}
@@ -1213,3 +1257,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
