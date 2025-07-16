@@ -1475,5 +1475,3 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     </div>
   );
 }
-
-    

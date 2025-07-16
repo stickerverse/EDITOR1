@@ -1,3 +1,4 @@
+
 export interface TourStep {
     selector: string;
     content: string;
@@ -5,8 +6,8 @@ export interface TourStep {
 
 export const tourSteps: TourStep[] = [
     {
-        selector: '#product-type-section',
-        content: 'the product type selector where users choose between die-cut, sheets, kiss-cut, or decals.',
+        selector: '#sticker-shape-section',
+        content: 'the sticker shape selector where users can choose from various shapes like die-cut, circle, or square.',
     },
     {
         selector: '#layer-section',
