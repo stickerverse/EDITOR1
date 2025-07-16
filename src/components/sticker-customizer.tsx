@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -24,6 +25,8 @@ import { AITourGuide } from '@/components/ai-tour-guide';
 import { SizeSelector } from '@/components/size-selector';
 import type { Size } from '@/components/size-selector';
 import QRCode from 'qrcode';
+import { CursorCard } from '@/components/ui/cursor-cards';
+import { useTheme } from 'next-themes';
 
 
 const materials = [
@@ -145,25 +148,6 @@ const CustomizationSection = React.memo(function CustomizationSection({ id, titl
   );
 });
 
-const ThemedCard = React.memo(React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, children, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "group relative flex w-full flex-col rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:shadow-indigo-500/20",
-        className
-      )}
-      {...props}
-    >
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20 blur-sm transition-opacity duration-300 group-hover:opacity-30"></div>
-      <div className="absolute inset-px rounded-[11px] bg-slate-950"></div>
-      <div className="relative h-full">
-        {children}
-      </div>
-    </div>
-)));
-ThemedCard.displayName = "ThemedCard";
-
-
 export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState>(initialAppState);
@@ -210,6 +194,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   const [isTourActive, setIsTourActive] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('vertical');
+  const { theme } = useTheme();
 
   const calculatePrice = () => {
     // 1. Calculate Size Multiplier
@@ -1453,8 +1438,10 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             "h-max flex flex-col",
             layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full self-center lg:max-w-2xl'
         )}>
-          <div className="group w-full">
-            <ThemedCard className="w-full aspect-square">
+           <CursorCard
+              borderColor={theme === "dark" ? "#1F2937" : "#D1D5DB"}
+              className="w-full aspect-square rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:shadow-indigo-500/20"
+            >
               <div
                 id="canvas-container"
                 ref={canvasRef}
@@ -1481,18 +1468,20 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                   {renderCanvasContent()}
                 </div>
               </div>
-            </ThemedCard>
-          </div>
+            </CursorCard>
         </div>
 
         <div className={cn(
             layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full'
         )}>
-          <ThemedCard>
-            <div className="flex flex-col">
+           <CursorCard
+            borderColor={theme === "dark" ? "#1F2937" : "#D1D5DB"}
+            className="rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300"
+          >
+            <div className="relative h-full">
               {renderPropertiesMenu()}
             </div>
-          </ThemedCard>
+           </CursorCard>
         </div>
       </div>
       <StickerContextMenu

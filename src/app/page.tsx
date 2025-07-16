@@ -1,3 +1,4 @@
+
 "use client";
 import Image from 'next/image';
 import Link from 'next/link';
@@ -64,7 +65,7 @@ export default function HomePage() {
             <Link href={category.href} key={category.title} className="group block">
               <CursorCard
                 borderColor={theme === "dark" ? "#1F2937" : "#D1D5DB"}
-                className="rounded-lg h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 border-border/50"
+                className="rounded-lg h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 border-border/50 bg-card text-card-foreground"
               >
                 <div className="relative h-48 w-full">
                   <Image
