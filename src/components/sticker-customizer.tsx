@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle as CircleShapeIcon, RectangleHorizontal, Ruler, LayoutDashboard } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle as CircleShapeIcon, RectangleHorizontal as RectangleHorizontalIcon, Ruler, LayoutDashboard } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ContourCutIcon, RoundedRectangleIcon, SquareIcon } from '@/components/icons';
+import { ContourCutIcon, RoundedRectangleIcon, SquareIcon, RectangleHorizontal } from '@/components/icons';
 import { StickerContextMenu } from '@/components/sticker-context-menu';
 import {
   DropdownMenu,
@@ -125,14 +125,14 @@ type LayoutMode = 'vertical' | 'horizontal';
 
 const CustomizationSection = React.memo(function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
-    <div id={id} className={cn("space-y-3", className)}>
+    <div id={id} className={cn("space-y-3 h-full flex flex-col", className)}>
         <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
                 <Icon className="h-4 w-4" />
             </div>
             <h2 className="text-lg font-semibold text-white">{title}</h2>
         </div>
-        <div className="rounded-lg bg-slate-900/50 p-4">
+        <div className="rounded-lg bg-slate-900/50 p-4 flex-grow">
             {children}
         </div>
     </div>
@@ -143,7 +143,7 @@ const ThemedCard = React.memo(React.forwardRef<HTMLDivElement, React.HTMLAttribu
     <div
       ref={ref}
       className={cn(
-        "group relative flex w-full flex-col rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/20",
+        "group relative flex w-full flex-col rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:shadow-indigo-500/20",
         className
       )}
       {...props}
@@ -185,7 +185,7 @@ export function StickerCustomizer() {
   const [hoveredLayout, setHoveredLayout] = useState({ rows: 0, cols: 0 });
   
   // State for sticker properties
-  const [isAspectRatioLocked, setIsAspectRatioLocked] = useState(true);
+  const [isAspectRatioLocked] = useState(true);
 
   const [size, setSize] = useState<Size>({
     width: 2,
@@ -1290,30 +1290,25 @@ export function StickerCustomizer() {
                   </div>
 
                   <div className="space-y-6 flex flex-col">
-                      <CustomizationSection id="material-section" title="Material" icon={Palette}>
-                        <div className="grid grid-cols-2 gap-3">
-                          {materials.map((m) => (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
-                              className={cn(
-                                "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50 h-full",
-                                appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
-                              )}
-                            >
-                              <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
-                              <p className="font-semibold text-sm text-slate-200">{m.name}</p>
-                            </button>
-                          ))}
-                        </div>
-                      </CustomizationSection>
-
-                      <div className="flex-grow flex flex-col gap-6">
-                        <CustomizationSection id="size-section" title="Size" icon={Ruler}>
-                          <SizeSelector size={size} onSizeChange={setSize} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <CustomizationSection id="material-section" title="Material" icon={Palette}>
+                          <div className="grid grid-cols-2 gap-3">
+                            {materials.map((m) => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
+                                className={cn(
+                                  "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50 h-full",
+                                  appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
+                                )}
+                              >
+                                <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
+                                <p className="font-semibold text-sm text-slate-200">{m.name}</p>
+                              </button>
+                            ))}
+                          </div>
                         </CustomizationSection>
-
                         <CustomizationSection id="quantity-section" title="Quantity" icon={Sparkles}>
                           <div className="grid grid-cols-2 gap-3">
                             {quantityOptions.map((q) => {
@@ -1350,6 +1345,12 @@ export function StickerCustomizer() {
                                   onFocus={() => setQuantity(0)}
                               />
                           </div>
+                        </CustomizationSection>
+                      </div>
+
+                      <div className="flex-grow">
+                        <CustomizationSection id="size-section" title="Size" icon={Ruler}>
+                          <SizeSelector size={size} onSizeChange={setSize} />
                         </CustomizationSection>
                       </div>
                   </div>
@@ -1427,8 +1428,8 @@ export function StickerCustomizer() {
         layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col'
       )}>
         <div className={cn(
-            "h-max flex flex-col items-center gap-4",
-            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:w-3/4 self-center'
+            "h-max flex flex-col gap-4",
+            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full self-center'
         )}>
           <div className="group w-full">
             <ThemedCard className="w-full aspect-square">
