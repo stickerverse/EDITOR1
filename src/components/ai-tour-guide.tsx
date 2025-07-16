@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Bot, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { tourSteps } from './tour-steps';
 import { generateTourStep } from '@/ai/flows/generate-tour-step-flow';
@@ -18,26 +18,47 @@ export function AITourGuide({ isActive, onComplete }: AITourGuideProps) {
     const [explanation, setExplanation] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const tourTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (isActive) {
             setCurrentStepIndex(0);
         } else {
             setPosition({ top: -9999, left: -9999 });
+            if (tourTimeoutRef.current) {
+                clearTimeout(tourTimeoutRef.current);
+            }
+        }
+        return () => {
+             if (tourTimeoutRef.current) {
+                clearTimeout(tourTimeoutRef.current);
+            }
         }
     }, [isActive]);
+
+    const goToNextStep = () => {
+        if (currentStepIndex < tourSteps.length - 1) {
+            setCurrentStepIndex(prev => prev + 1);
+        } else {
+            onComplete();
+        }
+    };
     
     useEffect(() => {
         if (!isActive) return;
 
         const fetchExplanation = async (feature: string) => {
             setIsLoading(true);
+            setExplanation('');
+             if (tourTimeoutRef.current) {
+                clearTimeout(tourTimeoutRef.current);
+            }
             try {
                 const result = await generateTourStep({ featureDescription: feature });
                 setExplanation(result.explanation);
             } catch (error) {
                 console.error("Failed to generate tour step:", error);
-                setExplanation("I had a little trouble explaining this, but it's a cool feature!");
+                setExplanation("I had a little trouble explaining this, but it's a cool feature! ✨");
             } finally {
                 setIsLoading(false);
             }
@@ -54,8 +75,11 @@ export function AITourGuide({ isActive, onComplete }: AITourGuideProps) {
                 let top = rect.top + window.scrollY;
                 let left = rect.left + window.scrollX + rect.width + 10;
                 
-                if (left + 300 > window.innerWidth) {
+                if (left + 300 > window.innerWidth) { // If menu overflows right
                     left = rect.left + window.scrollX - 310;
+                }
+                 if (left < 10) { // If menu overflows left
+                    left = 10;
                 }
 
                 if (top + menuHeight > window.innerHeight) {
@@ -68,34 +92,37 @@ export function AITourGuide({ isActive, onComplete }: AITourGuideProps) {
 
                 setPosition({ top, left });
                 fetchExplanation(step.content);
+            } else {
+                // If element not found, skip to next step after a short delay
+                tourTimeoutRef.current = setTimeout(goToNextStep, 500);
             }
         };
         
-        // Timeout to allow elements to be in place
         const timer = setTimeout(updatePosition, 100);
         
         window.addEventListener('resize', updatePosition);
         return () => {
             clearTimeout(timer);
+             if (tourTimeoutRef.current) {
+                clearTimeout(tourTimeoutRef.current);
+            }
             window.removeEventListener('resize', updatePosition);
         };
 
     }, [isActive, currentStepIndex]);
-
-    const goToNextStep = () => {
-        if (currentStepIndex < tourSteps.length - 1) {
-            setCurrentStepIndex(prev => prev + 1);
-        } else {
-            onComplete();
-        }
-    };
-
-    const goToPrevStep = () => {
-        if (currentStepIndex > 0) {
-            setCurrentStepIndex(prev => prev - 1);
-        }
-    };
     
+    // Effect to automatically proceed to the next step
+    useEffect(() => {
+        if (isActive && !isLoading && explanation) {
+            tourTimeoutRef.current = setTimeout(goToNextStep, 5000); // 5 seconds delay
+        }
+        return () => {
+            if (tourTimeoutRef.current) {
+                clearTimeout(tourTimeoutRef.current);
+            }
+        };
+    }, [isActive, isLoading, explanation, currentStepIndex]);
+
     if (!isActive) return null;
 
     return (
@@ -105,7 +132,7 @@ export function AITourGuide({ isActive, onComplete }: AITourGuideProps) {
                 ref={menuRef}
                 id="menu"
                 className={cn("open transition-all duration-500 ease-in-out", !isActive && "opacity-0")}
-                style={{ top: `${position.top}px`, left: `${position.left}px` }}
+                style={{ top: `${position.top}px`, left: `${position.left}px`, minWidth: '300px' }}
             >
                 <span className="shine shine-top"></span>
                 <span className="shine shine-bottom"></span>
@@ -116,41 +143,30 @@ export function AITourGuide({ isActive, onComplete }: AITourGuideProps) {
                 <div className="inner">
                     <section>
                         <header className="flex items-center gap-2 text-indigo-400 mb-2">
-                           <Bot className="h-5 w-5" /> AI Helper
+                           <Bot className="h-5 w-5" /> AI Tour Guide
                         </header>
-                        <div className="p-2 min-h-[60px] text-slate-300 text-sm">
+                        <div className="p-2 min-h-[80px] text-slate-300 text-sm flex items-center justify-center">
                             {isLoading ? (
                                 <div className="flex items-center justify-center gap-2">
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     <span>Thinking...</span>
                                 </div>
                             ) : (
-                                explanation
+                                <p className="leading-relaxed">{explanation}</p>
                             )}
                         </div>
                     </section>
-                    <div className="flex justify-between items-center mt-2">
+                     <div className="flex justify-between items-center mt-2">
                         <span className="text-xs text-slate-500">
-                            {currentStepIndex + 1} / {tourSteps.length}
+                            Step {currentStepIndex + 1} of {tourSteps.length}
                         </span>
-                        <div className="flex gap-2">
-                             <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={goToPrevStep}
-                                disabled={currentStepIndex === 0}
-                                className="bg-slate-800/50 border-slate-700 h-8"
-                            >
-                                <ChevronLeft className="h-4 w-4" /> Prev
-                            </Button>
-                            <Button
-                                size="sm"
-                                onClick={goToNextStep}
-                                className="bg-indigo-500/80 hover:bg-indigo-500 text-white h-8"
-                            >
-                                {currentStepIndex === tourSteps.length - 1 ? "Done" : "Next"} <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </div>
+                         <Button
+                            size="sm"
+                            onClick={onComplete}
+                            className="bg-slate-800/50 border-slate-700 h-8"
+                        >
+                            {currentStepIndex === tourSteps.length - 1 ? "Finish" : "Skip Tour"}
+                        </Button>
                     </div>
                 </div>
                  <button
