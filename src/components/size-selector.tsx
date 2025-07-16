@@ -19,9 +19,13 @@ interface SizeSelectorProps {
 }
 
 const PRESET_SIZES = [
+  { id: 'xxs', label: '1" x 1"', width: 1, height: 1 },
   { id: 'sm', label: '2" x 2"', width: 2, height: 2 },
   { id: 'md', label: '3" x 3"', width: 3, height: 3 },
   { id: 'lg', label: '4" x 4"', width: 4, height: 4 },
+  { id: 'xs_rect', label: '2" x 3"', width: 2, height: 3 },
+  { id: 'sm_rect', label: '3" x 4"', width: 3, height: 4 },
+  { id: 'md_rect', label: '4" x 6"', width: 4, height: 6 },
   { id: 'xl', label: '5" x 5"', width: 5, height: 5 },
 ];
 
@@ -67,12 +71,12 @@ export function SizeSelector({ size, onSizeChange }: SizeSelectorProps) {
                             onClick={() => handlePresetClick(preset)}
                             aria-pressed={isActive}
                             className={cn(
-                                "h-auto flex-col py-3 px-2 text-center transition-all duration-200",
+                                "h-auto flex-col py-2 px-2 text-center transition-all duration-200",
                                 "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
                                 isActive && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
                             )}
                         >
-                            <span className="font-bold text-lg leading-none">{preset.label.split(' ')[0]}</span>
+                            <span className="font-bold text-base leading-none">{preset.label.split(' ')[0]}</span>
                             <span className="text-xs text-slate-400 mt-1">x {preset.label.split(' ')[2]}</span>
                         </Button>
                     );
