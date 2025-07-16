@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, Trash2, GripVertical, Settings, Lock, Unlock, ChevronDown, RotateCw } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, Lock, Unlock, RotateCw } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -344,19 +344,29 @@ export function StickerCustomizer() {
 
     const dataString = e.dataTransfer.getData('application/json');
     if (dataString) {
-      const data: {type: 'design', id: string} = JSON.parse(dataString);
-      const x = e.clientX - canvasRect.left - 50; // Offset to center
-      const y = e.clientY - canvasRect.top - 50;
+      try {
+        const data: {type: 'design' | 'canvas-sticker', id: string} = JSON.parse(dataString);
+        const x = e.clientX - canvasRect.left;
+        const y = e.clientY - canvasRect.top;
 
-      if (data.type === 'design') { // Adding a new sticker from the library
-          addStickerToSheet(data.id, { x, y });
+        if (data.type === 'design') { // Adding a new sticker from the library
+            addStickerToSheet(data.id, { x: x - 50, y: y - 50 }); // Offset to center
+        }
+      } catch (err) {
+        console.error("Failed to parse dropped data", err);
       }
-      return;
     }
   };
 
   const handleContextMenu = (e: React.MouseEvent, stickerId: string) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    if (contextMenu.isOpen && contextMenu.stickerId === stickerId) {
+      closeContextMenu();
+      return;
+    }
+
     if (!canvasRef.current) return;
     const canvasRect = canvasRef.current.getBoundingClientRect();
     setContextMenu({
@@ -370,7 +380,7 @@ export function StickerCustomizer() {
   };
 
   const closeContextMenu = () => {
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
+    setContextMenu(prev => ({ ...prev, isOpen: false, stickerId: null }));
   };
 
   const handleDeleteSticker = () => {
@@ -445,7 +455,9 @@ export function StickerCustomizer() {
   };
 
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'resize-br' | 'rotate', stickerId: string) => {
-    // If context menu is open, the first click should close it, then allow interaction.
+    if (e.button !== 0) return; // Only allow left-clicks for dragging
+
+    // If context menu is open, the first click should close it.
     if (contextMenu.isOpen) {
         closeContextMenu();
         return;
@@ -1105,7 +1117,7 @@ export function StickerCustomizer() {
                 {/* This area will become the sticker sheet canvas */}
                 <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
                   {renderCanvasContent()}
-                   <StickerContextMenu
+                  <StickerContextMenu
                     isOpen={contextMenu.isOpen}
                     position={contextMenu.position}
                     onClose={closeContextMenu}
