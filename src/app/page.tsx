@@ -1,93 +1,138 @@
-import Link from 'next/link';
-import { Scissors, Sheet, Type, QrCode } from 'lucide-react';
-import { ContourCutIcon } from '@/components/icons';
-import { cn } from '@/lib/utils';
+"use client";
+import React, { useState } from "react";
+import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import {
+  IconArrowLeft,
+  IconBrandTabler,
+  IconSettings,
+  IconUserBolt,
+} from "@tabler/icons-react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
 
-const productTypes = [
-  {
-    name: 'Die-cut Stickers',
-    description: 'Custom shapes that follow the contour of your design.',
-    href: '/die-cut',
-    icon: Scissors,
-    color: 'from-indigo-500 to-purple-500',
-  },
-  {
-    name: 'Sticker Sheets',
-    description: 'Multiple stickers arranged on a single backing sheet.',
-    href: '/sheet',
-    icon: Sheet,
-    color: 'from-purple-500 to-pink-500',
-  },
-  {
-    name: 'Kiss-cut Stickers',
-    description: 'Easy-to-peel stickers with a surrounding border.',
-    href: '/kiss-cut',
-    icon: ContourCutIcon,
-    color: 'from-pink-500 to-orange-500',
-  },
-  {
-    name: 'Text Decals',
-    description: 'Durable vinyl lettering and numbers for any surface.',
-    href: '/decal',
-    icon: Type,
-    color: 'from-emerald-500 to-teal-500',
-  },
-  {
-    name: 'QR Code Stickers',
-    description: 'Generate and print stickers with a scannable QR code.',
-    href: '/qr-code',
-    icon: QrCode,
-    color: 'from-sky-500 to-blue-500',
-  },
-];
-
-const ThemedCard = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+export default function SidebarDemo() {
+  const links = [
+    {
+      label: "Dashboard",
+      href: "#",
+      icon: (
+        <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+    },
+    {
+      label: "Profile",
+      href: "#",
+      icon: (
+        <IconUserBolt className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+    },
+    {
+      label: "Settings",
+      href: "#",
+      icon: (
+        <IconSettings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+    },
+    {
+      label: "Logout",
+      href: "#",
+      icon: (
+        <IconArrowLeft className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+    },
+  ];
+  const [open, setOpen] = useState(false);
+  return (
     <div
       className={cn(
-        "group relative flex w-full flex-col rounded-xl bg-slate-950 p-6 shadow-2xl transition-all duration-300 hover:shadow-indigo-500/20",
-        className
+        "mx-auto flex w-full flex-1 flex-col overflow-hidden rounded-md border border-neutral-200 bg-gray-100 md:flex-row dark:border-neutral-700 dark:bg-neutral-800",
+        "h-[60vh] mt-8", // for your use case, use `h-screen` instead of `h-[60vh]`
       )}
-      {...props}
     >
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20 blur-sm transition-opacity duration-300 group-hover:opacity-30"></div>
-      <div className="absolute inset-px rounded-[11px] bg-slate-950"></div>
-      <div className="relative h-full">
-        {children}
-      </div>
+      <Sidebar open={open} setOpen={setOpen}>
+        <SidebarBody className="justify-between gap-10">
+          <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+            {open ? <Logo /> : <LogoIcon />}
+            <div className="mt-8 flex flex-col gap-2">
+              {links.map((link, idx) => (
+                <SidebarLink key={idx} link={link} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <SidebarLink
+              link={{
+                label: "Manu Arora",
+                href: "#",
+                icon: (
+                  <Image
+                    src="https://assets.aceternity.com/manu.png"
+                    className="h-7 w-7 shrink-0 rounded-full"
+                    width={50}
+                    height={50}
+                    alt="Avatar"
+                  />
+                ),
+              }}
+            />
+          </div>
+        </SidebarBody>
+      </Sidebar>
+      <Dashboard />
     </div>
-);
-
-
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-      <div className="text-center mb-12">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white mb-4">
-          Welcome to Stickerific
-        </h1>
-        <p className="text-xl text-slate-400">
-          Choose a product to start creating your custom stickers.
-        </p>
-      </div>
-      <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {productTypes.map((product) => (
-          <Link href={product.href} key={product.name} className="group">
-            <ThemedCard className="h-full transform transition-transform duration-300 group-hover:-translate-y-2">
-              <div className="flex flex-col items-start h-full">
-                <div className={cn("flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br text-white mb-4", product.color)}>
-                  <product.icon className="h-6 w-6" />
-                </div>
-                <h2 className="text-2xl font-semibold text-white mb-2">{product.name}</h2>
-                <p className="text-slate-400 flex-grow">{product.description}</p>
-                <div className="mt-6 text-indigo-400 font-semibold flex items-center">
-                  Start Creating
-                  <span className="ml-2 transition-transform duration-300 group-hover:translate-x-1.5">&rarr;</span>
-                </div>
-              </div>
-            </ThemedCard>
-          </Link>
-        ))}
-      </div>
-    </main>
   );
 }
+export const Logo = () => {
+  return (
+    <a
+      href="#"
+      className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
+    >
+      <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="font-medium whitespace-pre text-black dark:text-white"
+      >
+        Acet Labs
+      </motion.span>
+    </a>
+  );
+};
+export const LogoIcon = () => {
+  return (
+    <a
+      href="#"
+      className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
+    >
+      <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
+    </a>
+  );
+};
+
+// Dummy dashboard component with content
+const Dashboard = () => {
+  return (
+    <div className="flex flex-1">
+      <div className="flex h-full w-full flex-1 flex-col gap-2 rounded-tl-2xl border border-neutral-200 bg-white p-2 md:p-10 dark:border-neutral-700 dark:bg-neutral-900">
+        <div className="flex gap-2">
+          {[...new Array(4)].map((i, idx) => (
+            <div
+              key={"first-array-demo-1" + idx}
+              className="h-20 w-full animate-pulse rounded-lg bg-gray-100 dark:bg-neutral-800"
+            ></div>
+          ))}
+        </div>
+        <div className="flex flex-1 gap-2">
+          {[...new Array(2)].map((i, idx) => (
+            <div
+              key={"second-array-demo-1" + idx}
+              className="h-full w-full animate-pulse rounded-lg bg-gray-100 dark:bg-neutral-800"
+            ></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
