@@ -1,0 +1,82 @@
+.perspective-container {
+    width: 100%;
+    transform-style: preserve-3d;
+    perspective: 150rem;
+    perspective-origin: 50% 110%;
+}
+
+.item-3d {
+    width: 100%;
+    transform-origin: 50% 100%;
+    transform-style: preserve-3d;
+    position: relative;
+    padding-bottom: 5%;
+}
+
+.item-img {
+    position: relative;
+    display: block;
+    width: 100%;
+    transform-origin: 50% 50%;
+    transform-style: preserve-3d;
+    animation: floating 5s -1s infinite;
+}
+
+.item-img img {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform-origin: 50% 100%;
+    transform: translateZ(-5rem);
+}
+
+.ground {
+    position: absolute;
+    top: 0;
+    right: -25%;
+    bottom: 0;
+    left: -25%;
+    width: 150%;
+    background-image: linear-gradient(rgba(0,0,0,0.1), rgba(255,255,255,0.1) 60%);
+    transform-origin: 50% 100%;
+    transform: rotateX(70deg);
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+}
+
+.ground:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 100%;
+    width: 60%;
+    max-width: 50rem;
+    background-image: radial-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0) 60%);
+    background-size: 50% 80%;
+    background-repeat: no-repeat;
+    transform: translateX(-50%);
+    animation: floating-shadow 5s -1s infinite;
+}
+
+@keyframes floating {
+    0%, 100% {
+        transform: translateY(-5%);
+    }
+    50% {
+        transform: translateY(0);
+    }
+}
+
+@keyframes floating-shadow {
+    0%, 100% {
+        background-size: 40% 70%;
+        background-position: center 80%;
+    }
+    50% {
+        background-size: 50% 80%;
+        background-position: center 80%;
+    }
+}
+
+    
