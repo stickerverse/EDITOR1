@@ -61,7 +61,7 @@
 
 @keyframes floating {
     0%, 100% {
-        transform: translateY(-5%);
+        transform: translateY(-2%);
     }
     50% {
         transform: translateY(0);
