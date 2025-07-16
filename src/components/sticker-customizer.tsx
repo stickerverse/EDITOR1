@@ -1279,7 +1279,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                   appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
                                 )}
                               >
-                                <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
+                                <Image src={m.image} alt={m.name} width={96} height={96} style={{height: 'auto'}} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
                                 <p className="font-semibold text-sm text-slate-200">{m.name}</p>
                               </button>
                             ))}

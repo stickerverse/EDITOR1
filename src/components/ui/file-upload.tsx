@@ -687,5 +687,3 @@ export default function FileUpload({
 }
 
 FileUpload.displayName = "FileUpload";
-
-    
