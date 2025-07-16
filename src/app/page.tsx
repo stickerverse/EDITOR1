@@ -1,3 +1,4 @@
+
 import { StickerCustomizer } from '@/components/sticker-customizer';
 
 export default function Home() {
