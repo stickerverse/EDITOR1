@@ -1,8 +1,10 @@
 "use client";
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
+import { CursorCardsContainer, CursorCard } from '@/components/ui/cursor-cards';
+import { useTheme } from 'next-themes';
 
 const stickerCategories = [
   {
@@ -43,6 +45,8 @@ const stickerCategories = [
 ];
 
 export default function HomePage() {
+  const { theme } = useTheme();
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="w-full max-w-6xl mx-auto p-4 sm:p-8">
@@ -55,10 +59,13 @@ export default function HomePage() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <CursorCardsContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {stickerCategories.map((category) => (
             <Link href={category.href} key={category.title} className="group block">
-              <Card className="bg-card h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 border-border/50">
+              <CursorCard
+                borderColor={theme === "dark" ? "#1F2937" : "#D1D5DB"}
+                className="rounded-lg h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 border-border/50"
+              >
                 <div className="relative h-48 w-full">
                   <Image
                     src={category.imageUrl}
@@ -79,10 +86,10 @@ export default function HomePage() {
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </div>
                 </CardContent>
-              </Card>
+              </CursorCard>
             </Link>
           ))}
-        </div>
+        </CursorCardsContainer>
          <footer className="text-center mt-16 text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} Stickerific. All rights reserved.</p>
         </footer>
