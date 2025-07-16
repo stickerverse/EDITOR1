@@ -9,8 +9,8 @@ export const tourSteps: TourStep[] = [
         content: 'the product type selector where users choose between die-cut, sheets, kiss-cut, or decals.',
     },
     {
-        selector: '#design-section',
-        content: 'the design area where users can generate a sticker with AI or upload their own image.',
+        selector: '#layer-section',
+        content: 'the design area where users can generate a sticker with AI, upload their own image, or add text.',
     },
     {
         selector: '#canvas-container',

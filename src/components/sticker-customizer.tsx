@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, Lock, Unlock, RotateCw, Copy, ChevronsUp, Trash2, Bot } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -246,8 +246,8 @@ export function StickerCustomizer() {
     };
 
     setAppState(current => {
-      const isSingleStickerMode = stickerType === 'die-cut' || stickerType === 'kiss-cut' || stickerType === 'decal';
-      const newStickers = isSingleStickerMode ? [newSticker] : [...current.stickers, newSticker];
+      const isSheetModeWithAutopack = stickerType === 'sheet' && current.stickerSheet.settings.autoPackEnabled;
+      const newStickers = isSheetModeWithAutopack ? [newSticker] : [...current.stickers, newSticker];
       return { ...current, stickers: newStickers.sort((a, b) => a.zIndex - b.zIndex) };
     });
     setActiveStickerId(stickerId);
@@ -274,7 +274,7 @@ export function StickerCustomizer() {
               setUploadedFileName(file.name);
               toast({
                   title: "Image Uploaded",
-                  description: `${file.name} is added to your library.`,
+                  description: `${file.name} is added to your design library.`,
               });
             };
             img.src = dataUrl;
@@ -314,7 +314,7 @@ export function StickerCustomizer() {
               },
               { width: img.width, height: img.height }
             );
-            addStickerToSheet(newDesign.designId);
+            addStickerToSheet(newDesign.designId, newDesign);
             toast({
               title: "Sticker Generated!",
               description: "Your new design has been added.",
@@ -436,8 +436,8 @@ export function StickerCustomizer() {
     const newDesign = addDesignToLibrary(textDesign, { width: 300, height: 100 });
     addStickerToSheet(newDesign.designId, newDesign);
     toast({
-      title: "Text Decal Added",
-      description: "Your text has been added to the sheet."
+      title: "Text Layer Added",
+      description: "Your text has been added to the canvas."
     });
   }
 
@@ -645,69 +645,9 @@ export function StickerCustomizer() {
 
 
   const renderDesignControls = () => {
-    switch (stickerType) {
-      case 'die-cut':
-      case 'kiss-cut':
-        return (
-          <CustomizationSection id="design-section" title="Add a Design" icon={ImagePlus}>
-            <Tabs defaultValue="generate" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-slate-800 text-slate-400">
-                <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
-                <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
-              </TabsList>
-              <TabsContent value="generate" className="mt-4">
-                <div className="space-y-4">
-                    <Textarea
-                        placeholder="e.g., A cute baby panda developer writing code"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        rows={3}
-                        className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                    />
-                    <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
-                        {isGenerating ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
-                        ) : (
-                            <><Sparkles className="mr-2 h-4 w-4" />Generate Design</>
-                        )}
-                    </Button>
-                </div>
-              </TabsContent>
-              <TabsContent value="upload" className="mt-4">
-                <div className="space-y-2">
-                    <Label
-                        htmlFor="picture"
-                        className={cn(
-                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
-                            "hover:border-indigo-500 hover:bg-indigo-900/20",
-                            uploadedFileName && "border-emerald-500 bg-emerald-900/20"
-                        )}
-                    >
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                            {uploadedFileName ? (
-                                <>
-                                    <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
-                                    <p className="font-semibold text-emerald-500">File Uploaded!</p>
-                                    <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
-                                </>
-                            ) : (
-                                <>
-                                    <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
-                                    <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
-                                </>
-                            )}
-                        </div>
-                        <Input id="picture" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-                    </Label>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CustomizationSection>
-        );
-      case 'sheet':
-        return (
-          <>
+    if (stickerType === 'sheet') {
+      return (
+        <>
             <CustomizationSection id="sheet-config-section" title="Sheet Configuration" icon={LayoutGrid}>
                 <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
                     <div className="flex-1">
@@ -801,95 +741,69 @@ export function StickerCustomizer() {
                       ))
                     )}
                   </div>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white">
-                        <ImagePlus className="mr-2 h-4 w-4" />
-                        Add Design to Library
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-slate-950 border-slate-800 text-white">
-                       <DialogHeader>
-                        <DialogTitle className="sr-only">Add a New Design</DialogTitle>
-                      </DialogHeader>
-                      <Tabs defaultValue="generate" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3 bg-slate-800 text-slate-400">
-                            <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
-                            <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
-                            <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="generate" className="mt-4">
-                            <div className="space-y-2">
-                                <Textarea
-                                    placeholder="e.g., A cute baby panda developer"
-                                    value={prompt}
-                                    onChange={(e) => setPrompt(e.target.value)}
-                                    rows={2}
-                                    className="bg-slate-800 border-slate-700 text-slate-200"
-                                />
-                                <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
-                                    {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating</> : <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>}
-                                </Button>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="upload" className="mt-4">
-                            <Label
-                                htmlFor="picture-library"
-                                className={cn(
-                                    "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-800/50 hover:bg-slate-700/50 transition-colors border-slate-700",
-                                     uploadedFileName ? "border-emerald-500 bg-emerald-900/20" : "hover:border-indigo-500 hover:bg-indigo-900/20"
-                                )}
-                                onDragEnter={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-500', 'bg-indigo-900/20');}}
-                                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');}}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');
-                                    const file = e.dataTransfer.files?.[0];
-                                    if (file) handleImageUpload({ target: { files: e.dataTransfer.files } } as any);
-                                }}
-                                onDragOver={(e) => e.preventDefault()}
-                            >
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                                    {uploadedFileName ? (
-                                        <>
-                                            <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
-                                            <p className="font-semibold text-emerald-500">File Uploaded!</p>
-                                            <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
-                                            <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
-                                            <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
-                                        </>
-                                    )}
-                                </div>
-                                <Input id="picture-library" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-                            </Label>
-                        </TabsContent>
-                        <TabsContent value="text" className="mt-4">
-                            <div className="space-y-2">
-                                <Input 
-                                    placeholder="Your Text Here"
-                                    value={decalText}
-                                    onChange={(e) => setDecalText(e.target.value)}
-                                    className="bg-slate-800 border-slate-700 text-slate-200"
-                                />
-                                <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
-                                    <Type className="mr-2 h-4 w-4" /> Add Text to Library
-                                </Button>
-                            </div>
-                        </TabsContent>
-                      </Tabs>
-                    </DialogContent>
-                  </Dialog>
               </div>
             </CustomizationSection>
-          </>
-        );
-      case 'decal':
-        return (
-          <CustomizationSection id="text-decal-section" title="Create Text Decal" icon={Type}>
+        </>
+      );
+    }
+
+    // Default controls for die-cut, kiss-cut, decal
+    return (
+      <CustomizationSection id="layer-section" title="Add a Layer" icon={Layers}>
+        <Tabs defaultValue="generate" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-slate-800 text-slate-400">
+            <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
+            <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
+            <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
+          </TabsList>
+          <TabsContent value="generate" className="mt-4">
+            <div className="space-y-4">
+                <Textarea
+                    placeholder="e.g., A cute baby panda developer writing code"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={3}
+                    className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                />
+                <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
+                    {isGenerating ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
+                    ) : (
+                        <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>
+                    )}
+                </Button>
+            </div>
+          </TabsContent>
+          <TabsContent value="upload" className="mt-4">
+            <div className="space-y-2">
+                <Label
+                    htmlFor="picture"
+                    className={cn(
+                        "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
+                        "hover:border-indigo-500 hover:bg-indigo-900/20",
+                        uploadedFileName && "border-emerald-500 bg-emerald-900/20"
+                    )}
+                >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                        {uploadedFileName ? (
+                            <>
+                                <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
+                                <p className="font-semibold text-emerald-500">File Uploaded!</p>
+                                <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
+                            </>
+                        ) : (
+                            <>
+                                <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
+                                <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
+                                <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
+                            </>
+                        )}
+                    </div>
+                    <Input id="picture" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+                </Label>
+            </div>
+          </TabsContent>
+           <TabsContent value="text" className="mt-4">
             <div className="space-y-4">
               <Textarea
                 placeholder="Your Text Here"
@@ -924,15 +838,14 @@ export function StickerCustomizer() {
                     />
                 </div>
               </div>
-              <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
-                <Type className="mr-2 h-4 w-4" /> Add Text to Sheet
+              <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
+                <Type className="mr-2 h-4 w-4" /> Add Text Layer
               </Button>
             </div>
-          </CustomizationSection>
-        );
-      default:
-        return null;
-    }
+          </TabsContent>
+        </Tabs>
+      </CustomizationSection>
+    );
   }
   
   const renderStickerInstance = (sticker: StickerInstance) => {
