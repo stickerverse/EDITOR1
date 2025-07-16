@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, Lock, Unlock, RotateCw, Copy, ChevronsUp, Trash2 } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, Lock, Unlock, RotateCw, Copy, ChevronsUp, Trash2, Bot } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AIHelper } from '@/components/ai-helper';
 
 
 const materials = [
@@ -1161,9 +1162,21 @@ export function StickerCustomizer() {
         <ThemedCard>
           <div className="flex flex-col space-y-6">
             <header>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-                    Create Your Sticker
-                </h1>
+                <div className="flex items-center justify-between">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+                        Create Your Sticker
+                    </h1>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                          <Button variant="outline" size="icon" className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white">
+                              <Bot className="h-5 w-5" />
+                          </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-slate-950 border-slate-800 text-white sm:max-w-[625px]">
+                          <AIHelper />
+                      </DialogContent>
+                  </Dialog>
+                </div>
                 <div className="mt-2 flex items-center gap-4">
                     <div className="flex items-center gap-1">
                         <div className="flex text-yellow-400">
@@ -1214,7 +1227,7 @@ export function StickerCustomizer() {
 
               {renderDesignControls()}
 
-              {activeSticker && activeDesign && stickerType !== 'sheet' && (
+              {activeSticker && activeDesign && (stickerType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled) && (
                  <CustomizationSection title="Sticker Properties" icon={Settings}>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-2 items-center">

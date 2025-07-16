@@ -3,3 +3,4 @@
 import './flows/generate-sticker-flow';
 import './flows/remove-background-flow';
 import './flows/add-border-flow';
+import './flows/generate-help-flow';
