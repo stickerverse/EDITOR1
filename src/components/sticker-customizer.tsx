@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -29,7 +30,6 @@ import { removeBackground } from '@/ai/flows/remove-background-flow';
 import FileUpload from '@/components/ui/file-upload';
 import { addBorder } from '@/ai/flows/add-border-flow';
 import { useTheme } from 'next-themes';
-import { CursorCard } from './ui/cursor-cards';
 
 
 const materials = [
@@ -135,10 +135,10 @@ function CustomizationSection({ id, title, icon: Icon, children, className }: { 
   );
 }
 
-const ThemedCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & {borderColor?: string}>(({ className, children, borderColor, ...props }, ref) => (
-    <CursorCard
+const ThemedCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, children, ...props }, ref) => (
+    <div
       ref={ref}
-      borderColor={borderColor}
       className={cn(
         "group relative flex w-full flex-col rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/20",
         className
@@ -150,7 +150,7 @@ const ThemedCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
       <div className="relative h-full">
         {children}
       </div>
-    </CursorCard>
+    </div>
 ));
 ThemedCard.displayName = "ThemedCard";
 
@@ -218,7 +218,6 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     useEffect(() => {
         setMounted(true);
     }, []);
-    const borderColor = mounted ? (theme === 'dark' ? '#1F2937' : '#E5E7EB') : 'transparent';
 
   const updateStickerSize = (id: string, newSize: { width: number; height: number; unit: 'in' | 'px' }) => {
     setAppState(current => ({
@@ -1117,7 +1116,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
-            <ThemedCard className="w-full max-w-lg aspect-square" borderColor={borderColor}>
+            <ThemedCard className="w-full max-w-lg aspect-square">
               <div 
                 id="canvas-container"
                 ref={canvasRef}
@@ -1146,7 +1145,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         </div>
         
         <div className="lg:col-span-2">
-            <ThemedCard borderColor={borderColor}>
+            <ThemedCard>
               <div className="flex flex-col space-y-6">
                 <header>
                     <div className="flex items-center justify-between">
