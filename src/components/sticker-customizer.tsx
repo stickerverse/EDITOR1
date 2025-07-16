@@ -212,7 +212,7 @@ export function StickerCustomizer() {
     }
   };
 
-  const addDesignToLibrary = (design: Omit<Design, 'designId' | 'originalDimensions'>, dimensions: {width: number, height: number}) => {
+  const addDesignToLibrary = (design: Omit<Design, 'designId'>, dimensions: {width: number, height: number}) => {
     const designId = `design_${Math.random().toString(36).substr(2, 9)}`;
     const newDesign: Design = {
       ...design,
@@ -253,7 +253,8 @@ export function StickerCustomizer() {
     setActiveStickerId(stickerId);
   }
 
-  const processFile = (file: File) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -269,7 +270,7 @@ export function StickerCustomizer() {
                 },
                 { width: img.width, height: img.height }
               );
-              addStickerToSheet(newDesign.designId);
+              addStickerToSheet(newDesign.designId, newDesign);
               setUploadedFileName(file.name);
               toast({
                   title: "Image Uploaded",
@@ -279,19 +280,12 @@ export function StickerCustomizer() {
             img.src = dataUrl;
         };
         reader.readAsDataURL(file);
-    } else {
+    } else if (file) {
         toast({
             variant: "destructive",
             title: "Invalid File Type",
             description: "Please upload a valid image file.",
         });
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processFile(file);
     }
   };
 
@@ -431,17 +425,15 @@ export function StickerCustomizer() {
 
 
   const handleAddTextDecal = () => {
-    const newDesign = addDesignToLibrary(
-      {
-        sourceType: 'text',
-        textData: {
-          content: decalText,
-          font: decalFont,
-          color: decalColor,
-        },
+    const textDesign = {
+      sourceType: 'text' as const,
+      textData: {
+        content: decalText,
+        font: decalFont,
+        color: decalColor,
       },
-      { width: 300, height: 100 } // Placeholder dimensions for text
-    );
+    };
+    const newDesign = addDesignToLibrary(textDesign, { width: 300, height: 100 });
     addStickerToSheet(newDesign.designId, newDesign);
     toast({
       title: "Text Decal Added",
@@ -687,7 +679,7 @@ export function StickerCustomizer() {
                         htmlFor="picture"
                         className={cn(
                             "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
-                            "border-indigo-500 bg-indigo-900/20",
+                            "hover:border-indigo-500 hover:bg-indigo-900/20",
                             uploadedFileName && "border-emerald-500 bg-emerald-900/20"
                         )}
                     >
@@ -853,7 +845,7 @@ export function StickerCustomizer() {
                                     e.preventDefault();
                                     e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/20');
                                     const file = e.dataTransfer.files?.[0];
-                                    if (file) processFile(file);
+                                    if (file) handleImageUpload({ target: { files: e.dataTransfer.files } } as any);
                                 }}
                                 onDragOver={(e) => e.preventDefault()}
                             >
