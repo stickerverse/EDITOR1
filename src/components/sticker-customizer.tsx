@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle as CircleShapeIcon, RectangleHorizontal as RectangleHorizontalIcon, Ruler, LayoutDashboard } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle as CircleShapeIcon, RectangleHorizontal as RectangleHorizontalIcon, Ruler, LayoutDashboard, QrCode } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import {
 import { AITourGuide } from '@/components/ai-tour-guide';
 import { SizeSelector } from '@/components/size-selector';
 import type { Size } from '@/components/size-selector';
+import QRCode from 'qrcode';
 
 
 const materials = [
@@ -41,7 +42,7 @@ const quantityOptions = [
 ];
 
 export type StickerShapeType = 'die-cut' | 'circle' | 'square' | 'rounded' | 'rectangle';
-export type ProductType = 'die-cut' | 'sheet' | 'kiss-cut' | 'decal';
+export type ProductType = 'die-cut' | 'sheet' | 'kiss-cut' | 'decal' | 'qr-code';
 
 const shapeOptions: { id: StickerShapeType; name: string; icon: React.ElementType }[] = [
     { id: 'die-cut', name: 'Die-cut', icon: ContourCutIcon },
@@ -65,11 +66,12 @@ interface StickerSheet {
 
 interface Design {
   designId: string;
-  sourceType: 'upload' | 'ai_generated' | 'library' | 'text';
+  sourceType: 'upload' | 'ai_generated' | 'library' | 'text' | 'qr_code';
   sourceUrl?: string; // Optional for text
   originalDimensions: { width: number; height: number; };
   fileName?: string;
   aiPrompt?: string;
+  qrCodeContent?: string;
   textData?: {
     content: string;
     font: string;
@@ -186,6 +188,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   // State for Sheet Configuration
   const [sheetLayout, setSheetLayout] = useState({ rows: 2, cols: 2 });
   const [hoveredLayout, setHoveredLayout] = useState({ rows: 0, cols: 0 });
+
+  const [qrCodeContent, setQrCodeContent] = useState('https://firebase.google.com');
   
   // State for sticker properties
   const [isAspectRatioLocked] = useState(true);
@@ -246,7 +250,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
   const activeDesign = activeSticker ? appState.designLibrary.find(d => d.designId === activeSticker.designId) : null;
   
-  const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text')?.sourceUrl;
+  const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text' && d.sourceType !== 'qr_code')?.sourceUrl;
 
   const updateStickerSize = (id: string, newSize: { width: number; height: number; unit: 'in' | 'px' }) => {
     setAppState(current => ({
@@ -432,6 +436,45 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     } finally {
       setIsGenerating(false);
       setLoadingText("");
+    }
+  };
+
+  const handleGenerateQRCode = async () => {
+    if (!qrCodeContent) {
+        toast({
+            variant: 'destructive',
+            title: 'URL is empty',
+            description: 'Please enter a URL to generate a QR code.',
+        });
+        return;
+    }
+    try {
+        const dataUrl = await QRCode.toDataURL(qrCodeContent, {
+            errorCorrectionLevel: 'H',
+            margin: 2,
+            width: 512,
+        });
+
+        const newDesign = addDesignToLibrary(
+            {
+                sourceType: 'qr_code',
+                sourceUrl: dataUrl,
+                qrCodeContent: qrCodeContent,
+            },
+            { width: 512, height: 512 }
+        );
+        addStickerToSheet(newDesign.designId, newDesign);
+        toast({
+            title: 'QR Code Generated!',
+            description: 'Your QR code has been added to the canvas.',
+        });
+    } catch (err) {
+        console.error('Failed to generate QR code', err);
+        toast({
+            variant: 'destructive',
+            title: 'Generation Failed',
+            description: 'Could not generate QR code. Please check the URL and try again.',
+        });
     }
   };
   
@@ -745,6 +788,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   const renderDesignControls = () => {
     const showTextTab = productType !== 'die-cut';
+    const showQRCodeTab = productType === 'qr-code';
 
     return (
         <div className="space-y-6">
@@ -849,14 +893,23 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             )}
 
             <CustomizationSection id="layer-section" title="Add a Layer" icon={Layers}>
-                <Tabs defaultValue="generate" className="w-full">
+                <Tabs defaultValue={showQRCodeTab ? "qr-code" : "generate"} className="w-full">
                     <TabsList className={cn(
                         "grid w-full bg-slate-800 text-slate-400",
-                        showTextTab ? "grid-cols-3" : "grid-cols-2"
+                        showQRCodeTab ? "grid-cols-2" : (showTextTab ? "grid-cols-3" : "grid-cols-2")
                     )}>
-                        <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4" />Generate</TabsTrigger>
-                        <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4" />Upload</TabsTrigger>
-                        {showTextTab && <TabsTrigger value="text"><Type className="mr-2 h-4 w-4" />Text</TabsTrigger>}
+                        {showQRCodeTab ? (
+                            <>
+                                <TabsTrigger value="qr-code"><QrCode className="mr-2 h-4 w-4" />QR Code</TabsTrigger>
+                                <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4" />Artwork</TabsTrigger>
+                            </>
+                        ) : (
+                            <>
+                                <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4" />Generate</TabsTrigger>
+                                <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4" />Upload</TabsTrigger>
+                                {showTextTab && <TabsTrigger value="text"><Type className="mr-2 h-4 w-4" />Text</TabsTrigger>}
+                            </>
+                        )}
                     </TabsList>
                     <TabsContent value="generate" className="mt-4">
                         <div className="space-y-4">
@@ -942,6 +995,21 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                             </div>
                             <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
                                 <Type className="mr-2 h-4 w-4" /> Add Text Layer
+                            </Button>
+                        </div>
+                    </TabsContent>}
+                    {showQRCodeTab && <TabsContent value="qr-code" className="mt-4">
+                        <div className="space-y-4">
+                           <Label htmlFor="qr-code-input" className="text-slate-400">Website URL</Label>
+                            <Input
+                                id="qr-code-input"
+                                placeholder="https://www.your-website.com"
+                                value={qrCodeContent}
+                                onChange={(e) => setQrCodeContent(e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                            />
+                            <Button onClick={handleGenerateQRCode} className="w-full bg-gradient-to-r from-sky-500 to-blue-500 text-white font-bold hover:from-sky-600 hover:to-blue-600">
+                                <QrCode className="mr-2 h-4 w-4" /> Generate & Add QR Code
                             </Button>
                         </div>
                     </TabsContent>}
@@ -1040,7 +1108,10 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                     alt="sticker instance"
                     fill
                     sizes="(max-width: 768px) 10vw, 100px"
-                    className="object-contain pointer-events-none"
+                    className={cn(
+                        "object-contain pointer-events-none",
+                         design.sourceType === 'qr_code' && 'bg-white'
+                    )}
                     priority={sticker.stickerId === activeStickerId}
                 />
                  {showControls && (
@@ -1119,6 +1190,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         case 'sheet': return 'Create Your Sticker Sheet';
         case 'kiss-cut': return 'Create Your Kiss-cut Sticker';
         case 'decal': return 'Create Your Text Decal';
+        case 'qr-code': return 'Create Your QR Code Sticker';
         default: return 'Create Your Sticker';
     }
   };

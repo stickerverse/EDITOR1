@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Scissors, Sheet, Type } from 'lucide-react';
+import { Scissors, Sheet, Type, QrCode } from 'lucide-react';
 import { ContourCutIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +32,13 @@ const productTypes = [
     icon: Type,
     color: 'from-emerald-500 to-teal-500',
   },
+  {
+    name: 'QR Code Stickers',
+    description: 'Generate and print stickers with a scannable QR code.',
+    href: '/qr-code',
+    icon: QrCode,
+    color: 'from-sky-500 to-blue-500',
+  },
 ];
 
 const ThemedCard = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
@@ -62,7 +69,7 @@ export default function Home() {
           Choose a product to start creating your custom stickers.
         </p>
       </div>
-      <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {productTypes.map((product) => (
           <Link href={product.href} key={product.name} className="group">
             <ThemedCard className="h-full transform transition-transform duration-300 group-hover:-translate-y-2">
