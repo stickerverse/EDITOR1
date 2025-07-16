@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AIHelper } from '@/components/ai-helper';
+import { AITourGuide } from '@/components/ai-tour-guide';
 
 
 const materials = [
@@ -112,9 +112,9 @@ type ContextMenuState = {
 };
 
 
-function CustomizationSection({ title, icon: Icon, children, className }: { title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
+function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("space-y-3", className)}>
+    <div id={id} className={cn("space-y-3", className)}>
         <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
                 <Icon className="h-4 w-4" />
@@ -181,11 +181,12 @@ export function StickerCustomizer() {
     stickerId: null,
   });
 
+  const [isTourActive, setIsTourActive] = useState(false);
+
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const dragGhostRef = useRef<HTMLImageElement | null>(null);
 
 
   const handleAddToCart = () => {
@@ -657,7 +658,7 @@ export function StickerCustomizer() {
       case 'die-cut':
       case 'kiss-cut':
         return (
-          <CustomizationSection title="Add a Design" icon={ImagePlus}>
+          <CustomizationSection id="design-section" title="Add a Design" icon={ImagePlus}>
             <Tabs defaultValue="generate" className="w-full">
               <TabsList className="grid w-full grid-cols-2 bg-slate-800 text-slate-400">
                 <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
@@ -716,7 +717,7 @@ export function StickerCustomizer() {
       case 'sheet':
         return (
           <>
-            <CustomizationSection title="Sheet Configuration" icon={LayoutGrid}>
+            <CustomizationSection id="sheet-config-section" title="Sheet Configuration" icon={LayoutGrid}>
                 <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
                     <div className="flex-1">
                       <Label htmlFor="custom-layout" className="text-slate-200 font-semibold">Custom Layout</Label>
@@ -764,7 +765,7 @@ export function StickerCustomizer() {
                 </DropdownMenu>
             </CustomizationSection>
             
-            <CustomizationSection title="Design Library" icon={Library}>
+            <CustomizationSection id="library-section" title="Design Library" icon={Library}>
               <div className="space-y-4">
                   <div className="min-h-[120px] bg-slate-800/50 border border-slate-700 rounded-lg p-2 flex gap-2 overflow-x-auto">
                     {appState.designLibrary.length === 0 ? (
@@ -897,7 +898,7 @@ export function StickerCustomizer() {
         );
       case 'decal':
         return (
-          <CustomizationSection title="Create Text Decal" icon={Type}>
+          <CustomizationSection id="text-decal-section" title="Create Text Decal" icon={Type}>
             <div className="space-y-4">
               <Textarea
                 placeholder="Your Text Here"
@@ -1107,6 +1108,7 @@ export function StickerCustomizer() {
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
             <ThemedCard className="w-full max-w-lg aspect-square">
               <div 
+                id="canvas-container"
                 ref={canvasRef}
                 className={cn(
                   "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
@@ -1139,19 +1141,15 @@ export function StickerCustomizer() {
                     <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
                         Create Your Sticker
                     </h1>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                          <Button variant="outline" size="icon" className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white">
-                              <Bot className="h-5 w-5" />
-                          </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-slate-950 border-slate-800 text-white sm:max-w-[625px]">
-                          <DialogHeader>
-                            <DialogTitle className="sr-only">AI Helper</DialogTitle>
-                          </DialogHeader>
-                          <AIHelper />
-                      </DialogContent>
-                  </Dialog>
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                        onClick={() => setIsTourActive(prev => !prev)}
+                        aria-label="Start AI Tour"
+                    >
+                        <Bot className="h-5 w-5" />
+                    </Button>
                 </div>
                 <div className="mt-2 flex items-center gap-4">
                     <div className="flex items-center gap-1">
@@ -1167,7 +1165,7 @@ export function StickerCustomizer() {
                 </div>
               </header>
             
-              <CustomizationSection title="Product Type" icon={Scissors}>
+              <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
                 <Select value={stickerType} onValueChange={setStickerType}>
                     <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
                         <SelectValue placeholder="Select a product type" />
@@ -1206,7 +1204,7 @@ export function StickerCustomizer() {
             
               <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full space-y-4">
                 <AccordionItem value="material" className="border-none">
-                  <div className="rounded-lg bg-slate-900/50">
+                  <div className="rounded-lg bg-slate-900/50" id="material-section">
                     <AccordionTrigger className="p-4 text-white hover:no-underline">
                       <div className="flex items-center gap-2">
                           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
@@ -1236,7 +1234,7 @@ export function StickerCustomizer() {
                   </div>
                 </AccordionItem>
                 <AccordionItem value="quantity" className="border-none">
-                  <div className="rounded-lg bg-slate-900/50">
+                  <div className="rounded-lg bg-slate-900/50" id="quantity-section">
                     <AccordionTrigger className="p-4 text-white hover:no-underline">
                       <div className="flex items-center gap-2">
                           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
@@ -1279,7 +1277,7 @@ export function StickerCustomizer() {
                 </AccordionItem>
               </Accordion>
             
-              <div className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
+              <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
                   <div className="bg-slate-900 rounded-lg p-4">
                     <div className="flex flex-row items-center justify-between pb-4">
                       <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
@@ -1304,6 +1302,7 @@ export function StickerCustomizer() {
           onDuplicate={handleDuplicateSticker}
           onBringToFront={handleBringToFront}
         />
+        <AITourGuide isActive={isTourActive} onComplete={() => setIsTourActive(false)} />
     </div>
   );
 }
