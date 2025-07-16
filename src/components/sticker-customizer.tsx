@@ -1095,12 +1095,12 @@ export function StickerCustomizer() {
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-        <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 perspective-container group">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-8">
+        <div className="lg:col-span-3 lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 perspective-container group">
           <div className="item-3d">
             <span className="ground"></span>
             <div className="item-img">
-              <ThemedCard className="w-full max-w-lg aspect-square">
+              <ThemedCard className="w-full aspect-square">
                 <div
                   id="canvas-container"
                   ref={canvasRef}
@@ -1133,192 +1133,194 @@ export function StickerCustomizer() {
           </div>
         </div>
 
-        <ThemedCard>
-          <div className="flex flex-col space-y-6">
-            <header>
-                <div className="flex items-center justify-between">
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-                        Create Your Sticker
-                    </h1>
-                    <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white"
-                        onClick={() => setIsTourActive(prev => !prev)}
-                        aria-label="Start AI Tour"
-                    >
-                        <Bot className="h-5 w-5" />
-                    </Button>
-                </div>
-                <div className="mt-2 flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                        <div className="flex text-yellow-400">
-                            <Star className="w-5 h-5 fill-current" />
-                            <Star className="w-5 h-5 fill-current" />
-                            <Star className="w-5 h-5 fill-current" />
-                            <Star className="w-5 h-5 fill-current" />
-                            <Star className="w-5 h-5 fill-current" />
-                        </div>
-                        <p className="text-sm text-slate-300 font-medium"><span className="text-white font-semibold">5.0</span> (4,882 reviews)</p>
-                    </div>
-                </div>
-              </header>
-            
-              <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
-                <Select value={stickerType} onValueChange={setStickerType}>
-                    <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
-                        <SelectValue placeholder="Select a product type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
-                        <SelectItem value="die-cut">
-                            <div className="flex items-center gap-3">
-                                <Scissors className="h-5 w-5 text-indigo-400" />
-                                <span className="font-semibold">Die-cut Stickers</span>
-                            </div>
-                        </SelectItem>
-                        <SelectItem value="sheet">
-                            <div className="flex items-center gap-3">
-                                <SheetIcon className="h-5 w-5 text-purple-400" />
-                                <span className="font-semibold">Sticker Sheets</span>
-                            </div>
-                        </SelectItem>
-                        <SelectItem value="kiss-cut">
-                           <div className="flex items-center gap-3">
-                                <ContourCutIcon className="h-5 w-5 text-pink-400" />
-                                <span className="font-semibold">Kiss-cut Stickers</span>
-                            </div>
-                        </SelectItem>
-                        <SelectItem value="decal">
-                           <div className="flex items-center gap-3">
-                                <Type className="h-5 w-5 text-emerald-400" />
-                                <span className="font-semibold">Text Decals</span>
-                            </div>
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-              </CustomizationSection>
-
-              <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
-                <div className="space-y-4">
-                    <div>
-                        <Label htmlFor="shape-squircle" className="flex justify-between items-center text-slate-400 mb-2">
-                            <span>Shape</span>
-                            <div className="flex items-center gap-2">
-                                <SquareIconShape className="h-4 w-4" />
-                                <span className="text-xs">Square to Circle</span>
-                                <CircleShapeIcon className="h-4 w-4" />
-                            </div>
-                        </Label>
-                        <Slider 
-                            id="shape-squircle"
-                            value={[shapeSquircle]} 
-                            onValueChange={([val]) => setShapeSquircle(val)} 
-                            max={100} 
-                            step={1}
-                        />
-                    </div>
-                    <div>
-                        <Label htmlFor="corner-rounding" className="flex justify-between items-center text-slate-400 mb-2">
-                            <span>Corner Rounding</span>
-                             <div className="flex items-center gap-2">
-                                <span className="text-xs">Sharp to Round</span>
-                            </div>
-                        </Label>
-                         <Slider 
-                            id="corner-rounding"
-                            value={[cornerRounding]} 
-                            onValueChange={([val]) => setCornerRounding(val)} 
-                            max={100} 
-                            step={1} 
-                        />
-                    </div>
-                </div>
-              </CustomizationSection>
-
-              {renderDesignControls()}
-
-            
-              <CustomizationSection id="material-section" title="Material" icon={Palette}>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {materials.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
-                      className={cn(
-                        "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50",
-                        appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
-                      )}
-                    >
-                      <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
-                      <p className="font-semibold text-sm text-slate-200">{m.name}</p>
-                    </button>
-                  ))}
-                </div>
-              </CustomizationSection>
-              
-              <CustomizationSection id="size-section" title="Size" icon={Ruler}>
-                 <div className="flex items-center justify-between">
-                    <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2 text-slate-300">
-                        {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
-                        <span>Lock Aspect Ratio</span>
-                    </Label>
-                    <Switch
-                        id="aspect-ratio-lock"
-                        checked={isAspectRatioLocked}
-                        onCheckedChange={setIsAspectRatioLocked}
-                    />
-                </div>
-                <SizeSelector size={size} onSizeChange={setSize} />
-              </CustomizationSection>
-
-              <CustomizationSection id="quantity-section" title="Quantity" icon={Sparkles}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {quantityOptions.map((q) => (
-                    <Button 
-                      key={q.quantity} 
-                      variant={quantity === q.quantity ? "default" : "outline"} 
-                      onClick={() => handleQuantityButtonClick(q.quantity)} 
-                      className={cn(
-                        "h-auto flex-col py-3 px-2 text-center",
-                        quantity === q.quantity 
-                          ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-purple-500" 
-                          : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
-                      )}
-                    >
-                      <span className="font-bold text-lg leading-none">{q.quantity}</span>
-                      <span className="text-xs text-slate-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
-                    </Button>
-                  ))}
-                </div>
-                <div className="mt-4">
-                    <Input
-                        type="number"
-                        id="custom-quantity-input"
-                        className="w-full h-12 text-center text-lg font-bold bg-slate-800/80 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="Custom quantity..."
-                        onChange={handleCustomQuantityChange}
-                        onFocus={() => setQuantity(0)}
-                    />
-                </div>
-              </CustomizationSection>
-            
-              <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
-                  <div className="bg-slate-900 rounded-lg p-4">
-                    <div className="flex flex-row items-center justify-between pb-4">
-                      <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
-                      <div className="text-right">
-                         <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
-                         {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
-                      </div>
-                    </div>
-                    <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
-                      Add to Cart
-                    </Button>
+        <div className="lg:col-span-2">
+          <ThemedCard>
+            <div className="flex flex-col space-y-6">
+              <header>
+                  <div className="flex items-center justify-between">
+                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+                          Create Your Sticker
+                      </h1>
+                      <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                          onClick={() => setIsTourActive(prev => !prev)}
+                          aria-label="Start AI Tour"
+                      >
+                          <Bot className="h-5 w-5" />
+                      </Button>
                   </div>
-              </div>
-          </div>
-        </ThemedCard>
+                  <div className="mt-2 flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                          <div className="flex text-yellow-400">
+                              <Star className="w-5 h-5 fill-current" />
+                              <Star className="w-5 h-5 fill-current" />
+                              <Star className="w-5 h-5 fill-current" />
+                              <Star className="w-5 h-5 fill-current" />
+                              <Star className="w-5 h-5 fill-current" />
+                          </div>
+                          <p className="text-sm text-slate-300 font-medium"><span className="text-white font-semibold">5.0</span> (4,882 reviews)</p>
+                      </div>
+                  </div>
+                </header>
+              
+                <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
+                  <Select value={stickerType} onValueChange={setStickerType}>
+                      <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
+                          <SelectValue placeholder="Select a product type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                          <SelectItem value="die-cut">
+                              <div className="flex items-center gap-3">
+                                  <Scissors className="h-5 w-5 text-indigo-400" />
+                                  <span className="font-semibold">Die-cut Stickers</span>
+                              </div>
+                          </SelectItem>
+                          <SelectItem value="sheet">
+                              <div className="flex items-center gap-3">
+                                  <SheetIcon className="h-5 w-5 text-purple-400" />
+                                  <span className="font-semibold">Sticker Sheets</span>
+                              </div>
+                          </SelectItem>
+                          <SelectItem value="kiss-cut">
+                            <div className="flex items-center gap-3">
+                                  <ContourCutIcon className="h-5 w-5 text-pink-400" />
+                                  <span className="font-semibold">Kiss-cut Stickers</span>
+                              </div>
+                          </SelectItem>
+                          <SelectItem value="decal">
+                            <div className="flex items-center gap-3">
+                                  <Type className="h-5 w-5 text-emerald-400" />
+                                  <span className="font-semibold">Text Decals</span>
+                              </div>
+                          </SelectItem>
+                      </SelectContent>
+                  </Select>
+                </CustomizationSection>
+
+                <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
+                  <div className="space-y-4">
+                      <div>
+                          <Label htmlFor="shape-squircle" className="flex justify-between items-center text-slate-400 mb-2">
+                              <span>Shape</span>
+                              <div className="flex items-center gap-2">
+                                  <SquareIconShape className="h-4 w-4" />
+                                  <span className="text-xs">Square to Circle</span>
+                                  <CircleShapeIcon className="h-4 w-4" />
+                              </div>
+                          </Label>
+                          <Slider 
+                              id="shape-squircle"
+                              value={[shapeSquircle]} 
+                              onValueChange={([val]) => setShapeSquircle(val)} 
+                              max={100} 
+                              step={1}
+                          />
+                      </div>
+                      <div>
+                          <Label htmlFor="corner-rounding" className="flex justify-between items-center text-slate-400 mb-2">
+                              <span>Corner Rounding</span>
+                              <div className="flex items-center gap-2">
+                                  <span className="text-xs">Sharp to Round</span>
+                              </div>
+                          </Label>
+                          <Slider 
+                              id="corner-rounding"
+                              value={[cornerRounding]} 
+                              onValueChange={([val]) => setCornerRounding(val)} 
+                              max={100} 
+                              step={1} 
+                          />
+                      </div>
+                  </div>
+                </CustomizationSection>
+
+                {renderDesignControls()}
+
+              
+                <CustomizationSection id="material-section" title="Material" icon={Palette}>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {materials.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
+                        className={cn(
+                          "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50",
+                          appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
+                        )}
+                      >
+                        <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
+                        <p className="font-semibold text-sm text-slate-200">{m.name}</p>
+                      </button>
+                    ))}
+                  </div>
+                </CustomizationSection>
+                
+                <CustomizationSection id="size-section" title="Size" icon={Ruler}>
+                  <div className="flex items-center justify-between">
+                      <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2 text-slate-300">
+                          {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
+                          <span>Lock Aspect Ratio</span>
+                      </Label>
+                      <Switch
+                          id="aspect-ratio-lock"
+                          checked={isAspectRatioLocked}
+                          onCheckedChange={setIsAspectRatioLocked}
+                      />
+                  </div>
+                  <SizeSelector size={size} onSizeChange={setSize} />
+                </CustomizationSection>
+
+                <CustomizationSection id="quantity-section" title="Quantity" icon={Sparkles}>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {quantityOptions.map((q) => (
+                      <Button 
+                        key={q.quantity} 
+                        variant={quantity === q.quantity ? "default" : "outline"} 
+                        onClick={() => handleQuantityButtonClick(q.quantity)} 
+                        className={cn(
+                          "h-auto flex-col py-3 px-2 text-center",
+                          quantity === q.quantity 
+                            ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-purple-500" 
+                            : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                        )}
+                      >
+                        <span className="font-bold text-lg leading-none">{q.quantity}</span>
+                        <span className="text-xs text-slate-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="mt-4">
+                      <Input
+                          type="number"
+                          id="custom-quantity-input"
+                          className="w-full h-12 text-center text-lg font-bold bg-slate-800/80 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Custom quantity..."
+                          onChange={handleCustomQuantityChange}
+                          onFocus={() => setQuantity(0)}
+                      />
+                  </div>
+                </CustomizationSection>
+              
+                <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <div className="flex flex-row items-center justify-between pb-4">
+                        <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
+                        <div className="text-right">
+                          <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
+                          {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
+                        </div>
+                      </div>
+                      <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
+                        Add to Cart
+                      </Button>
+                    </div>
+                </div>
+            </div>
+          </ThemedCard>
+        </div>
       </div>
       <StickerContextMenu
           isOpen={contextMenu.isOpen}
