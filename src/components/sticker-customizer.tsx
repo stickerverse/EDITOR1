@@ -1106,100 +1106,10 @@ export function StickerCustomizer() {
     );
   }
 
-  return (
-    <div className="container mx-auto px-0 py-0 md:py-4">
-      <div className={cn(
-        "gap-12 lg:gap-8",
-        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col items-center'
-      )}>
-        <div className={cn(
-            "h-max flex flex-col items-center gap-4",
-            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:w-3/4'
-        )}>
-          <div className="perspective-container group w-full">
-            <div className="item-3d">
-              <span className="ground"></span>
-              <div className="item-img">
-                <ThemedCard className="w-full aspect-square">
-                  <div
-                    id="canvas-container"
-                    ref={canvasRef}
-                    className={cn(
-                      "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
-                      "border-2 border-dashed border-white"
-                    )}
-                    onDrop={handleDropOnCanvas}
-                    onDragOver={(e) => e.preventDefault()}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onClick={closeContextMenu}
-                  >
-                    {isLoading && (
-                      <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
-                        <Loader2 className="h-12 w-12 animate-spin text-white" />
-                        <p className="text-white mt-4 font-semibold">
-                          {loadingText}
-                        </p>
-                      </div>
-                    )}
-                    {/* This area will become the sticker sheet canvas */}
-                    <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
-                      {renderCanvasContent()}
-                    </div>
-                  </div>
-                </ThemedCard>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className={cn(
-            layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full lg:max-w-4xl'
-        )}>
-          <ThemedCard>
-            <div className="flex flex-col space-y-6">
-              <header>
-                  <div className="flex items-center justify-between">
-                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-                          Create Your Sticker
-                      </h1>
-                      <div className="flex items-center gap-2">
-                        <div className="hidden sm:flex items-center gap-2">
-                            <Label htmlFor="layout-switch" className="text-slate-400">
-                                <LayoutDashboard className="h-5 w-5" />
-                            </Label>
-                            <Switch
-                                id="layout-switch"
-                                checked={layoutMode === 'horizontal'}
-                                onCheckedChange={(checked) => setLayoutMode(checked ? 'horizontal' : 'vertical')}
-                            />
-                        </div>
-                        <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white"
-                            onClick={() => setIsTourActive(prev => !prev)}
-                            aria-label="Start AI Tour"
-                        >
-                            <Bot className="h-5 w-5" />
-                        </Button>
-                      </div>
-                  </div>
-                  <div className="mt-2 flex items-center gap-4">
-                      <div className="flex items-center gap-1">
-                          <div className="flex text-yellow-400">
-                              <Star className="w-5 h-5 fill-current" />
-                              <Star className="w-5 h-5 fill-current" />
-                              <Star className="w-5 h-5 fill-current" />
-                              <Star className="w-5 h-5 fill-current" />
-                              <Star className="w-5 h-5 fill-current" />
-                          </div>
-                          <p className="text-sm text-slate-300 font-medium"><span className="text-white font-semibold">5.0</span> (4,882 reviews)</p>
-                      </div>
-                  </div>
-                </header>
-              
-                <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
+  const renderPropertiesMenu = () => {
+      const verticalLayout = (
+          <div className="flex flex-col space-y-6">
+              <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
                   <Select value={stickerType} onValueChange={setStickerType}>
                       <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
                           <SelectValue placeholder="Select a product type" />
@@ -1254,7 +1164,6 @@ export function StickerCustomizer() {
 
                 {renderDesignControls()}
 
-              
                 <CustomizationSection id="material-section" title="Material" icon={Palette}>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {materials.map((m) => (
@@ -1315,21 +1224,255 @@ export function StickerCustomizer() {
                       />
                   </div>
                 </CustomizationSection>
-              
-                <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <div className="flex flex-row items-center justify-between pb-4">
-                        <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
-                        <div className="text-right">
-                          <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
-                          {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${pricePerSticker.toFixed(2)} each</p>}
-                        </div>
+          </div>
+      );
+
+      const horizontalLayout = (
+          <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6 flex flex-col">
+                      <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
+                        <Select value={stickerType} onValueChange={setStickerType}>
+                            <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
+                                <SelectValue placeholder="Select a product type" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                                <SelectItem value="die-cut">
+                                    <div className="flex items-center gap-3">
+                                        <Scissors className="h-5 w-5 text-indigo-400" />
+                                        <span className="font-semibold">Die-cut Stickers</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="sheet">
+                                    <div className="flex items-center gap-3">
+                                        <SheetIcon className="h-5 w-5 text-purple-400" />
+                                        <span className="font-semibold">Sticker Sheets</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="kiss-cut">
+                                  <div className="flex items-center gap-3">
+                                        <ContourCutIcon className="h-5 w-5 text-pink-400" />
+                                        <span className="font-semibold">Kiss-cut Stickers</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="decal">
+                                  <div className="flex items-center gap-3">
+                                        <Type className="h-5 w-5 text-emerald-400" />
+                                        <span className="font-semibold">Text Decals</span>
+                                    </div>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </CustomizationSection>
+
+                      <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
+                          <div className="grid grid-cols-3 gap-3">
+                              {shapeOptions.map((shape) => (
+                                  <button
+                                      key={shape.id}
+                                      type="button"
+                                      onClick={() => setStickerShape(shape.id)}
+                                      className={cn(
+                                          "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50 flex flex-col items-center justify-center h-24",
+                                          stickerShape === shape.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
+                                      )}
+                                  >
+                                      <shape.icon className="h-8 w-8 text-slate-300 mb-2" />
+                                      <p className="font-semibold text-sm text-slate-200">{shape.name}</p>
+                                  </button>
+                              ))}
+                          </div>
+                      </CustomizationSection>
+                      
+                      <div className="flex-grow">
+                          {renderDesignControls()}
                       </div>
-                      <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
-                        Add to Cart
+                  </div>
+
+                  <div className="space-y-6 flex flex-col">
+                      <CustomizationSection id="material-section" title="Material" icon={Palette}>
+                        <div className="grid grid-cols-2 gap-3">
+                          {materials.map((m) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
+                              className={cn(
+                                "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50 h-full",
+                                appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
+                              )}
+                            >
+                              <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
+                              <p className="font-semibold text-sm text-slate-200">{m.name}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </CustomizationSection>
+
+                      <div className="flex-grow flex flex-col gap-6">
+                        <CustomizationSection id="size-section" title="Size" icon={Ruler}>
+                          <SizeSelector size={size} onSizeChange={setSize} />
+                        </CustomizationSection>
+
+                        <CustomizationSection id="quantity-section" title="Quantity" icon={Sparkles}>
+                          <div className="grid grid-cols-2 gap-3">
+                            {quantityOptions.map((q) => {
+                              const stickerArea = size.width * size.height;
+                              const baseArea = 4;
+                              const sizeMultiplier = Math.max(1, 1 + (stickerArea - baseArea) * 0.08);
+                              const finalPricePer = q.pricePer * sizeMultiplier;
+
+                              return (
+                                <Button 
+                                  key={q.quantity} 
+                                  variant={quantity === q.quantity ? "default" : "outline"} 
+                                  onClick={() => handleQuantityButtonClick(q.quantity)} 
+                                  className={cn(
+                                    "h-auto flex-col py-3 px-2 text-center",
+                                    quantity === q.quantity 
+                                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-purple-500" 
+                                      : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                                  )}
+                                >
+                                  <span className="font-bold text-lg leading-none">{q.quantity}</span>
+                                  <span className="text-xs text-slate-400 mt-1">${finalPricePer.toFixed(2)}/sticker</span>
+                                </Button>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-4">
+                              <Input
+                                  type="number"
+                                  id="custom-quantity-input-horizontal"
+                                  className="w-full h-12 text-center text-lg font-bold bg-slate-800/80 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:ring-indigo-500 focus:border-indigo-500"
+                                  placeholder="Custom quantity..."
+                                  onChange={handleCustomQuantityChange}
+                                  onFocus={() => setQuantity(0)}
+                              />
+                          </div>
+                        </CustomizationSection>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      );
+
+      return (
+        <>
+            <header className="mb-6">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+                        Create Your Sticker
+                    </h1>
+                    <div className="flex items-center gap-2">
+                      <div className="hidden sm:flex items-center gap-2">
+                          <Label htmlFor="layout-switch" className="text-slate-400">
+                              <LayoutDashboard className="h-5 w-5" />
+                          </Label>
+                          <Switch
+                              id="layout-switch"
+                              checked={layoutMode === 'horizontal'}
+                              onCheckedChange={(checked) => setLayoutMode(checked ? 'horizontal' : 'vertical')}
+                          />
+                      </div>
+                      <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                          onClick={() => setIsTourActive(prev => !prev)}
+                          aria-label="Start AI Tour"
+                      >
+                          <Bot className="h-5 w-5" />
                       </Button>
                     </div>
                 </div>
+                <div className="mt-2 flex items-center gap-4">
+                    <div className="flex items-center gap-1">
+                        <div className="flex text-yellow-400">
+                            <Star className="w-5 h-5 fill-current" />
+                            <Star className="w-5 h-5 fill-current" />
+                            <Star className="w-5 h-5 fill-current" />
+                            <Star className="w-5 h-5 fill-current" />
+                            <Star className="w-5 h-5 fill-current" />
+                        </div>
+                        <p className="text-sm text-slate-300 font-medium"><span className="text-white font-semibold">5.0</span> (4,882 reviews)</p>
+                    </div>
+                </div>
+              </header>
+
+              {layoutMode === 'vertical' ? verticalLayout : horizontalLayout}
+
+              <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-6 sticky bottom-4 shadow-lg shadow-indigo-500/20">
+                  <div className="bg-slate-900 rounded-lg p-4">
+                    <div className="flex flex-row items-center justify-between pb-4">
+                      <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
+                      <div className="text-right">
+                        <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
+                        {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${pricePerSticker.toFixed(2)} each</p>}
+                      </div>
+                    </div>
+                    <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
+                      Add to Cart
+                    </Button>
+                  </div>
+              </div>
+        </>
+      )
+  }
+
+  return (
+    <div className="container mx-auto px-0 py-0 md:py-4">
+      <div className={cn(
+        "gap-12 lg:gap-8",
+        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col items-center'
+      )}>
+        <div className={cn(
+            "h-max flex flex-col items-center gap-4",
+            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:w-3/4'
+        )}>
+          <div className="perspective-container group w-full">
+            <div className="item-3d">
+              <span className="ground"></span>
+              <div className="item-img">
+                <ThemedCard className="w-full aspect-square">
+                  <div
+                    id="canvas-container"
+                    ref={canvasRef}
+                    className={cn(
+                      "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
+                      "border-2 border-dashed border-white"
+                    )}
+                    onDrop={handleDropOnCanvas}
+                    onDragOver={(e) => e.preventDefault()}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onClick={closeContextMenu}
+                  >
+                    {isLoading && (
+                      <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
+                        <Loader2 className="h-12 w-12 animate-spin text-white" />
+                        <p className="text-white mt-4 font-semibold">
+                          {loadingText}
+                        </p>
+                      </div>
+                    )}
+                    {/* This area will become the sticker sheet canvas */}
+                    <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
+                      {renderCanvasContent()}
+                    </div>
+                  </div>
+                </ThemedCard>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={cn(
+            layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full lg:max-w-4xl'
+        )}>
+          <ThemedCard>
+            <div className="flex flex-col">
+              {renderPropertiesMenu()}
             </div>
           </ThemedCard>
         </div>
