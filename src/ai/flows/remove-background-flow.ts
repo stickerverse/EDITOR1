@@ -5,7 +5,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const RemoveBackgroundInputSchema = z.object({
   imageDataUri: z.string().describe("The user's uploaded image as a data URI."),
@@ -32,7 +32,7 @@ const removeBackgroundFlow = ai.defineFlow(
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
         {media: {url: imageDataUri}},
-        {text: 'Remove the background from this image, leaving only the main subject with a transparent background.'},
+        {text: 'Remove the background from this image, leaving only the main subject. The background must be fully transparent, not a checkerboard pattern. The output must be a PNG.'},
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],

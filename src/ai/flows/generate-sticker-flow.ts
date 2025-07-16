@@ -34,7 +34,7 @@ const generateStickerFlow = ai.defineFlow(
   async ({ prompt }) => {
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: `A die-cut sticker of ${prompt}, vector art, vibrant colors, on a transparent background.`,
+      prompt: `A die-cut sticker of ${prompt}, vector art, vibrant colors. The background must be fully transparent, not a checkerboard pattern. The output must be a PNG.`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
