@@ -1425,11 +1425,11 @@ export function StickerCustomizer() {
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className={cn(
         "gap-12 lg:gap-8",
-        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col'
+        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col items-center'
       )}>
         <div className={cn(
             "h-max flex flex-col gap-4",
-            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full self-center'
+            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full self-center lg:max-w-2xl'
         )}>
           <div className="group w-full">
             <ThemedCard className="w-full aspect-square">
