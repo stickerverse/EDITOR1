@@ -246,8 +246,7 @@ export function StickerCustomizer() {
     };
 
     setAppState(current => {
-      const isSheetModeWithAutopack = stickerType === 'sheet' && current.stickerSheet.settings.autoPackEnabled;
-      const newStickers = isSheetModeWithAutopack ? [newSticker] : [...current.stickers, newSticker];
+      const newStickers = [...current.stickers, newSticker];
       return { ...current, stickers: newStickers.sort((a, b) => a.zIndex - b.zIndex) };
     });
     setActiveStickerId(stickerId);
@@ -746,15 +745,19 @@ export function StickerCustomizer() {
         </>
       );
     }
+    
+    const showTextTab = stickerType !== 'die-cut';
 
-    // Default controls for die-cut, kiss-cut, decal
     return (
       <CustomizationSection id="layer-section" title="Add a Layer" icon={Layers}>
         <Tabs defaultValue="generate" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800 text-slate-400">
+          <TabsList className={cn(
+            "grid w-full bg-slate-800 text-slate-400",
+            showTextTab ? "grid-cols-3" : "grid-cols-2"
+          )}>
             <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
             <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
-            <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
+            {showTextTab && <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>}
           </TabsList>
           <TabsContent value="generate" className="mt-4">
             <div className="space-y-4">
@@ -803,7 +806,7 @@ export function StickerCustomizer() {
                 </Label>
             </div>
           </TabsContent>
-           <TabsContent value="text" className="mt-4">
+           {showTextTab && <TabsContent value="text" className="mt-4">
             <div className="space-y-4">
               <Textarea
                 placeholder="Your Text Here"
@@ -842,7 +845,7 @@ export function StickerCustomizer() {
                 <Type className="mr-2 h-4 w-4" /> Add Text Layer
               </Button>
             </div>
-          </TabsContent>
+          </TabsContent>}
         </Tabs>
       </CustomizationSection>
     );
