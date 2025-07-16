@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Copy, ChevronsUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StickerContextMenuProps {
@@ -7,14 +7,22 @@ interface StickerContextMenuProps {
   position: { x: number; y: number };
   onClose: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
+  onBringToFront: () => void;
 }
 
-export function StickerContextMenu({ isOpen, position, onClose, onDelete }: StickerContextMenuProps) {
+export function StickerContextMenu({ 
+  isOpen, 
+  position, 
+  onClose, 
+  onDelete,
+  onDuplicate,
+  onBringToFront
+}: StickerContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Close only if the click is outside the menu itself
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         onClose();
       }
@@ -29,64 +37,45 @@ export function StickerContextMenu({ isOpen, position, onClose, onDelete }: Stic
     };
   }, [isOpen, onClose]);
   
-  // This useEffect handles the checkbox state for animation
-  useEffect(() => {
-    const input = menuRef.current?.querySelector('#toggle') as HTMLInputElement | null;
-    if (input) {
-      input.checked = isOpen;
-    }
-  }, [isOpen]);
+  const handleAction = (action: () => void) => {
+    action();
+    onClose();
+  }
 
   return (
-    <div
+    <aside 
+      id="menu" 
       ref={menuRef}
-      className={cn(
-        "menu-tooltip",
-        !isOpen && "closed", // Used for closing animation
-      )}
+      className={cn(isOpen && "open")}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
-        transform: 'translate(-50%, -50%)',
-        zIndex: 50,
-        // Hide when not open to prevent interaction issues
-        visibility: isOpen ? 'visible' : 'hidden', 
       }}
-      // Prevent the canvas from capturing this click
       onMouseDown={(e) => e.stopPropagation()} 
     >
-      <input type="checkbox" id="toggle" readOnly />
-      <label htmlFor="toggle" className="toggle" onClick={(e) => {
-        // Allow the central button to also close the menu
-        e.stopPropagation();
-        onClose();
-      }}>
-        <Trash2 className="text-red-500 m-auto" />
-      </label>
+      <span className="shine shine-top"></span>
+      <span className="shine shine-bottom"></span>
+      <span className="glow glow-top"></span>
+      <span className="glow glow-bottom"></span>
+      <span className="glow glow-bright glow-top"></span>
+      <span className="glow glow-bright glow-bottom"></span>
       
-      {/* Delete Button */}
-      <li style={{ '--i': 2 } as React.CSSProperties} className="circle-box">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-            // No need to call onClose here, as the parent will handle it
-          }}
-          className="anchor"
-          title="Delete"
-        >
-          <Trash2 className="text-white" />
-        </button>
-      </li>
-
-      {/* These are hidden but required for the circle layout */}
-      <li style={{ '--i': 0 } as React.CSSProperties} className="circle-box"><a href="#" className="anchor"></a></li>
-      <li style={{ '--i': 1 } as React.CSSProperties} className="circle-box"><a href="#" className="anchor"></a></li>
-      <li style={{ '--i': 3 } as React.CSSProperties} className="circle-box"><a href="#" className="anchor"></a></li>
-      <li style={{ '--i': 4 } as React.CSSProperties} className="circle-box"><a href="#" className="anchor"></a></li>
-      <li style={{ '--i': 5 } as React.CSSProperties} className="circle-box"><a href="#" className="anchor"></a></li>
-      <li style={{ '--i': 6 } as React.CSSProperties} className="circle-box"><a href="#" className="anchor"></a></li>
-      <li style={{ '--i': 7 } as React.CSSProperties} className="circle-box"><a href="#" className="anchor"></a></li>
-    </div>
+      <div className="inner">
+          <section>
+              <header>Actions</header>
+              <ul>
+                  <li onClick={() => handleAction(onDuplicate)}>
+                    <Copy /> Duplicate
+                  </li>
+                  <li onClick={() => handleAction(onBringToFront)}>
+                    <ChevronsUp /> Bring to Front
+                  </li>
+                  <li onClick={() => handleAction(onDelete)}>
+                    <Trash2 /> Delete
+                  </li>
+              </ul>
+          </section>
+      </div>
+    </aside>
   );
 }

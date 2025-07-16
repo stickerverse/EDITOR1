@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, Lock, Unlock, RotateCw } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, Lock, Unlock, RotateCw, Copy, ChevronsUp, Trash2 } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -72,6 +72,7 @@ interface StickerInstance {
   position: { x: number; y: number; unit: string; };
   size: { width: number; height: number; unit: string; };
   rotation: number;
+  zIndex: number;
   cutLine: { type: 'kiss_cut' | 'die_cut'; offset: number; shape: 'auto' | 'custom'; pathData?: string; };
 }
 
@@ -183,6 +184,8 @@ export function StickerCustomizer() {
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  const dragGhostRef = useRef<HTMLImageElement | null>(null);
+
 
   const handleAddToCart = () => {
     toast({
@@ -222,23 +225,29 @@ export function StickerCustomizer() {
     return newDesign;
   }
 
-  const addStickerToSheet = (designId: string, position?: {x: number, y: number}) => {
-    const design = appState.designLibrary.find(d => d.designId === designId) ?? addDesignToLibrary({ sourceType: 'text' }, {width: 300, height: 100});
+  const addStickerToSheet = (designId: string, options?: { position?: {x: number, y: number}, size?: {width: number, height: number}, zIndex?: number, rotation?: number }) => {
+    const design = appState.designLibrary.find(d => d.designId === designId);
+    if (!design) return;
 
     const stickerId = `inst_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Find the current highest z-index
+    const maxZIndex = appState.stickers.reduce((max, s) => Math.max(max, s.zIndex), 0);
+    
     const newSticker: StickerInstance = {
       stickerId,
       designId,
-      position: position ? { ...position, unit: 'px' } : { x: 50, y: 50, unit: 'px' },
-      size: design.sourceType === 'text' ? { width: 300, height: 100, unit: 'px' } : { width: 100, height: 100, unit: 'px' },
-      rotation: 0,
+      position: options?.position ? { ...options.position, unit: 'px' } : { x: 50, y: 50, unit: 'px' },
+      size: options?.size ? { ...options.size, unit: 'px' } : (design.sourceType === 'text' ? { width: 300, height: 100, unit: 'px' } : { width: 100, height: 100, unit: 'px' }),
+      rotation: options?.rotation ?? 0,
+      zIndex: options?.zIndex ?? (maxZIndex + 1),
       cutLine: { type: stickerType === 'kiss-cut' ? 'kiss_cut' : 'die_cut', offset: 0.1, shape: 'auto' },
     };
 
     setAppState(current => {
       const isSingleStickerMode = stickerType === 'die-cut' || stickerType === 'kiss-cut' || stickerType === 'decal';
       const newStickers = isSingleStickerMode ? [newSticker] : [...current.stickers, newSticker];
-      return { ...current, stickers: newStickers };
+      return { ...current, stickers: newStickers.sort((a, b) => a.zIndex - b.zIndex) };
     });
     setActiveStickerId(stickerId);
   }
@@ -350,7 +359,7 @@ export function StickerCustomizer() {
         const y = e.clientY - canvasRect.top;
 
         if (data.type === 'design') { // Adding a new sticker from the library
-            addStickerToSheet(data.id, { x: x - 50, y: y - 50 }); // Offset to center
+            addStickerToSheet(data.id, { position: { x: x - 50, y: y - 50 }}); // Offset to center
         }
       } catch (err) {
         console.error("Failed to parse dropped data", err);
@@ -368,12 +377,11 @@ export function StickerCustomizer() {
     }
 
     if (!canvasRef.current) return;
-    const canvasRect = canvasRef.current.getBoundingClientRect();
     setContextMenu({
       isOpen: true,
       position: {
-        x: e.clientX - canvasRect.left,
-        y: e.clientY - canvasRect.top,
+        x: e.clientX,
+        y: e.clientY,
       },
       stickerId: stickerId,
     });
@@ -385,7 +393,6 @@ export function StickerCustomizer() {
 
   const handleDeleteSticker = () => {
     if (!contextMenu.stickerId) return;
-
     setAppState(current => ({
         ...current,
         stickers: current.stickers.filter(s => s.stickerId !== contextMenu.stickerId)
@@ -393,12 +400,34 @@ export function StickerCustomizer() {
     if (activeStickerId === contextMenu.stickerId) {
       setActiveStickerId(null);
     }
-    toast({
-        title: "Sticker Removed",
-        description: "The sticker has been removed from your sheet.",
-    });
-    closeContextMenu();
+    toast({ title: "Sticker Removed" });
   };
+  
+  const handleDuplicateSticker = () => {
+    if (!contextMenu.stickerId) return;
+    const originalSticker = appState.stickers.find(s => s.stickerId === contextMenu.stickerId);
+    if (originalSticker) {
+      addStickerToSheet(originalSticker.designId, {
+        position: { x: originalSticker.position.x + 20, y: originalSticker.position.y + 20 },
+        size: originalSticker.size,
+        rotation: originalSticker.rotation
+      });
+      toast({ title: "Sticker Duplicated" });
+    }
+  };
+
+  const handleBringToFront = () => {
+    if (!contextMenu.stickerId) return;
+    const maxZIndex = appState.stickers.reduce((max, s) => Math.max(max, s.zIndex), 0);
+    setAppState(current => ({
+      ...current,
+      stickers: current.stickers.map(s => 
+        s.stickerId === contextMenu.stickerId ? { ...s, zIndex: maxZIndex + 1 } : s
+      ).sort((a,b) => a.zIndex - b.zIndex)
+    }));
+    toast({ title: "Brought to Front" });
+  };
+
 
   const handleAddTextDecal = () => {
     const newDesign = addDesignToLibrary(
@@ -456,12 +485,12 @@ export function StickerCustomizer() {
 
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'resize-br' | 'rotate', stickerId: string) => {
     if (e.button !== 0) return; // Only allow left-clicks for dragging
-
-    // If context menu is open, the first click should close it.
     if (contextMenu.isOpen) {
         closeContextMenu();
+        e.stopPropagation();
         return;
     }
+    
     e.preventDefault();
     e.stopPropagation();
     const targetSticker = appState.stickers.find(s => s.stickerId === stickerId);
@@ -611,11 +640,13 @@ export function StickerCustomizer() {
         const offsetY = (cellHeight - stickerHeight) / 2;
 
         const newStickers: StickerInstance[] = [];
+        let maxZ = currentAppState.stickers.reduce((max, s) => Math.max(max, s.zIndex), 0);
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < cols; j++) {
             const x = padding + j * (cellWidth + gap) + offsetX;
             const y = padding + i * (cellHeight + gap) + offsetY;
             const stickerId = `inst_grid_${i}_${j}_${Math.random().toString(36).substr(2, 5)}`;
+            maxZ++;
     
             newStickers.push({
               stickerId,
@@ -623,6 +654,7 @@ export function StickerCustomizer() {
               position: { x, y, unit: 'px' },
               size: { width: stickerWidth, height: stickerHeight, unit: 'px' },
               rotation: 0,
+              zIndex: maxZ,
               cutLine: { type: 'kiss_cut', offset: 0.1, shape: 'auto' },
             });
           }
@@ -630,15 +662,16 @@ export function StickerCustomizer() {
         return {
           ...currentAppState,
           stickerSheet: { ...currentAppState.stickerSheet, settings: { ...currentAppState.stickerSheet.settings, autoPackEnabled: false } },
-          stickers: newStickers
+          stickers: newStickers.sort((a,b) => a.zIndex - b.zIndex)
         };
 
       } else {
         // Switching back to Auto Layout
+        const stickersToKeep = currentAppState.stickers.length > 0 && currentDesign ? [currentAppState.stickers[0]] : [];
         return {
           ...currentAppState,
           stickerSheet: { ...currentAppState.stickerSheet, settings: { ...currentAppState.stickerSheet.settings, autoPackEnabled: true } },
-          stickers: currentAppState.stickers.length > 0 && currentDesign ? [currentAppState.stickers[0]] : []
+          stickers: stickersToKeep
         };
       }
     });
@@ -965,6 +998,7 @@ export function StickerCustomizer() {
                     width: `${sticker.size.width}px`,
                     height: `${sticker.size.height}px`,
                     transform: `rotate(${sticker.rotation}deg)`,
+                    zIndex: sticker.zIndex,
                 }}
             >
                 <span
@@ -1016,6 +1050,7 @@ export function StickerCustomizer() {
                     width: `${sticker.size.width}px`,
                     height: `${sticker.size.height}px`,
                     transform: `rotate(${sticker.rotation}deg)`,
+                    zIndex: sticker.zIndex,
                 }}
             >
                 <Image
@@ -1107,6 +1142,7 @@ export function StickerCustomizer() {
                 onDragOver={(e) => e.preventDefault()}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
+                onClick={closeContextMenu}
               >
               {isLoading && (
                 <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 rounded-lg">
@@ -1117,12 +1153,6 @@ export function StickerCustomizer() {
                 {/* This area will become the sticker sheet canvas */}
                 <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
                   {renderCanvasContent()}
-                  <StickerContextMenu
-                    isOpen={contextMenu.isOpen}
-                    position={contextMenu.position}
-                    onClose={closeContextMenu}
-                    onDelete={handleDeleteSticker}
-                  />
                 </div>
               </div>
             </ThemedCard>
@@ -1310,6 +1340,14 @@ export function StickerCustomizer() {
           </div>
         </ThemedCard>
       </div>
+      <StickerContextMenu
+          isOpen={contextMenu.isOpen}
+          position={contextMenu.position}
+          onClose={closeContextMenu}
+          onDelete={handleDeleteSticker}
+          onDuplicate={handleDuplicateSticker}
+          onBringToFront={handleBringToFront}
+        />
     </div>
   );
 }
