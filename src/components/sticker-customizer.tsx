@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle as CircleShapeIcon, RectangleHorizontal, Ruler, Unlock } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle as CircleShapeIcon, RectangleHorizontal, Ruler, LayoutDashboard } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -121,6 +121,8 @@ type ContextMenuState = {
   stickerId: string | null;
 };
 
+type LayoutMode = 'vertical' | 'horizontal';
+
 const CustomizationSection = React.memo(function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
     <div id={id} className={cn("space-y-3", className)}>
@@ -200,6 +202,7 @@ export function StickerCustomizer() {
   });
 
   const [isTourActive, setIsTourActive] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('vertical');
 
   const calculatePrice = () => {
     // 1. Calculate Size Multiplier
@@ -1105,8 +1108,14 @@ export function StickerCustomizer() {
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-8">
-        <div className="lg:col-span-3 lg:sticky lg:top-8 h-max flex flex-col items-center gap-4">
+      <div className={cn(
+        "gap-12 lg:gap-8",
+        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col items-center'
+      )}>
+        <div className={cn(
+            "h-max flex flex-col items-center gap-4",
+            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:w-3/4'
+        )}>
           <div className="perspective-container group w-full">
             <div className="item-3d">
               <span className="ground"></span>
@@ -1144,7 +1153,9 @@ export function StickerCustomizer() {
           </div>
         </div>
 
-        <div className="lg:col-span-2">
+        <div className={cn(
+            layoutMode === 'vertical' ? 'lg:col-span-2' : 'w-full lg:max-w-4xl'
+        )}>
           <ThemedCard>
             <div className="flex flex-col space-y-6">
               <header>
@@ -1152,15 +1163,27 @@ export function StickerCustomizer() {
                       <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
                           Create Your Sticker
                       </h1>
-                      <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white"
-                          onClick={() => setIsTourActive(prev => !prev)}
-                          aria-label="Start AI Tour"
-                      >
-                          <Bot className="h-5 w-5" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <div className="hidden sm:flex items-center gap-2">
+                            <Label htmlFor="layout-switch" className="text-slate-400">
+                                <LayoutDashboard className="h-5 w-5" />
+                            </Label>
+                            <Switch
+                                id="layout-switch"
+                                checked={layoutMode === 'horizontal'}
+                                onCheckedChange={(checked) => setLayoutMode(checked ? 'horizontal' : 'vertical')}
+                            />
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                            onClick={() => setIsTourActive(prev => !prev)}
+                            aria-label="Start AI Tour"
+                        >
+                            <Bot className="h-5 w-5" />
+                        </Button>
+                      </div>
                   </div>
                   <div className="mt-2 flex items-center gap-4">
                       <div className="flex items-center gap-1">
@@ -1211,7 +1234,7 @@ export function StickerCustomizer() {
                 </CustomizationSection>
 
                 <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                         {shapeOptions.map((shape) => (
                             <button
                                 key={shape.id}
@@ -1323,5 +1346,7 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
 
     
