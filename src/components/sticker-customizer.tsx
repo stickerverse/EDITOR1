@@ -4,18 +4,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle as CircleShapeIcon, RectangleHorizontal, Square as SquareIconShape, Ruler, Lock, Unlock } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle as CircleShapeIcon, RectangleHorizontal, Ruler, Unlock } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
 import { ContourCutIcon, RoundedRectangleIcon, SquareIcon } from '@/components/icons';
 import { StickerContextMenu } from '@/components/sticker-context-menu';
 import {
@@ -23,7 +21,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AITourGuide } from '@/components/ai-tour-guide';
 import { SizeSelector } from '@/components/size-selector';
 import type { Size } from '@/components/size-selector';
@@ -124,10 +121,7 @@ type ContextMenuState = {
   stickerId: string | null;
 };
 
-export type StickerShape = 'contour' | 'circle' | 'square' | 'rounded';
-
-
-function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
+const CustomizationSection = React.memo(function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
     <div id={id} className={cn("space-y-3", className)}>
         <div className="flex items-center gap-2">
@@ -141,9 +135,9 @@ function CustomizationSection({ id, title, icon: Icon, children, className }: { 
         </div>
     </div>
   );
-}
+});
 
-const ThemedCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, children, ...props }, ref) => (
+const ThemedCard = React.memo(React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, children, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
@@ -158,7 +152,7 @@ const ThemedCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
         {children}
       </div>
     </div>
-));
+)));
 ThemedCard.displayName = "ThemedCard";
 
 
@@ -1085,6 +1079,7 @@ export function StickerCustomizer() {
                       fill
                       sizes="(max-width: 768px) 10vw, 5vw"
                       className="object-contain p-1"
+                      priority={i === 0}
                     />
                   ) : (
                     <ImagePlus className="h-6 w-6 text-slate-500"/>

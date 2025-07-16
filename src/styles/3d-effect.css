@@ -1,3 +1,4 @@
+
 .perspective-container {
     width: 100%;
     transform-style: preserve-3d;
@@ -19,7 +20,6 @@
     width: 100%;
     transform-origin: 50% 50%;
     transform-style: preserve-3d;
-    animation: floating 5s -1s infinite;
 }
 
 .item-img img {
@@ -54,29 +54,8 @@
     max-width: 50rem;
     background-image: radial-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0) 60%);
     background-size: 50% 80%;
+    background-position: center 80%;
     background-repeat: no-repeat;
     transform: translateX(-50%);
-    animation: floating-shadow 5s -1s infinite;
 }
-
-@keyframes floating {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(0);
-    }
-}
-
-@keyframes floating-shadow {
-    0%, 100% {
-        background-size: 40% 70%;
-        background-position: center 80%;
-    }
-    50% {
-        background-size: 50% 80%;
-        background-position: center 80%;
-    }
-}
-
     
