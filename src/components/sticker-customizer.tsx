@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIcon } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIcon, Ruler } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -176,6 +176,8 @@ export function StickerCustomizer() {
   
   // State for sticker properties
   const [isAspectRatioLocked, setIsAspectRatioLocked] = useState(true);
+  const [stickerWidth, setStickerWidth] = useState(3);
+  const [stickerHeight, setStickerHeight] = useState(3);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     isOpen: false,
@@ -1153,7 +1155,7 @@ export function StickerCustomizer() {
               {renderDesignControls()}
 
             
-              <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full space-y-4">
+              <Accordion type="multiple" defaultValue={['material', 'size', 'quantity']} className="w-full space-y-4">
                 <AccordionItem value="material" className="border-none">
                   <div className="rounded-lg bg-slate-900/50" id="material-section">
                     <AccordionTrigger className="p-4 text-white hover:no-underline">
@@ -1180,6 +1182,42 @@ export function StickerCustomizer() {
                             <p className="font-semibold text-sm text-slate-200">{m.name}</p>
                           </button>
                         ))}
+                      </div>
+                    </AccordionContent>
+                  </div>
+                </AccordionItem>
+                 <AccordionItem value="size" className="border-none">
+                  <div className="rounded-lg bg-slate-900/50" id="size-section">
+                    <AccordionTrigger className="p-4 text-white hover:no-underline">
+                      <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                              <Ruler className="h-4 w-4" />
+                          </div>
+                          <h2 className="text-lg font-semibold text-white">Size</h2>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-4 pt-0">
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <Label htmlFor="sticker-width" className="text-slate-400 mb-2 block">Width (in)</Label>
+                              <Input
+                                  id="sticker-width"
+                                  type="number"
+                                  value={stickerWidth}
+                                  onChange={(e) => setStickerWidth(parseFloat(e.target.value) || 0)}
+                                  className="bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                              />
+                          </div>
+                          <div>
+                              <Label htmlFor="sticker-height" className="text-slate-400 mb-2 block">Height (in)</Label>
+                              <Input
+                                  id="sticker-height"
+                                  type="number"
+                                  value={stickerHeight}
+                                  onChange={(e) => setStickerHeight(parseFloat(e.target.value) || 0)}
+                                  className="bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                              />
+                          </div>
                       </div>
                     </AccordionContent>
                   </div>
@@ -1257,5 +1295,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
