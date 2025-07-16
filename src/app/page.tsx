@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 import { CursorCardsContainer, CursorCard } from '@/components/ui/cursor-cards';
-import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
 
 const stickerCategories = [
@@ -47,14 +46,13 @@ const stickerCategories = [
 ];
 
 export default function HomePage() {
-  const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const borderColor = theme === "dark" ? "#1F2937" : "#D1D5DB";
+  const borderColor = "#1F2937";
 
   if (!mounted) {
     return null;

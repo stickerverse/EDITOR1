@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { ThemeProvider } from "next-themes";
 
 export const metadata: Metadata = {
   title: 'Stickerific',
@@ -22,15 +21,8 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Asap:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        {children}
+        <Toaster />
       </body>
     </html>
   );

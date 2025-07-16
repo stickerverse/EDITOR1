@@ -1,4 +1,3 @@
-
 "use client";
 
 /**
@@ -325,11 +324,11 @@ const UploadingAnimation = ({ progress }: { progress: number }) => (
 export default function FileUpload({
     onUploadSuccess = () => {},
     onUploadError = () => {},
-    acceptedFileTypes = [],
+    acceptedFileTypes = ["image/jpeg", "image/png", "image/gif", "image/svg+xml"],
     maxFileSize = DEFAULT_MAX_FILE_SIZE,
     currentFile: initialFile = null,
     onFileRemove = () => {},
-    uploadDelay = 2000,
+    uploadDelay = 0, // Changed from 2000 to 0 for immediate processing
     validateFile = () => null,
     className,
 }: FileUploadProps) {
@@ -366,15 +365,17 @@ export default function FileUpload({
             if (!acceptedFileTypes?.length) return null;
 
             const fileType = file.type.toLowerCase();
-            if (
-                !acceptedFileTypes.some((type) =>
-                    fileType.match(type.toLowerCase())
-                )
-            ) {
+            const isValidType = acceptedFileTypes.some((type) => {
+                // Handle MIME types like 'image/*' or exact matches
+                if (type.endsWith('/*')) {
+                    return fileType.startsWith(type.slice(0, -1));
+                }
+                return fileType === type.toLowerCase();
+            });
+
+            if (!isValidType) {
                 return {
-                    message: `File type must be ${acceptedFileTypes.join(
-                        ", "
-                    )}`,
+                    message: `File type must be ${acceptedFileTypes.join(", ")}`,
                     code: "INVALID_FILE_TYPE",
                 };
             }
@@ -399,6 +400,15 @@ export default function FileUpload({
 
     const simulateUpload = useCallback(
         (uploadingFile: File) => {
+            // If uploadDelay is 0, process immediately
+            if (uploadDelay === 0) {
+                setProgress(0);
+                setStatus("idle");
+                setFile(null);
+                onUploadSuccess?.(uploadingFile);
+                return;
+            }
+
             let currentProgress = 0;
 
             if (uploadIntervalRef.current) {
@@ -459,8 +469,13 @@ export default function FileUpload({
             }
 
             setFile(selectedFile);
-            setStatus("uploading");
-            setProgress(0);
+            
+            // Only show uploading state if there's a delay
+            if (uploadDelay > 0) {
+                setStatus("uploading");
+                setProgress(0);
+            }
+            
             simulateUpload(selectedFile);
         },
         [
@@ -469,6 +484,7 @@ export default function FileUpload({
             validateFileType,
             validateFile,
             handleError,
+            uploadDelay,
         ]
     );
 
@@ -481,7 +497,10 @@ export default function FileUpload({
     const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        setStatus((prev) => (prev === "dragging" ? "idle" : prev));
+        // Only change status if we're actually leaving the dropzone
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setStatus((prev) => (prev === "dragging" ? "idle" : prev));
+        }
     }, []);
 
     const handleDrop = useCallback(
@@ -511,9 +530,13 @@ export default function FileUpload({
     }, [status]);
 
     const resetState = useCallback(() => {
+        if (uploadIntervalRef.current) {
+            clearInterval(uploadIntervalRef.current);
+        }
         setFile(null);
         setStatus("idle");
         setProgress(0);
+        setError(null);
         if (onFileRemove) onFileRemove();
     }, [onFileRemove]);
 
@@ -535,7 +558,7 @@ export default function FileUpload({
                     >
                         <div
                             className={cn(
-                                "absolute inset-0 transition-opacity duration-300",
+                                "absolute inset-0 transition-opacity duration-300 pointer-events-none",
                                 status === "dragging"
                                     ? "opacity-100"
                                     : "opacity-0"
@@ -583,14 +606,13 @@ export default function FileUpload({
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
                                                 {acceptedFileTypes?.length
                                                     ? `${acceptedFileTypes
-                                                          .map(
-                                                              (t) =>
-                                                                  t.split(
-                                                                      "/"
-                                                                  )[1]
-                                                          )
-                                                          .join(", ")
-                                                          .toUpperCase()}`
+                                                          .map((t) => {
+                                                              if (t.includes('/')) {
+                                                                  return t.split('/')[1].toUpperCase();
+                                                              }
+                                                              return t.toUpperCase();
+                                                          })
+                                                          .join(", ")}`
                                                     : "SVG, PNG, JPG or GIF"}{" "}
                                                 {maxFileSize &&
                                                     `up to ${formatBytes(
@@ -602,7 +624,8 @@ export default function FileUpload({
                                         <button
                                             type="button"
                                             onClick={triggerFileInput}
-                                            className="w-4/5 flex items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white transition-all duration-200 hover:bg-gray-200 dark:hover:bg-white/20 group"
+                                            disabled={status === "uploading"}
+                                            className="w-4/5 flex items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white transition-all duration-200 hover:bg-gray-200 dark:hover:bg-white/20 group disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <span>Upload File</span>
                                             <UploadCloud className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
@@ -617,9 +640,7 @@ export default function FileUpload({
                                             type="file"
                                             className="sr-only"
                                             onChange={handleFileInputChange}
-                                            accept={acceptedFileTypes?.join(
-                                                ","
-                                            )}
+                                            accept={acceptedFileTypes?.join(",")}
                                             aria-label="File input"
                                         />
                                     </motion.div>
@@ -638,7 +659,7 @@ export default function FileUpload({
                                         </div>
 
                                         <div className="text-center space-y-1.5 mb-4">
-                                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-full">
                                                 {file?.name}
                                             </h3>
                                             <div className="flex items-center justify-center gap-2 text-xs">
@@ -671,9 +692,9 @@ export default function FileUpload({
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
-                                    className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg"
+                                    className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg max-w-[90%]"
                                 >
-                                    <p className="text-sm text-red-500 dark:text-red-400">
+                                    <p className="text-sm text-red-500 dark:text-red-400 text-center">
                                         {error.message}
                                     </p>
                                 </motion.div>
