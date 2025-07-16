@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ContourCutIcon, RoundedRectangleIcon, SquareIcon, RectangleHorizontal } from '@/components/icons';
+import { ContourCutIcon, RoundedRectangleIcon, SquareIcon } from '@/components/icons';
 import { StickerContextMenu } from '@/components/sticker-context-menu';
 import {
   DropdownMenu,
@@ -48,7 +48,7 @@ const shapeOptions: { id: StickerShapeType; name: string; icon: React.ElementTyp
     { id: 'circle', name: 'Circle', icon: CircleShapeIcon },
     { id: 'square', name: 'Square', icon: SquareIcon },
     { id: 'rounded', name: 'Rounded', icon: RoundedRectangleIcon },
-    { id: 'rectangle', name: 'Rectangle', icon: RectangleHorizontal },
+    { id: 'rectangle', name: 'Rectangle', icon: RectangleHorizontalIcon },
 ];
 
 
@@ -741,210 +741,210 @@ export function StickerCustomizer() {
 
 
   const renderDesignControls = () => {
-    if (stickerType === 'sheet') {
-      return (
-        <>
-            <CustomizationSection id="sheet-config-section" title="Sheet Configuration" icon={LayoutGrid}>
-                <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
-                    <div className="flex-1">
-                      <Label htmlFor="custom-layout" className="text-slate-200 font-semibold">Custom Layout</Label>
-                      <p className="text-xs text-slate-400">Manually arrange and resize stickers.</p>
-                    </div>
-                    <Switch
-                      id="custom-layout"
-                      checked={!appState.stickerSheet.settings.autoPackEnabled}
-                      onCheckedChange={handleToggleCustomLayout}
-                    />
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white">
-                      <span>Sheet Layout: {sheetLayout.rows} x {sheetLayout.cols}</span>
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-slate-900 border-slate-700 text-white">
-                      <div className="p-2">
-                        <div 
-                          className="grid grid-cols-5 gap-1"
-                          onMouseLeave={() => setHoveredLayout({rows: 0, cols: 0})}
-                        >
-                          {Array.from({length: 25}).map((_, i) => {
-                            const row = Math.floor(i / 5) + 1;
-                            const col = (i % 5) + 1;
-                            const isHovered = row <= hoveredLayout.rows && col <= hoveredLayout.cols;
-                            const isSelected = row === sheetLayout.rows && col === sheetLayout.cols;
-                            return (
-                              <div
-                                key={i}
-                                className={cn(
-                                  "w-8 h-8 border border-slate-700 rounded-sm transition-colors",
-                                  (isHovered || isSelected) ? "bg-indigo-500" : "bg-slate-800"
-                                )}
-                                onMouseEnter={() => setHoveredLayout({rows: row, cols: col})}
-                                onClick={() => setSheetLayout({rows: row, cols: col})}
-                              />
-                            )
-                          })}
-                        </div>
-                      </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-            </CustomizationSection>
-            
-            <CustomizationSection id="library-section" title="Design Library" icon={Library}>
-              <div className="space-y-4">
-                  <div className="min-h-[120px] bg-slate-800/50 border border-slate-700 rounded-lg p-2 flex gap-2 overflow-x-auto">
-                    {appState.designLibrary.length === 0 ? (
-                       <div className="w-full text-center text-slate-400 flex flex-col justify-center items-center p-4">
-                          <Library className="h-8 w-8 mb-2" />
-                          <p className="text-sm">Your design library is empty.</p>
-                          <p className="text-xs">Add a design to start.</p>
-                        </div>
-                    ) : (
-                      appState.designLibrary.map(design => (
-                        <div 
-                          key={design.designId}
-                          className="relative w-24 h-24 flex-shrink-0 cursor-grab active:cursor-grabbing"
-                          draggable
-                          onDragStart={(e) => handleDragStartFromLibrary(e, design.designId)}
-                        >
-                           {design.sourceType === 'text' && design.textData ? (
-                             <div 
-                                className="w-full h-full flex items-center justify-center bg-slate-700 rounded-md p-1 overflow-hidden"
-                                style={{
-                                    color: design.textData.color,
-                                    fontFamily: design.textData.font,
-                                }}
-                             >
-                                <span className="text-sm font-bold break-words text-center leading-tight">
-                                    {design.textData.content}
-                                </span>
-                             </div>
-                           ) : design.sourceUrl ? (
-                              <Image 
-                                src={design.sourceUrl}
-                                alt={design.fileName || design.aiPrompt || 'sticker design'}
-                                fill
-                                sizes="96px"
-                                className="object-contain bg-slate-700/50 rounded-md"
-                              />
-                           ) : null}
-                           <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <GripVertical className="text-white"/>
-                           </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-              </div>
-            </CustomizationSection>
-        </>
-      );
-    }
-    
     const showTextTab = stickerType !== 'die-cut';
 
     return (
-      <CustomizationSection id="layer-section" title="Add a Layer" icon={Layers}>
-        <Tabs defaultValue="generate" className="w-full">
-          <TabsList className={cn(
-            "grid w-full bg-slate-800 text-slate-400",
-            showTextTab ? "grid-cols-3" : "grid-cols-2"
-          )}>
-            <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
-            <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
-            {showTextTab && <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>}
-          </TabsList>
-          <TabsContent value="generate" className="mt-4">
-            <div className="space-y-4">
-                <Textarea
-                    placeholder="e.g., A cute baby panda developer writing code"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    rows={3}
-                    className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                />
-                <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
-                    {isGenerating ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
-                    ) : (
-                        <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>
-                    )}
-                </Button>
-            </div>
-          </TabsContent>
-          <TabsContent value="upload" className="mt-4">
-            <div className="space-y-2">
-                <Label
-                    htmlFor="picture"
-                    className={cn(
-                        "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
-                        "hover:border-indigo-500 hover:bg-indigo-900/20",
-                        uploadedFileName && "border-emerald-500 bg-emerald-900/20"
-                    )}
-                >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                        {uploadedFileName ? (
-                            <>
-                                <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
-                                <p className="font-semibold text-emerald-500">File Uploaded!</p>
-                                <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
-                            </>
-                        ) : (
-                            <>
-                                <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
-                                <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
-                                <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
-                            </>
-                        )}
-                    </div>
-                    <Input id="picture" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-                </Label>
-            </div>
-          </TabsContent>
-           {showTextTab && <TabsContent value="text" className="mt-4">
-            <div className="space-y-4">
-              <Textarea
-                placeholder="Your Text Here"
-                value={decalText}
-                onChange={(e) => setDecalText(e.target.value)}
-                rows={3}
-                className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500 text-lg"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="font-select" className="text-slate-400 mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
-                  <Select value={decalFont} onValueChange={setDecalFont}>
-                    <SelectTrigger id="font-select" className="bg-slate-800 border-slate-700 text-slate-200">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
-                      <SelectItem value="serif">Serif</SelectItem>
-                      <SelectItem value="sans-serif">Sans-Serif</SelectItem>
-                      <SelectItem value="monospace">Monospace</SelectItem>
-                      <SelectItem value="cursive">Cursive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                   <Label htmlFor="color-picker" className="text-slate-400 mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
-                   <Input 
-                      id="color-picker"
-                      type="color" 
-                      value={decalColor}
-                      onChange={(e) => setDecalColor(e.target.value)}
-                      className="w-full h-10 p-1 bg-slate-800 border-slate-700"
-                    />
-                </div>
-              </div>
-              <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
-                <Type className="mr-2 h-4 w-4" /> Add Text Layer
-              </Button>
-            </div>
-          </TabsContent>}
-        </Tabs>
-      </CustomizationSection>
+        <div className="space-y-6">
+            {stickerType === 'sheet' && (
+                <>
+                    <CustomizationSection id="sheet-config-section" title="Sheet Configuration" icon={LayoutGrid}>
+                        <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
+                            <div className="flex-1">
+                                <Label htmlFor="custom-layout" className="text-slate-200 font-semibold">Custom Layout</Label>
+                                <p className="text-xs text-slate-400">Manually arrange and resize stickers.</p>
+                            </div>
+                            <Switch
+                                id="custom-layout"
+                                checked={!appState.stickerSheet.settings.autoPackEnabled}
+                                onCheckedChange={handleToggleCustomLayout}
+                            />
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white">
+                                    <span>Sheet Layout: {sheetLayout.rows} x {sheetLayout.cols}</span>
+                                    <Settings className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56 bg-slate-900 border-slate-700 text-white">
+                                <div className="p-2">
+                                    <div
+                                        className="grid grid-cols-5 gap-1"
+                                        onMouseLeave={() => setHoveredLayout({ rows: 0, cols: 0 })}
+                                    >
+                                        {Array.from({ length: 25 }).map((_, i) => {
+                                            const row = Math.floor(i / 5) + 1;
+                                            const col = (i % 5) + 1;
+                                            const isHovered = row <= hoveredLayout.rows && col <= hoveredLayout.cols;
+                                            const isSelected = row === sheetLayout.rows && col === sheetLayout.cols;
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    className={cn(
+                                                        "w-8 h-8 border border-slate-700 rounded-sm transition-colors",
+                                                        (isHovered || isSelected) ? "bg-indigo-500" : "bg-slate-800"
+                                                    )}
+                                                    onMouseEnter={() => setHoveredLayout({ rows: row, cols: col })}
+                                                    onClick={() => setSheetLayout({ rows: row, cols: col })}
+                                                />
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CustomizationSection>
+
+                    <CustomizationSection id="library-section" title="Design Library" icon={Library}>
+                        <div className="space-y-4">
+                            <div className="min-h-[120px] bg-slate-800/50 border border-slate-700 rounded-lg p-2 flex gap-2 overflow-x-auto">
+                                {appState.designLibrary.length === 0 ? (
+                                    <div className="w-full text-center text-slate-400 flex flex-col justify-center items-center p-4">
+                                        <Library className="h-8 w-8 mb-2" />
+                                        <p className="text-sm">Your design library is empty.</p>
+                                        <p className="text-xs">Add a design to start.</p>
+                                    </div>
+                                ) : (
+                                    appState.designLibrary.map(design => (
+                                        <div
+                                            key={design.designId}
+                                            className="relative w-24 h-24 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                                            draggable
+                                            onDragStart={(e) => handleDragStartFromLibrary(e, design.designId)}
+                                        >
+                                            {design.sourceType === 'text' && design.textData ? (
+                                                <div
+                                                    className="w-full h-full flex items-center justify-center bg-slate-700 rounded-md p-1 overflow-hidden"
+                                                    style={{
+                                                        color: design.textData.color,
+                                                        fontFamily: design.textData.font,
+                                                    }}
+                                                >
+                                                    <span className="text-sm font-bold break-words text-center leading-tight">
+                                                        {design.textData.content}
+                                                    </span>
+                                                </div>
+                                            ) : design.sourceUrl ? (
+                                                <Image
+                                                    src={design.sourceUrl}
+                                                    alt={design.fileName || design.aiPrompt || 'sticker design'}
+                                                    fill
+                                                    sizes="96px"
+                                                    className="object-contain bg-slate-700/50 rounded-md"
+                                                />
+                                            ) : null}
+                                            <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <GripVertical className="text-white" />
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </CustomizationSection>
+                </>
+            )}
+
+            <CustomizationSection id="layer-section" title="Add a Layer" icon={Layers}>
+                <Tabs defaultValue="generate" className="w-full">
+                    <TabsList className={cn(
+                        "grid w-full bg-slate-800 text-slate-400",
+                        showTextTab ? "grid-cols-3" : "grid-cols-2"
+                    )}>
+                        <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4" />Generate</TabsTrigger>
+                        <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4" />Upload</TabsTrigger>
+                        {showTextTab && <TabsTrigger value="text"><Type className="mr-2 h-4 w-4" />Text</TabsTrigger>}
+                    </TabsList>
+                    <TabsContent value="generate" className="mt-4">
+                        <div className="space-y-4">
+                            <Textarea
+                                placeholder="e.g., A cute baby panda developer writing code"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                rows={3}
+                                className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                            />
+                            <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
+                                {isGenerating ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
+                                ) : (
+                                    <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>
+                                )}
+                            </Button>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="upload" className="mt-4">
+                        <div className="space-y-2">
+                            <Label
+                                htmlFor="picture"
+                                className={cn(
+                                    "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
+                                    "hover:border-indigo-500 hover:bg-indigo-900/20",
+                                    uploadedFileName && "border-emerald-500 bg-emerald-900/20"
+                                )}
+                            >
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                                    {uploadedFileName ? (
+                                        <>
+                                            <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
+                                            <p className="font-semibold text-emerald-500">File Uploaded!</p>
+                                            <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
+                                            <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
+                                            <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
+                                        </>
+                                    )}
+                                </div>
+                                <Input id="picture" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+                            </Label>
+                        </div>
+                    </TabsContent>
+                    {showTextTab && <TabsContent value="text" className="mt-4">
+                        <div className="space-y-4">
+                            <Textarea
+                                placeholder="Your Text Here"
+                                value={decalText}
+                                onChange={(e) => setDecalText(e.target.value)}
+                                rows={3}
+                                className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500 text-lg"
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="font-select" className="text-slate-400 mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4" />Font</Label>
+                                    <Select value={decalFont} onValueChange={setDecalFont}>
+                                        <SelectTrigger id="font-select" className="bg-slate-800 border-slate-700 text-slate-200">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                                            <SelectItem value="serif">Serif</SelectItem>
+                                            <SelectItem value="sans-serif">Sans-Serif</SelectItem>
+                                            <SelectItem value="monospace">Monospace</SelectItem>
+                                            <SelectItem value="cursive">Cursive</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label htmlFor="color-picker" className="text-slate-400 mb-2 block"><Palette className="inline-block mr-2 h-4 w-4" />Color</Label>
+                                    <Input
+                                        id="color-picker"
+                                        type="color"
+                                        value={decalColor}
+                                        onChange={(e) => setDecalColor(e.target.value)}
+                                        className="w-full h-10 p-1 bg-slate-800 border-slate-700"
+                                    />
+                                </div>
+                            </div>
+                            <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
+                                <Type className="mr-2 h-4 w-4" /> Add Text Layer
+                            </Button>
+                        </div>
+                    </TabsContent>}
+                </Tabs>
+            </CustomizationSection>
+        </div>
     );
   }
   
@@ -1425,11 +1425,11 @@ export function StickerCustomizer() {
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className={cn(
         "gap-12 lg:gap-8",
-        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col items-center'
+        layoutMode === 'vertical' ? 'grid grid-cols-1 lg:grid-cols-5' : 'flex flex-col'
       )}>
         <div className={cn(
-            "h-max flex flex-col gap-4",
-            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full self-center lg:max-w-2xl'
+            "h-max flex flex-col gap-4 self-center",
+            layoutMode === 'vertical' ? 'lg:col-span-3 lg:sticky lg:top-8' : 'w-full lg:max-w-2xl'
         )}>
           <div className="group w-full">
             <ThemedCard className="w-full aspect-square">
@@ -1485,3 +1485,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
