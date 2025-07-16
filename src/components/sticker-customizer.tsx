@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ContourCutIcon } from '@/components/icons';
+import { StickerContextMenu } from '@/components/sticker-context-menu';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,6 +103,13 @@ type DragAction = {
     originalSticker: StickerInstance;
 } | null;
 
+type ContextMenuState = {
+  isOpen: boolean;
+  position: { x: number; y: number };
+  stickerId: string | null;
+};
+
+
 function CustomizationSection({ title, icon: Icon, children, className }: { title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("space-y-3", className)}>
@@ -149,7 +157,6 @@ export function StickerCustomizer() {
   const [isGenerating, setIsGenerating] = useState(false);
   
   const [dragAction, setDragAction] = useState<DragAction>(null);
-  const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
   
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [stickerType, setStickerType] = useState('die-cut');
@@ -166,11 +173,16 @@ export function StickerCustomizer() {
   // State for sticker properties
   const [isAspectRatioLocked, setIsAspectRatioLocked] = useState(true);
 
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    isOpen: false,
+    position: { x: 0, y: 0 },
+    stickerId: null,
+  });
+
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const dragImageRef = useRef<HTMLImageElement | null>(null);
 
   const handleAddToCart = () => {
     toast({
@@ -324,34 +336,6 @@ export function StickerCustomizer() {
     e.dataTransfer.setData('application/json', JSON.stringify({ type: 'design', id: designId }));
     e.dataTransfer.effectAllowed = 'copy';
   };
-
-  const handleDragStartFromCanvas = (e: React.DragEvent, stickerId: string) => {
-    e.dataTransfer.setData('application/sticker-id', stickerId);
-    e.dataTransfer.effectAllowed = 'move';
-    
-    const sticker = appState.stickers.find(s => s.stickerId === stickerId);
-    const design = sticker ? appState.designLibrary.find(d => d.designId === sticker.designId) : null;
-    
-    if (sticker && design?.sourceUrl) {
-      const img = new window.Image();
-      img.src = design.sourceUrl;
-      img.style.width = `${sticker.size.width}px`;
-      img.style.height = `${sticker.size.height}px`;
-      img.style.position = 'absolute';
-      img.style.top = '-9999px';
-      img.style.left = '-9999px';
-      document.body.appendChild(img);
-      dragImageRef.current = img; 
-      e.dataTransfer.setDragImage(img, sticker.size.width / 2, sticker.size.height / 2);
-    }
-  };
-  
-  const handleDragEndFromCanvas = () => {
-      if (dragImageRef.current) {
-          document.body.removeChild(dragImageRef.current);
-          dragImageRef.current = null;
-      }
-  };
   
   const handleDropOnCanvas = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -371,27 +355,40 @@ export function StickerCustomizer() {
     }
   };
 
-  
-  const handleDropOnTrash = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleContextMenu = (e: React.MouseEvent, stickerId: string) => {
     e.preventDefault();
-    setIsDraggingOverTrash(false);
-    const stickerIdToRemove = e.dataTransfer.getData('application/sticker-id');
-
-    if (stickerIdToRemove) {
-        setAppState(current => ({
-            ...current,
-            stickers: current.stickers.filter(s => s.stickerId !== stickerIdToRemove)
-        }));
-        if (activeStickerId === stickerIdToRemove) {
-          setActiveStickerId(null);
-        }
-        toast({
-            title: "Sticker Removed",
-            description: "The sticker has been removed from your sheet.",
-        });
-    }
+    if (!canvasRef.current) return;
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    setContextMenu({
+      isOpen: true,
+      position: {
+        x: e.clientX - canvasRect.left,
+        y: e.clientY - canvasRect.top,
+      },
+      stickerId: stickerId,
+    });
   };
 
+  const closeContextMenu = () => {
+    setContextMenu(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleDeleteSticker = () => {
+    if (!contextMenu.stickerId) return;
+
+    setAppState(current => ({
+        ...current,
+        stickers: current.stickers.filter(s => s.stickerId !== contextMenu.stickerId)
+    }));
+    if (activeStickerId === contextMenu.stickerId) {
+      setActiveStickerId(null);
+    }
+    toast({
+        title: "Sticker Removed",
+        description: "The sticker has been removed from your sheet.",
+    });
+    closeContextMenu();
+  };
 
   const handleAddTextDecal = () => {
     const newDesign = addDesignToLibrary(
@@ -448,6 +445,10 @@ export function StickerCustomizer() {
   };
 
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'resize-br' | 'rotate', stickerId: string) => {
+    // Prevent pointer down from triggering context menu close
+    if (contextMenu.isOpen) {
+        closeContextMenu();
+    }
     e.preventDefault();
     e.stopPropagation();
     const targetSticker = appState.stickers.find(s => s.stickerId === stickerId);
@@ -939,9 +940,7 @@ export function StickerCustomizer() {
                 key={sticker.stickerId}
                 onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
                 onClick={() => setActiveStickerId(sticker.stickerId)}
-                draggable={isDraggable}
-                onDragStart={(e) => handleDragStartFromCanvas(e, sticker.stickerId)}
-                onDragEnd={handleDragEndFromCanvas}
+                onContextMenu={(e) => handleContextMenu(e, sticker.stickerId)}
                 className={cn(
                     "absolute flex items-center justify-center p-2 break-words text-center select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
@@ -992,9 +991,7 @@ export function StickerCustomizer() {
                 key={sticker.stickerId}
                 onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
                 onClick={() => setActiveStickerId(sticker.stickerId)}
-                draggable={isDraggable}
-                onDragStart={(e) => handleDragStartFromCanvas(e, sticker.stickerId)}
-                onDragEnd={handleDragEndFromCanvas}
+                onContextMenu={(e) => handleContextMenu(e, sticker.stickerId)}
                 className={cn(
                     "absolute select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
@@ -1107,23 +1104,15 @@ export function StickerCustomizer() {
                 {/* This area will become the sticker sheet canvas */}
                 <div className="w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg">
                   {renderCanvasContent()}
+                   <StickerContextMenu
+                    isOpen={contextMenu.isOpen}
+                    position={contextMenu.position}
+                    onClose={closeContextMenu}
+                    onDelete={handleDeleteSticker}
+                  />
                 </div>
               </div>
             </ThemedCard>
-           {appState.stickers.length > 0 && (
-             <div 
-                onDrop={handleDropOnTrash}
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setIsDraggingOverTrash(true); }}
-                onDragLeave={() => setIsDraggingOverTrash(false)}
-                className={cn(
-                    "flex items-center justify-center gap-2 rounded-lg p-3 w-48 transition-colors",
-                    isDraggingOverTrash ? "bg-red-500/20 text-red-400" : "bg-slate-800 text-slate-500"
-                )}
-            >
-                <Trash2 className="h-5 w-5" />
-                <span>Drag here to remove</span>
-            </div>
-           )}
         </div>
         
         <ThemedCard>

@@ -57,3 +57,118 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Context Menu Styling */
+.menu-tooltip {
+  --toggle-color: #fff;
+  --item-1-gradient: linear-gradient(45deg, #62daca, #10d4a9);
+  --item-2-gradient: linear-gradient(45deg, #f97d98, #d41f46);
+  --item-3-gradient: linear-gradient(45deg, aliceblue, #d169d1);
+  width: 200px;
+  height: 200px;
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.menu-tooltip .toggle {
+  width: 60px;
+  height: 60px;
+  background-color: var(--toggle-color);
+  text-align: center;
+  line-height: 60px;
+  border-radius: 50%;
+  font-size: 1.8em;
+  z-index: 999;
+  position: absolute;
+  transition: transform 1.2s ease-in-out;
+  cursor: pointer;
+  box-shadow:
+    inset -2px -2px 4px 0 #0006,
+    inset 2px 2px 4px 0 #0008;
+}
+
+.menu-tooltip .toggle:before {
+  content: "";
+  position: absolute;
+  inset: 0px;
+  background-color: var(--toggle-color);
+  z-index: -1;
+  filter: blur(30px) saturate(900%) opacity(0.5);
+}
+
+.menu-tooltip #toggle {
+  appearance: none;
+  visibility: hidden;
+}
+
+.menu-tooltip #toggle:checked + .toggle {
+  transform: rotate(315deg);
+}
+
+.menu-tooltip #toggle:checked ~ .circle-box {
+  transform: rotate(calc(360deg / 8 * var(--i)));
+}
+
+.menu-tooltip .circle-box {
+  position: absolute;
+  left: 0;
+  list-style-type: none;
+  transition: 0.5s;
+  transform-origin: 100px;
+  transition-delay: calc(0.1s * var(--i));
+  transform: rotate(0deg) translateX(70px);
+}
+
+.menu-tooltip .circle-box:nth-of-type(1) .anchor {
+  background: var(--item-1-gradient);
+}
+
+.menu-tooltip .circle-box:nth-of-type(2) .anchor {
+  background: var(--item-2-gradient);
+}
+
+.menu-tooltip .circle-box:nth-of-type(3) .anchor {
+  background: var(--item-3-gradient);
+}
+
+.menu-tooltip .circle-box:nth-of-type(4),
+.menu-tooltip .circle-box:nth-of-type(5),
+.menu-tooltip .circle-box:nth-of-type(6),
+.menu-tooltip .circle-box:nth-of-type(7) {
+  visibility: hidden;
+}
+
+.menu-tooltip .circle-box .anchor {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  line-height: 50px;
+  border-radius: 50%;
+  font-size: 1.5em;
+  text-decoration: none;
+  transform: rotate(calc(360deg / -8 * var(--i)));
+}
+
+.menu-tooltip .circle-box .anchor:hover {
+  &::before {
+    inset: -7px;
+  }
+}
+
+.menu-tooltip .circle-box .anchor:before {
+  content: "";
+  position: absolute;
+  inset: 0px;
+  background-image: inherit;
+  border-radius: inherit;
+  z-index: -1;
+  filter: blur(30px) saturate(900%);
+  transition: inset 0.2s ease;
+}
