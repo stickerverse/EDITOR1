@@ -1,3 +1,5 @@
+"use client";
+
 import { Stars } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import React, { useEffect } from "react";
@@ -36,13 +38,13 @@ export const AuroraHero = () => {
     >
       <div className="relative z-10 flex flex-col items-center">
         <span className="mb-1.5 inline-block rounded-full bg-gray-600/50 px-3 py-1.5 text-sm">
-          Stickerific is here!
+          Unleash Your Creativity!
         </span>
         <h1 className="max-w-3xl bg-gradient-to-br from-white to-gray-400 bg-clip-text text-center text-3xl font-medium leading-tight text-transparent sm:text-5xl sm:leading-tight md:text-7xl md:leading-tight">
-          Unleash Your Creativity
+          Design Your Perfect Sticker
         </h1>
         <p className="my-6 max-w-xl text-center text-base leading-relaxed md:text-lg md:leading-relaxed">
-         Design and order high-quality custom stickers with ease. From die-cut to decals, we have everything you need to make your brand stick.
+          From AI-generated art to your own uploads, create high-quality, custom stickers that truly stand out.
         </p>
         <motion.button
           style={{
@@ -57,7 +59,7 @@ export const AuroraHero = () => {
           }}
           className="group relative flex w-fit items-center gap-1.5 rounded-full bg-gray-950/10 px-4 py-2 text-gray-50 transition-colors hover:bg-gray-950/50"
         >
-          Explore Stickers
+          Start Designing
           <FiArrowRight className="transition-transform group-hover:-rotate-45 group-active:-rotate-12" />
         </motion.button>
       </div>

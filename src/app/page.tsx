@@ -1,4 +1,3 @@
-
 "use client";
 import Image from 'next/image';
 import Link from 'next/link';
@@ -49,8 +48,8 @@ export default function HomePage() {
     <main className="min-h-screen bg-background text-foreground">
       <AuroraHero />
       <div className="w-full max-w-6xl mx-auto p-4 sm:p-8">
-        <header className="text-center mb-12">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground">
+        <header className="text-center mb-12 mt-12">
+          <h2 className="mt-16 text-3xl md:text-5xl font-bold tracking-tight text-foreground">
             Choose Your Sticker Type
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
