@@ -323,20 +323,45 @@ export function StickerCustomizer() {
     e.dataTransfer.setData('application/json', JSON.stringify({ type: 'design', id: designId }));
     e.dataTransfer.effectAllowed = 'copy';
   };
+
+  const handleDragStartFromCanvas = (e: React.DragEvent, stickerId: string) => {
+    e.dataTransfer.setData('application/sticker-id', stickerId);
+    e.dataTransfer.effectAllowed = 'move';
+    
+    const sticker = appState.stickers.find(s => s.stickerId === stickerId);
+    const design = sticker ? appState.designLibrary.find(d => d.designId === sticker.designId) : null;
+    
+    // Create a 'ghost' image for dragging
+    if (sticker && design?.sourceUrl) {
+      const img = new window.Image();
+      img.src = design.sourceUrl;
+      img.style.width = `${sticker.size.width}px`;
+      img.style.height = `${sticker.size.height}px`;
+      img.style.position = 'absolute';
+      img.style.left = '-9999px'; // Position off-screen
+      document.body.appendChild(img);
+      e.dataTransfer.setDragImage(img, sticker.size.width / 2, sticker.size.height / 2);
+      
+      // Cleanup the ghost image
+      setTimeout(() => document.body.removeChild(img), 0);
+    }
+  };
   
   const handleDropOnCanvas = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (!canvasRef.current) return;
     const canvasRect = canvasRef.current.getBoundingClientRect();
+
     const dataString = e.dataTransfer.getData('application/json');
-    if (!dataString) return;
+    if (dataString) {
+      const data: {type: 'design', id: string} = JSON.parse(dataString);
+      const x = e.clientX - canvasRect.left - 50; // Offset to center
+      const y = e.clientY - canvasRect.top - 50;
 
-    const data: {type: 'design', id: string} = JSON.parse(dataString);
-    const x = e.clientX - canvasRect.left - 50; // Offset to center
-    const y = e.clientY - canvasRect.top - 50;
-
-    if (data.type === 'design') { // Adding a new sticker from the library
-        addStickerToSheet(data.id, { x, y });
+      if (data.type === 'design') { // Adding a new sticker from the library
+          addStickerToSheet(data.id, { x, y });
+      }
+      return;
     }
   };
 
@@ -423,16 +448,6 @@ export function StickerCustomizer() {
     if (!targetSticker) return;
     
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    
-    if (type === 'move') {
-      const targetElement = e.currentTarget as HTMLElement;
-      targetElement.draggable = true;
-      const dragStartHandler = (de: DragEvent) => {
-        de.dataTransfer?.setData('application/sticker-id', stickerId);
-        targetElement.removeEventListener('dragstart', dragStartHandler);
-      };
-      targetElement.addEventListener('dragstart', dragStartHandler);
-    }
     
     setActiveStickerId(stickerId);
     setDragAction({
@@ -536,74 +551,75 @@ export function StickerCustomizer() {
   };
 
   const handleToggleCustomLayout = (checked: boolean) => {
-    if (checked) {
-      // Switching to Custom Layout from Auto Layout
-      const currentDesign = appState.designLibrary.find(d => d.sourceType !== 'text');
-      if (!currentDesign || !canvasRef.current) {
-        toast({
-          variant: 'destructive',
-          title: 'No Design Available',
-          description: 'Please add a design to the library before enabling custom layout.',
-        });
-        setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, settings: {...s.stickerSheet.settings, autoPackEnabled: true}}}));
-        return;
-      }
-      
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const { rows, cols } = sheetLayout;
-      const gap = 8; // Corresponds to gap-2 in Tailwind
-      const padding = 8; // Corresponds to p-2
-      
-      const availableWidth = canvasRect.width - (padding * 2) - (gap * (cols - 1));
-      const availableHeight = canvasRect.height - (padding * 2) - (gap * (rows - 1));
-
-      const cellWidth = availableWidth / cols;
-      const cellHeight = availableHeight / rows;
-      
-      const designAspectRatio = currentDesign.originalDimensions.width / currentDesign.originalDimensions.height;
-      
-      let stickerWidth = cellWidth;
-      let stickerHeight = cellWidth / designAspectRatio;
-
-      if (stickerHeight > cellHeight) {
-          stickerHeight = cellHeight;
-          stickerWidth = cellHeight * designAspectRatio;
-      }
-
-      const offsetX = (cellWidth - stickerWidth) / 2;
-      const offsetY = (cellHeight - stickerHeight) / 2;
-
-      const newStickers: StickerInstance[] = [];
-      for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-          const x = padding + j * (cellWidth + gap) + offsetX;
-          const y = padding + i * (cellHeight + gap) + offsetY;
-          const stickerId = `inst_grid_${i}_${j}_${Math.random().toString(36).substr(2, 5)}`;
-  
-          newStickers.push({
-            stickerId,
-            designId: currentDesign.designId,
-            position: { x, y, unit: 'px' },
-            size: { width: stickerWidth, height: stickerHeight, unit: 'px' },
-            rotation: 0,
-            cutLine: { type: 'kiss_cut', offset: 0.1, shape: 'auto' },
+    setAppState(currentAppState => {
+      if (checked) {
+        // Switching to Custom Layout from Auto Layout
+        const currentDesign = currentAppState.designLibrary.find(d => d.sourceType !== 'text');
+        if (!currentDesign || !canvasRef.current) {
+          toast({
+            variant: 'destructive',
+            title: 'No Design Available',
+            description: 'Please add a design to the library before enabling custom layout.',
           });
+          return { ...currentAppState, stickerSheet: { ...currentAppState.stickerSheet, settings: { ...currentAppState.stickerSheet.settings, autoPackEnabled: true } } };
         }
-      }
-      setAppState(s => ({
-        ...s,
-        stickerSheet: { ...s.stickerSheet, settings: { ...s.stickerSheet.settings, autoPackEnabled: false } },
-        stickers: newStickers
-      }));
+        
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        const { rows, cols } = sheetLayout;
+        const gap = 8; // Corresponds to gap-2 in Tailwind
+        const padding = 8; // Corresponds to p-2
+        
+        const availableWidth = canvasRect.width - (padding * 2) - (gap * (cols - 1));
+        const availableHeight = canvasRect.height - (padding * 2) - (gap * (rows - 1));
 
-    } else {
-      // Switching back to Auto Layout
-      setAppState(s => ({
-        ...s,
-        stickerSheet: { ...s.stickerSheet, settings: { ...s.stickerSheet.settings, autoPackEnabled: true } },
-        stickers: [] // Clear custom stickers
-      }));
-    }
+        const cellWidth = availableWidth / cols;
+        const cellHeight = availableHeight / rows;
+        
+        const designAspectRatio = currentDesign.originalDimensions.width / currentDesign.originalDimensions.height;
+        
+        let stickerWidth = cellWidth;
+        let stickerHeight = cellWidth / designAspectRatio;
+
+        if (stickerHeight > cellHeight) {
+            stickerHeight = cellHeight;
+            stickerWidth = cellHeight * designAspectRatio;
+        }
+
+        const offsetX = (cellWidth - stickerWidth) / 2;
+        const offsetY = (cellHeight - stickerHeight) / 2;
+
+        const newStickers: StickerInstance[] = [];
+        for (let i = 0; i < rows; i++) {
+          for (let j = 0; j < cols; j++) {
+            const x = padding + j * (cellWidth + gap) + offsetX;
+            const y = padding + i * (cellHeight + gap) + offsetY;
+            const stickerId = `inst_grid_${i}_${j}_${Math.random().toString(36).substr(2, 5)}`;
+    
+            newStickers.push({
+              stickerId,
+              designId: currentDesign.designId,
+              position: { x, y, unit: 'px' },
+              size: { width: stickerWidth, height: stickerHeight, unit: 'px' },
+              rotation: 0,
+              cutLine: { type: 'kiss_cut', offset: 0.1, shape: 'auto' },
+            });
+          }
+        }
+        return {
+          ...currentAppState,
+          stickerSheet: { ...currentAppState.stickerSheet, settings: { ...currentAppState.stickerSheet.settings, autoPackEnabled: false } },
+          stickers: newStickers
+        };
+
+      } else {
+        // Switching back to Auto Layout
+        return {
+          ...currentAppState,
+          stickerSheet: { ...currentAppState.stickerSheet, settings: { ...currentAppState.stickerSheet.settings, autoPackEnabled: true } },
+          stickers: [] // Clear custom stickers
+        };
+      }
+    });
   };
 
 
@@ -915,6 +931,8 @@ export function StickerCustomizer() {
                 key={sticker.stickerId}
                 onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
                 onClick={() => setActiveStickerId(sticker.stickerId)}
+                draggable={isDraggable}
+                onDragStart={(e) => handleDragStartFromCanvas(e, sticker.stickerId)}
                 className={cn(
                     "absolute flex items-center justify-center p-2 break-words text-center select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
@@ -965,6 +983,8 @@ export function StickerCustomizer() {
                 key={sticker.stickerId}
                 onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
                 onClick={() => setActiveStickerId(sticker.stickerId)}
+                draggable={isDraggable}
+                onDragStart={(e) => handleDragStartFromCanvas(e, sticker.stickerId)}
                 className={cn(
                     "absolute select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
@@ -1281,7 +1301,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
 
     
