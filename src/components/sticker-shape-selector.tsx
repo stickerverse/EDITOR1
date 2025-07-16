@@ -26,10 +26,9 @@ export function StickerShapeSelector({ selectedShape, onShapeChange }: StickerSh
                         key={id}
                         variant="outline"
                         data-state={isActive ? 'active' : 'inactive'}
-                        data-shape={id}
                         onClick={() => onShapeChange(id)}
                         className={cn(
-                            "sticker-button h-auto flex-col p-3 text-center transition-all duration-300",
+                            "h-auto flex-col p-3 text-center transition-all duration-300",
                             "border-slate-700 bg-slate-800/80 text-slate-300 overflow-hidden",
                             "hover:bg-slate-700/80 hover:text-white",
                             isActive && "border-indigo-500 bg-indigo-500/20 text-white"

@@ -3,18 +3,18 @@ import type { SVGProps } from 'react';
 export function ContourCutIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 14.22c.83 1.07 2.2 1.78 4 1.78 2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4c0 .83.26 1.59.69 2.22Z" />
-      <path d="M10.02 16.5c.83.67 1.83 1.5 3 1.5s2.17-.83 3-1.5" />
-      <path d="M19.31 9.78c1.43.63 2.69 2.26 2.69 2.26.1-2.21-1.79-4-4-4-1.8 0-3.17.71-3.17.71" />
-      <path d="M14 6c0-1.66 1.34-3 3-3s3 1.34 3 3" />
+      <path d="M3.5 12.5C2.5 11.5 2 9.5 3 8c1-1.5 3-2 4.5-2 2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5c-.83 0-1.6-.2-2.3-.5" />
+      <path d="M11.5 19.5c1-1 1.5-3 2.5-4.5s2.5-2.5 4.5-2.5 4.5 2 4.5 4.5-2 4.5-4.5 4.5c-2.5 0-4-1.5-5-2.5" />
+      <path d="M18 3s2 2 2 4-2 4-2 4" />
     </svg>
   );
 }
 
+
 export function RoundedRectangleIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="3" y="5" width="18" height="14" rx="4" />
+      <rect x="4" y="6" width="16" height="12" rx="4" ry="4" />
     </svg>
   );
 }
@@ -32,12 +32,12 @@ export function VinylIcon(props: SVGProps<SVGSVGElement>) {
 
 export function SquareIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="16" height="16" x="4" y="4" rx="1"/></svg>
   )
 }
 
 export function CircleIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="8"/></svg>
   )
 }
