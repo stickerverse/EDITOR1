@@ -3,7 +3,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
-import { AuroraHero } from '@/components/ui/futuristic-hero-section';
 
 const stickerCategories = [
   {
@@ -46,14 +45,13 @@ const stickerCategories = [
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <AuroraHero />
       <div className="w-full max-w-6xl mx-auto p-4 sm:p-8">
         <header className="text-center mb-12 mt-12">
-          <h2 className="mt-16 text-3xl md:text-5xl font-bold tracking-tight text-foreground">
-            Choose Your Sticker Type
-          </h2>
+          <h1 className="mt-16 text-4xl md:text-6xl font-bold tracking-tight text-foreground bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Your Vision, Your Sticker
+          </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Whatever your vision, we have the perfect sticker to bring it to life.
+            From die-cut masterpieces to vibrant sticker sheets, bring your creative ideas to life with Stickerific. High-quality, custom stickers made easy.
           </p>
         </header>
 
