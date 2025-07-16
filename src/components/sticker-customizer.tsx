@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIcon, Ruler } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIcon, Ruler, Lock, Unlock } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { ContourCutIcon } from '@/components/icons';
 import { StickerContextMenu } from '@/components/sticker-context-menu';
 import {
@@ -194,6 +195,46 @@ export function StickerCustomizer() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  // Find the active sticker and its design
+  const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
+  const activeDesign = activeSticker ? appState.designLibrary.find(d => d.designId === activeSticker.designId) : null;
+  
+  const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text')?.sourceUrl;
+
+  const updateStickerSize = (id: string, newSize: { width?: number; height?: number }) => {
+    setAppState(current => ({
+      ...current,
+      stickers: current.stickers.map(s => {
+        if (s.stickerId === id) {
+          const originalDesign = current.designLibrary.find(d => d.designId === s.designId);
+          if (!originalDesign) return s;
+
+          let finalWidth = newSize.width ?? s.size.width;
+          let finalHeight = newSize.height ?? s.size.height;
+          
+          if (isAspectRatioLocked) {
+              const aspectRatio = originalDesign.originalDimensions.width / originalDesign.originalDimensions.height;
+              if (newSize.width !== undefined && newSize.width !== s.size.width) { // Width changed
+                  finalHeight = newSize.width / aspectRatio;
+              } else if (newSize.height !== undefined && newSize.height !== s.size.height) { // Height changed
+                  finalWidth = newSize.height * aspectRatio;
+              }
+          }
+          
+          return { ...s, size: { ...s.size, width: finalWidth, height: finalHeight } };
+        }
+        return s;
+      }),
+    }));
+  };
+
+  useEffect(() => {
+    if (activeSticker) {
+        setStickerWidth(activeSticker.size.width);
+        setStickerHeight(activeSticker.size.height);
+    }
+  }, [activeStickerId, activeSticker?.size.width, activeSticker?.size.height]);
+
 
   const handleAddToCart = () => {
     toast({
@@ -245,7 +286,7 @@ export function StickerCustomizer() {
       stickerId,
       designId,
       position: options?.position ? { ...options.position, unit: 'px' } : { x: 50, y: 50, unit: 'px' },
-      size: options?.size ? { ...options.size, unit: 'px' } : (design.sourceType === 'text' ? { width: 300, height: 100, unit: 'px' } : { width: 100, height: 100, unit: 'px' }),
+      size: options?.size ? { ...options.size, unit: 'px' } : (design.sourceType === 'text' ? { width: 300, height: 100, unit: 'px' } : { width: 150, height: 150, unit: 'px' }),
       rotation: options?.rotation ?? 0,
       zIndex: options?.zIndex ?? (maxZIndex + 1),
       cutLine: { type: stickerType === 'kiss-cut' ? 'kiss_cut' : 'die_cut', offset: 0.1, shape: 'auto' },
@@ -305,6 +346,7 @@ export function StickerCustomizer() {
       return;
     }
     setIsGenerating(true);
+    setLoadingText("Generating your masterpiece...");
     setUploadedFileName(null);
     try {
       const result = await generateSticker({ prompt });
@@ -338,6 +380,7 @@ export function StickerCustomizer() {
       });
     } finally {
       setIsGenerating(false);
+      setLoadingText("");
     }
   };
   
@@ -445,14 +488,6 @@ export function StickerCustomizer() {
       description: "Your text has been added to the canvas."
     });
   }
-
-
-  // Find the active sticker and its design
-  const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
-  const activeDesign = activeSticker ? appState.designLibrary.find(d => d.designId === activeSticker.designId) : null;
-  
-  const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text')?.sourceUrl;
-
 
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'resize-br' | 'rotate', stickerId: string) => {
     if (e.button !== 0) return; // Only allow left-clicks for dragging
@@ -1029,13 +1064,10 @@ export function StickerCustomizer() {
                   {
                     'rounded-full': stickerShape === 'circle',
                     'rounded-lg': stickerShape === 'square' || stickerShape === 'rectangle',
-                    'clip-none': stickerShape === 'die-cut',
-                    'clip-circle': stickerShape === 'circle',
-                    'clip-rect': stickerShape === 'square' || stickerShape === 'rectangle',
                   }
                 )}
                 style={{
-                  clipPath: stickerShape === 'circle' ? 'circle(50% at 50% 50%)' : 'none',
+                  clipPath: stickerShape === 'circle' ? 'circle(50% at 50% 50%)' : undefined,
                 }}
                 onDrop={handleDropOnCanvas}
                 onDragOver={(e) => e.preventDefault()}
@@ -1178,7 +1210,7 @@ export function StickerCustomizer() {
                               appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
                             )}
                           >
-                            <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" />
+                            <Image src={m.image} alt={m.name} width={96} height={96} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
                             <p className="font-semibold text-sm text-slate-200">{m.name}</p>
                           </button>
                         ))}
@@ -1196,27 +1228,62 @@ export function StickerCustomizer() {
                           <h2 className="text-lg font-semibold text-white">Size</h2>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="p-4 pt-0">
-                      <div className="grid grid-cols-2 gap-4">
-                          <div>
-                              <Label htmlFor="sticker-width" className="text-slate-400 mb-2 block">Width (in)</Label>
-                              <Input
-                                  id="sticker-width"
-                                  type="number"
-                                  value={stickerWidth}
-                                  onChange={(e) => setStickerWidth(parseFloat(e.target.value) || 0)}
-                                  className="bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                              />
+                    <AccordionContent className="p-4 pt-0 space-y-4">
+                      <div className="flex items-center justify-between">
+                          <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2 text-slate-300">
+                              {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
+                              <span>Lock Aspect Ratio</span>
+                          </Label>
+                          <Switch
+                              id="aspect-ratio-lock"
+                              checked={isAspectRatioLocked}
+                              onCheckedChange={setIsAspectRatioLocked}
+                          />
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                          <div className="space-y-2">
+                              <Label htmlFor="sticker-width" className="text-slate-400">Width (px)</Label>
+                              <div className="flex items-center gap-2">
+                                  <Slider
+                                      id="sticker-width-slider"
+                                      min={20}
+                                      max={500}
+                                      step={1}
+                                      value={[stickerWidth]}
+                                      onValueChange={(value) => activeStickerId && updateStickerSize(activeStickerId, { width: value[0] })}
+                                      disabled={!activeStickerId}
+                                  />
+                                  <Input
+                                      id="sticker-width-input"
+                                      type="number"
+                                      value={Math.round(stickerWidth)}
+                                      onChange={(e) => activeStickerId && updateStickerSize(activeStickerId, { width: parseFloat(e.target.value) || 0 })}
+                                      className="w-20 bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                                      disabled={!activeStickerId}
+                                  />
+                              </div>
                           </div>
-                          <div>
-                              <Label htmlFor="sticker-height" className="text-slate-400 mb-2 block">Height (in)</Label>
-                              <Input
-                                  id="sticker-height"
-                                  type="number"
-                                  value={stickerHeight}
-                                  onChange={(e) => setStickerHeight(parseFloat(e.target.value) || 0)}
-                                  className="bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                              />
+                          <div className="space-y-2">
+                               <Label htmlFor="sticker-height" className="text-slate-400">Height (px)</Label>
+                              <div className="flex items-center gap-2">
+                                  <Slider
+                                      id="sticker-height-slider"
+                                      min={20}
+                                      max={500}
+                                      step={1}
+                                      value={[stickerHeight]}
+                                      onValueChange={(value) => activeStickerId && updateStickerSize(activeStickerId, { height: value[0] })}
+                                      disabled={!activeStickerId}
+                                  />
+                                  <Input
+                                      id="sticker-height-input"
+                                      type="number"
+                                      value={Math.round(stickerHeight)}
+                                      onChange={(e) => activeStickerId && updateStickerSize(activeStickerId, { height: parseFloat(e.target.value) || 0 })}
+                                      className="w-20 bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                                      disabled={!activeStickerId}
+                                  />
+                              </div>
                           </div>
                       </div>
                     </AccordionContent>
