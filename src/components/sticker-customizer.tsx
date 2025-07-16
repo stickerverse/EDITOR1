@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIcon, Ruler, Lock, Unlock } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, SheetIcon, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIconShape, Ruler, Lock, Unlock } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ContourCutIcon, RoundedRectangleIcon as RoundedIcon, SquareIcon as SquareShapeIcon, CircleIcon } from '@/components/icons';
+import { ContourCutIcon, RoundedRectangleIcon as RoundedIcon, SquareIcon as SquareShapeIcon, CircleIcon as CircleShapeIcon } from '@/components/icons';
 import { StickerContextMenu } from '@/components/sticker-context-menu';
-import { StickerShapeSelector } from '@/components/sticker-shape-selector';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -181,6 +180,11 @@ export function StickerCustomizer() {
   // State for sticker properties
   const [isAspectRatioLocked, setIsAspectRatioLocked] = useState(true);
 
+  // State for dynamic shapes
+  const [shapeSquircle, setShapeSquircle] = useState(50);
+  const [cornerRounding, setCornerRounding] = useState(50);
+
+
   const [size, setSize] = useState<Size>({
     width: 2,
     height: 2,
@@ -196,8 +200,6 @@ export function StickerCustomizer() {
   });
 
   const [isTourActive, setIsTourActive] = useState(false);
-
-  const [stickerShape, setStickerShape] = useState<StickerShape>('contour');
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -1071,6 +1073,25 @@ export function StickerCustomizer() {
     );
   }
 
+  const getCanvasStyle = () => {
+    const r = (cornerRounding / 100) * 50; // Map 0-100 to 0-50 for radius
+    const s = shapeSquircle / 100; // Map 0-100 to 0-1
+
+    // This creates a "squircle" effect. A perfect square is 0, a perfect circle is 1.
+    const shapeValue = 200 * (1 - s);
+
+    return {
+      borderRadius: `${r}% / ${r}%`,
+      clipPath: `inset(0% round ${r}%)`,
+      '--mask': `radial-gradient(
+        circle ${shapeValue}px at 50% 50%, 
+        #000 99%, 
+        transparent 100%
+      )`,
+      WebkitMask: 'var(--mask)',
+       mask: 'var(--mask)',
+    } as React.CSSProperties;
+  };
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
@@ -1083,11 +1104,8 @@ export function StickerCustomizer() {
                 className={cn(
                   "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
                   "border-2 border-dashed border-slate-700",
-                  {
-                    'canvas-shape-circle': stickerShape === 'circle',
-                    'canvas-shape-rounded': stickerShape === 'rounded' || stickerShape === 'square',
-                  }
                 )}
+                style={getCanvasStyle()}
                 onDrop={handleDropOnCanvas}
                 onDragOver={(e) => e.preventDefault()}
                 onPointerMove={handlePointerMove}
@@ -1174,10 +1192,40 @@ export function StickerCustomizer() {
               </CustomizationSection>
 
               <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
-                <StickerShapeSelector
-                  selectedShape={stickerShape}
-                  onShapeChange={setStickerShape}
-                />
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="shape-squircle" className="flex justify-between items-center text-slate-400 mb-2">
+                            <span>Shape</span>
+                            <div className="flex items-center gap-2">
+                                <SquareIconShape className="h-4 w-4" />
+                                <span className="text-xs">Square to Circle</span>
+                                <CircleShapeIcon className="h-4 w-4" />
+                            </div>
+                        </Label>
+                        <Slider 
+                            id="shape-squircle"
+                            value={[shapeSquircle]} 
+                            onValueChange={([val]) => setShapeSquircle(val)} 
+                            max={100} 
+                            step={1}
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="corner-rounding" className="flex justify-between items-center text-slate-400 mb-2">
+                            <span>Corner Rounding</span>
+                             <div className="flex items-center gap-2">
+                                <span className="text-xs">Sharp to Round</span>
+                            </div>
+                        </Label>
+                         <Slider 
+                            id="corner-rounding"
+                            value={[cornerRounding]} 
+                            onValueChange={([val]) => setCornerRounding(val)} 
+                            max={100} 
+                            step={1} 
+                        />
+                    </div>
+                </div>
               </CustomizationSection>
 
               {renderDesignControls()}
