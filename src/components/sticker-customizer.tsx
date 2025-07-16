@@ -227,13 +227,12 @@ export function StickerCustomizer() {
     return newDesign;
   }
 
-  const addStickerToSheet = (designId: string, options?: { position?: {x: number, y: number}, size?: {width: number, height: number}, zIndex?: number, rotation?: number }) => {
-    const design = appState.designLibrary.find(d => d.designId === designId);
+  const addStickerToSheet = (designId: string, designData?: Design, options?: { position?: {x: number, y: number}, size?: {width: number, height: number}, zIndex?: number, rotation?: number }) => {
+    const design = designData || appState.designLibrary.find(d => d.designId === designId);
     if (!design) return;
 
     const stickerId = `inst_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Find the current highest z-index
     const maxZIndex = appState.stickers.reduce((max, s) => Math.max(max, s.zIndex), 0);
     
     const newSticker: StickerInstance = {
@@ -361,7 +360,7 @@ export function StickerCustomizer() {
         const y = e.clientY - canvasRect.top;
 
         if (data.type === 'design') { // Adding a new sticker from the library
-            addStickerToSheet(data.id, { position: { x: x - 50, y: y - 50 }}); // Offset to center
+            addStickerToSheet(data.id, undefined, { position: { x: x - 50, y: y - 50 }}); // Offset to center
         }
       } catch (err) {
         console.error("Failed to parse dropped data", err);
@@ -409,7 +408,7 @@ export function StickerCustomizer() {
     if (!contextMenu.stickerId) return;
     const originalSticker = appState.stickers.find(s => s.stickerId === contextMenu.stickerId);
     if (originalSticker) {
-      addStickerToSheet(originalSticker.designId, {
+      addStickerToSheet(originalSticker.designId, undefined, {
         position: { x: originalSticker.position.x + 20, y: originalSticker.position.y + 20 },
         size: originalSticker.size,
         rotation: originalSticker.rotation
@@ -443,7 +442,7 @@ export function StickerCustomizer() {
       },
       { width: 300, height: 100 } // Placeholder dimensions for text
     );
-    addStickerToSheet(newDesign.designId);
+    addStickerToSheet(newDesign.designId, newDesign);
     toast({
       title: "Text Decal Added",
       description: "Your text has been added to the sheet."
