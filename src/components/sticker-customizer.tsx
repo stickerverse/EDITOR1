@@ -1103,7 +1103,7 @@ export function StickerCustomizer() {
                 ref={canvasRef}
                 className={cn(
                   "relative bg-transparent rounded-lg w-full h-full p-0 transition-all duration-200",
-                  "border-2 border-dashed border-slate-700",
+                  "border-2 border-dashed border-slate-600",
                 )}
                 style={getCanvasStyle()}
                 onDrop={handleDropOnCanvas}
