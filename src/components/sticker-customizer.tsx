@@ -445,9 +445,10 @@ export function StickerCustomizer() {
   };
 
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'resize-br' | 'rotate', stickerId: string) => {
-    // Prevent pointer down from triggering context menu close
+    // If context menu is open, the first click should close it, then allow interaction.
     if (contextMenu.isOpen) {
         closeContextMenu();
+        return;
     }
     e.preventDefault();
     e.stopPropagation();
