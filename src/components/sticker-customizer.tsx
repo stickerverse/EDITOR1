@@ -27,6 +27,7 @@ import type { Size } from '@/components/size-selector';
 import QRCode from 'qrcode';
 import { CursorCard } from '@/components/ui/cursor-cards';
 import { useTheme } from 'next-themes';
+import FileUpload from '@/components/ui/file-upload';
 
 
 const materials = [
@@ -161,7 +162,6 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   
   const [dragAction, setDragAction] = useState<DragAction>(null);
   
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [stickerShape, setStickerShape] = useState<StickerShapeType>('die-cut');
 
   // State for Text Decals
@@ -345,40 +345,30 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     setActiveStickerId(stickerId);
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const dataUrl = event.target?.result as string;
-            
-            const img = new window.Image();
-            img.onload = () => {
-              const newDesign = addDesignToLibrary(
-                {
-                  sourceType: 'upload',
-                  sourceUrl: dataUrl,
-                  fileName: file.name,
-                },
-                { width: img.width, height: img.height }
-              );
-              addStickerToSheet(newDesign.designId, newDesign);
-              setUploadedFileName(file.name);
-              toast({
-                  title: "Image Uploaded",
-                  description: `${file.name} is added to your design library.`,
-              });
-            };
-            img.src = dataUrl;
+  const handleFileUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        
+        const img = new window.Image();
+        img.onload = () => {
+          const newDesign = addDesignToLibrary(
+            {
+              sourceType: 'upload',
+              sourceUrl: dataUrl,
+              fileName: file.name,
+            },
+            { width: img.width, height: img.height }
+          );
+          addStickerToSheet(newDesign.designId, newDesign);
+          toast({
+              title: "Image Uploaded",
+              description: `${file.name} is added to your design library.`,
+          });
         };
-        reader.readAsDataURL(file);
-    } else if (file) {
-        toast({
-            variant: "destructive",
-            title: "Invalid File Type",
-            description: "Please upload a valid image file.",
-        });
-    }
+        img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
   };
 
 
@@ -393,7 +383,6 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     }
     setIsGenerating(true);
     setLoadingText("Generating your masterpiece...");
-    setUploadedFileName(null);
     try {
       const result = await generateSticker({ prompt });
       if (result.imageDataUri) {
@@ -921,33 +910,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                         </div>
                     </TabsContent>
                     <TabsContent value="upload" className="mt-4">
-                        <div className="space-y-2">
-                            <Label
-                                htmlFor="picture"
-                                className={cn(
-                                    "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
-                                    "hover:border-indigo-500 hover:bg-indigo-900/20",
-                                    uploadedFileName && "border-emerald-500 bg-emerald-900/20"
-                                )}
-                            >
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                                    {uploadedFileName ? (
-                                        <>
-                                            <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
-                                            <p className="font-semibold text-emerald-500">File Uploaded!</p>
-                                            <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
-                                            <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
-                                            <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
-                                        </>
-                                    )}
-                                </div>
-                                <Input id="picture" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-                            </Label>
-                        </div>
+                        <FileUpload onUploadSuccess={handleFileUpload} />
                     </TabsContent>
                     {showTextTab && <TabsContent value="text" className="mt-4">
                         <div className="space-y-4">
@@ -1512,3 +1475,5 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     </div>
   );
 }
+
+    
