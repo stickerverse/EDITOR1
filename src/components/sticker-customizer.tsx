@@ -425,10 +425,13 @@ export function StickerCustomizer() {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     
     if (type === 'move') {
-      (e.currentTarget as HTMLElement).draggable = true;
-      e.currentTarget.addEventListener('dragstart', (de) => {
+      const targetElement = e.currentTarget as HTMLElement;
+      targetElement.draggable = true;
+      const dragStartHandler = (de: DragEvent) => {
         de.dataTransfer?.setData('application/sticker-id', stickerId);
-      });
+        targetElement.removeEventListener('dragstart', dragStartHandler);
+      };
+      targetElement.addEventListener('dragstart', dragStartHandler);
     }
     
     setActiveStickerId(stickerId);
@@ -511,7 +514,7 @@ export function StickerCustomizer() {
         const design = sticker ? appState.designLibrary.find(d => d.designId === sticker.designId) : null;
         
         // If the action was resizing a text decal, measure it and snap the container to fit
-        if (design && design.sourceType === 'text') {
+        if (dragAction.type === 'resize-br' && design && design.sourceType === 'text') {
             const textElement = document.getElementById(`sticker-text-${stickerId}`);
             if (textElement) {
                 const rect = textElement.getBoundingClientRect();
@@ -534,7 +537,7 @@ export function StickerCustomizer() {
 
   const handleToggleCustomLayout = (checked: boolean) => {
     if (checked) {
-      // Switching to Custom Layout
+      // Switching to Custom Layout from Auto Layout
       const currentDesign = appState.designLibrary.find(d => d.sourceType !== 'text');
       if (!currentDesign || !canvasRef.current) {
         toast({
@@ -548,23 +551,34 @@ export function StickerCustomizer() {
       
       const canvasRect = canvasRef.current.getBoundingClientRect();
       const { rows, cols } = sheetLayout;
-      const cellWidth = canvasRect.width / cols;
-      const cellHeight = canvasRect.height / rows;
-      const padding = 8; // Corresponds to p-2 in Tailwind
       const gap = 8; // Corresponds to gap-2 in Tailwind
+      const padding = 8; // Corresponds to p-2
       
-      const stickerBaseWidth = (canvasRect.width - (gap * (cols - 1)) - (padding * 2)) / cols;
-      const stickerBaseHeight = (canvasRect.height - (gap * (rows - 1)) - (padding * 2)) / rows;
+      const availableWidth = canvasRect.width - (padding * 2) - (gap * (cols - 1));
+      const availableHeight = canvasRect.height - (padding * 2) - (gap * (rows - 1));
 
-      const stickerWidth = stickerBaseWidth;
-      const stickerHeight = stickerBaseHeight;
+      const cellWidth = availableWidth / cols;
+      const cellHeight = availableHeight / rows;
+      
+      const designAspectRatio = currentDesign.originalDimensions.width / currentDesign.originalDimensions.height;
+      
+      let stickerWidth = cellWidth;
+      let stickerHeight = cellWidth / designAspectRatio;
+
+      if (stickerHeight > cellHeight) {
+          stickerHeight = cellHeight;
+          stickerWidth = cellHeight * designAspectRatio;
+      }
+
+      const offsetX = (cellWidth - stickerWidth) / 2;
+      const offsetY = (cellHeight - stickerHeight) / 2;
 
       const newStickers: StickerInstance[] = [];
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
-          const x = padding + j * (stickerWidth + gap);
-          const y = padding + i * (stickerHeight + gap);
-          const stickerId = `inst_grid_${i}_${j}`;
+          const x = padding + j * (cellWidth + gap) + offsetX;
+          const y = padding + i * (cellHeight + gap) + offsetY;
+          const stickerId = `inst_grid_${i}_${j}_${Math.random().toString(36).substr(2, 5)}`;
   
           newStickers.push({
             stickerId,
@@ -581,6 +595,7 @@ export function StickerCustomizer() {
         stickerSheet: { ...s.stickerSheet, settings: { ...s.stickerSheet.settings, autoPackEnabled: false } },
         stickers: newStickers
       }));
+
     } else {
       // Switching back to Auto Layout
       setAppState(s => ({
@@ -1137,7 +1152,7 @@ export function StickerCustomizer() {
 
               {renderDesignControls()}
 
-              {activeSticker && activeDesign && (
+              {activeSticker && activeDesign && stickerType !== 'sheet' && (
                  <CustomizationSection title="Sticker Properties" icon={Settings}>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-2 items-center">
