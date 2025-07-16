@@ -1257,17 +1257,6 @@ export function StickerCustomizer() {
                 </CustomizationSection>
                 
                 <CustomizationSection id="size-section" title="Size" icon={Ruler}>
-                  <div className="flex items-center justify-between">
-                      <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2 text-slate-300">
-                          {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
-                          <span>Lock Aspect Ratio</span>
-                      </Label>
-                      <Switch
-                          id="aspect-ratio-lock"
-                          checked={isAspectRatioLocked}
-                          onCheckedChange={setIsAspectRatioLocked}
-                      />
-                  </div>
                   <SizeSelector size={size} onSizeChange={setSize} />
                 </CustomizationSection>
 
@@ -1339,3 +1328,5 @@ export function StickerCustomizer() {
     </div>
   );
 }
+
+    
