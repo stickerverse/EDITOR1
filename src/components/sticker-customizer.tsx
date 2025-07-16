@@ -170,6 +170,7 @@ export function StickerCustomizer() {
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  const dragImageRef = useRef<HTMLImageElement | null>(null);
 
   const handleAddToCart = () => {
     toast({
@@ -331,20 +332,25 @@ export function StickerCustomizer() {
     const sticker = appState.stickers.find(s => s.stickerId === stickerId);
     const design = sticker ? appState.designLibrary.find(d => d.designId === sticker.designId) : null;
     
-    // Create a 'ghost' image for dragging
     if (sticker && design?.sourceUrl) {
       const img = new window.Image();
       img.src = design.sourceUrl;
       img.style.width = `${sticker.size.width}px`;
       img.style.height = `${sticker.size.height}px`;
       img.style.position = 'absolute';
-      img.style.left = '-9999px'; // Position off-screen
+      img.style.top = '-9999px';
+      img.style.left = '-9999px';
       document.body.appendChild(img);
+      dragImageRef.current = img; 
       e.dataTransfer.setDragImage(img, sticker.size.width / 2, sticker.size.height / 2);
-      
-      // Cleanup the ghost image
-      setTimeout(() => document.body.removeChild(img), 0);
     }
+  };
+  
+  const handleDragEndFromCanvas = () => {
+      if (dragImageRef.current) {
+          document.body.removeChild(dragImageRef.current);
+          dragImageRef.current = null;
+      }
   };
   
   const handleDropOnCanvas = (e: React.DragEvent<HTMLDivElement>) => {
@@ -552,9 +558,11 @@ export function StickerCustomizer() {
 
   const handleToggleCustomLayout = (checked: boolean) => {
     setAppState(currentAppState => {
+      const designLibrary = currentAppState.designLibrary;
+      const currentDesign = designLibrary.find(d => d.sourceType !== 'text') ?? (designLibrary.length > 0 ? designLibrary[0] : null);
+
       if (checked) {
         // Switching to Custom Layout from Auto Layout
-        const currentDesign = currentAppState.designLibrary.find(d => d.sourceType !== 'text');
         if (!currentDesign || !canvasRef.current) {
           toast({
             variant: 'destructive',
@@ -616,7 +624,7 @@ export function StickerCustomizer() {
         return {
           ...currentAppState,
           stickerSheet: { ...currentAppState.stickerSheet, settings: { ...currentAppState.stickerSheet.settings, autoPackEnabled: true } },
-          stickers: [] // Clear custom stickers
+          stickers: currentAppState.stickers.length > 0 && currentDesign ? [currentAppState.stickers[0]] : []
         };
       }
     });
@@ -933,6 +941,7 @@ export function StickerCustomizer() {
                 onClick={() => setActiveStickerId(sticker.stickerId)}
                 draggable={isDraggable}
                 onDragStart={(e) => handleDragStartFromCanvas(e, sticker.stickerId)}
+                onDragEnd={handleDragEndFromCanvas}
                 className={cn(
                     "absolute flex items-center justify-center p-2 break-words text-center select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
@@ -985,6 +994,7 @@ export function StickerCustomizer() {
                 onClick={() => setActiveStickerId(sticker.stickerId)}
                 draggable={isDraggable}
                 onDragStart={(e) => handleDragStartFromCanvas(e, sticker.stickerId)}
+                onDragEnd={handleDragEndFromCanvas}
                 className={cn(
                     "absolute select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
@@ -1301,5 +1311,3 @@ export function StickerCustomizer() {
     </div>
   );
 }
-
-    
