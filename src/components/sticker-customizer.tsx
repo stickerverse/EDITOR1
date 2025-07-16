@@ -957,8 +957,16 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
     const isDraggable = productType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled;
     const isSelected = activeStickerId === sticker.stickerId;
+    const isHolographic = appState.stickerSheet.material.id === 'holographic';
     
     const showControls = isSelected && isDraggable;
+
+    const stickerContainerClasses = cn(
+      "absolute flex items-center justify-center p-2 break-words text-center select-none",
+      isDraggable && "cursor-grab active:cursor-grabbing",
+      isSelected && "outline-dashed outline-2 outline-indigo-400 rounded-md",
+      isHolographic && "holographic-effect"
+    );
 
     if (design.sourceType === 'text' && design.textData) {
         const fontSize = sticker.size.width / 10;
@@ -969,11 +977,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
                 onClick={() => setActiveStickerId(sticker.stickerId)}
                 onContextMenu={(e) => handleContextMenu(e, sticker.stickerId)}
-                className={cn(
-                    "absolute flex items-center justify-center p-2 break-words text-center select-none",
-                    isDraggable && "cursor-grab active:cursor-grabbing",
-                    isSelected && "outline-dashed outline-2 outline-indigo-400 rounded-md",
-                )}
+                className={stickerContainerClasses}
                 style={{
                     left: `${sticker.position.x}px`,
                     top: `${sticker.position.y}px`,
@@ -1021,11 +1025,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
                 onClick={() => setActiveStickerId(sticker.stickerId)}
                 onContextMenu={(e) => handleContextMenu(e, sticker.stickerId)}
-                className={cn(
-                    "absolute select-none",
-                    isDraggable && "cursor-grab active:cursor-grabbing",
-                    isSelected && "outline-dashed outline-2 outline-indigo-400 rounded-md",
-                )}
+                className={stickerContainerClasses}
                 style={{
                     left: `${sticker.position.x}px`,
                     top: `${sticker.position.y}px`,
@@ -1066,6 +1066,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   const renderCanvasContent = () => {
     const showGrid = productType === 'sheet' && appState.stickerSheet.settings.autoPackEnabled;
+    const isHolographic = appState.stickerSheet.material.id === 'holographic';
       
       if (showGrid) {
           return (
@@ -1077,7 +1078,10 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
               }}
             >
               {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-                <div key={i} className="relative w-full h-full bg-slate-800/50 rounded-md flex items-center justify-center">
+                <div key={i} className={cn(
+                    "relative w-full h-full bg-slate-800/50 rounded-md flex items-center justify-center",
+                     isHolographic && "holographic-effect"
+                )}>
                   {imageToDisplay ? (
                     <Image
                       src={imageToDisplay}

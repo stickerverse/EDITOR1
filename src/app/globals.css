@@ -1,4 +1,5 @@
 @import "../styles/3d-effect.css";
+@import "../styles/holographic-effect.css";
 
 @tailwind base;
 @tailwind components;
