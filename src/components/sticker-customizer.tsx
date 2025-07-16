@@ -27,7 +27,6 @@ import { AITourGuide } from '@/components/ai-tour-guide';
 import { SizeSelector } from '@/components/size-selector';
 import type { Size } from '@/components/size-selector';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
-import FileUpload from '@/components/ui/file-upload';
 import { addBorder } from '@/ai/flows/add-border-flow';
 import { useTheme } from 'next-themes';
 
@@ -200,6 +199,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   });
 
   const [isTourActive, setIsTourActive] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -348,6 +348,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 { width: img.width, height: img.height }
               );
               addStickerToSheet(newDesign.designId, newDesign);
+              setUploadedFileName(file.name);
               toast({
                   title: "Image Processed!",
                   description: `${file.name} is ready and added to your design library.`,
@@ -369,6 +370,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     reader.readAsDataURL(file);
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
 
   const handleGenerateSticker = async () => {
     if (!prompt) {
@@ -381,6 +389,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     }
     setIsGenerating(true);
     setLoadingText("Generating your masterpiece...");
+    setUploadedFileName(null);
     try {
       const result = await generateSticker({ prompt });
       if (result.imageDataUri) {
@@ -875,13 +884,33 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             </div>
           </TabsContent>
           <TabsContent value="upload" className="mt-4">
-            <FileUpload
-                onUploadSuccess={handleFileUpload}
-                onUploadError={(err) => toast({ variant: 'destructive', title: 'Upload Failed', description: err.message })}
-                acceptedFileTypes={["image/jpeg", "image/png", "image/webp"]}
-                maxFileSize={5 * 1024 * 1024} // 5MB
-                uploadDelay={0}
-            />
+            <div className="space-y-2">
+                <Label
+                    htmlFor="picture"
+                    className={cn(
+                        "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
+                        "hover:border-indigo-500 hover:bg-indigo-900/20",
+                        uploadedFileName && "border-emerald-500 bg-emerald-900/20"
+                    )}
+                >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                        {uploadedFileName ? (
+                            <>
+                                <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
+                                <p className="font-semibold text-emerald-500">File Uploaded!</p>
+                                <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
+                            </>
+                        ) : (
+                            <>
+                                <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
+                                <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
+                                <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
+                            </>
+                        )}
+                    </div>
+                    <Input id="picture" type="file" accept="image/png, image/jpeg, image/webp" className="sr-only" onChange={handleImageUpload} />
+                </Label>
+            </div>
           </TabsContent>
            {showTextTab && <TabsContent value="text" className="mt-4">
             <div className="space-y-4">
@@ -1116,7 +1145,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
-            <ThemedCard className="w-full max-w-lg aspect-square">
+            <div className="w-full max-w-lg aspect-square">
               <div 
                 id="canvas-container"
                 ref={canvasRef}
@@ -1141,12 +1170,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                   {renderCanvasContent()}
                 </div>
               </div>
-            </ThemedCard>
+            </div>
         </div>
         
         <div className="lg:col-span-2">
-            <ThemedCard>
-              <div className="flex flex-col space-y-6">
+            <div className="rounded-xl bg-slate-950">
+              <div className="flex flex-col space-y-6 p-4">
                 <header>
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
@@ -1351,7 +1380,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                       </div>
                   </div>
               </div>
-            </ThemedCard>
+            </div>
         </div>
 
       </div>
