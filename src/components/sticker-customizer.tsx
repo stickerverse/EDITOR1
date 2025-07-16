@@ -456,33 +456,6 @@ export function StickerCustomizer() {
   
   const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text')?.sourceUrl;
 
-  const handleStickerSizeChange = (dimension: 'width' | 'height', value: string) => {
-    const numValue = parseInt(value, 10);
-    if (!activeSticker || !activeDesign || isNaN(numValue) || numValue <= 0) return;
-
-    let newWidth = activeSticker.size.width;
-    let newHeight = activeSticker.size.height;
-    const aspectRatio = activeDesign.originalDimensions.width / activeDesign.originalDimensions.height;
-
-    if (dimension === 'width') {
-      newWidth = numValue;
-      if (isAspectRatioLocked) {
-        newHeight = Math.round(numValue / aspectRatio);
-      }
-    } else {
-      newHeight = numValue;
-      if (isAspectRatioLocked) {
-        newWidth = Math.round(numValue * aspectRatio);
-      }
-    }
-
-    setAppState(current => ({
-      ...current,
-      stickers: current.stickers.map(s => 
-        s.stickerId === activeStickerId ? { ...s, size: { ...s.size, width: newWidth, height: newHeight } } : s
-      )
-    }));
-  };
 
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'resize-br' | 'rotate', stickerId: string) => {
     if (e.button !== 0) return; // Only allow left-clicks for dragging
@@ -844,8 +817,8 @@ export function StickerCustomizer() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="bg-slate-950 border-slate-800 text-white">
-                      <DialogHeader>
-                        <DialogTitle>Add a New Design</DialogTitle>
+                       <DialogHeader>
+                        <DialogTitle className="sr-only">Add a New Design</DialogTitle>
                       </DialogHeader>
                       <Tabs defaultValue="generate" className="w-full">
                         <TabsList className="grid w-full grid-cols-3 bg-slate-800 text-slate-400">
@@ -1173,6 +1146,9 @@ export function StickerCustomizer() {
                           </Button>
                       </DialogTrigger>
                       <DialogContent className="bg-slate-950 border-slate-800 text-white sm:max-w-[625px]">
+                          <DialogHeader>
+                            <DialogTitle className="sr-only">AI Helper</DialogTitle>
+                          </DialogHeader>
                           <AIHelper />
                       </DialogContent>
                   </Dialog>
