@@ -1227,39 +1227,6 @@ export function StickerCustomizer() {
 
               {renderDesignControls()}
 
-              {activeSticker && activeDesign && (stickerType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled) && (
-                 <CustomizationSection title="Sticker Properties" icon={Settings}>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2 items-center">
-                        <div>
-                            <Label htmlFor="width" className="text-xs font-medium text-slate-400">Width (px)</Label>
-                            <Input
-                                id="width"
-                                type="number"
-                                value={Math.round(activeSticker.size.width)}
-                                onChange={(e) => handleStickerSizeChange('width', e.target.value)}
-                                className="bg-slate-800 border-slate-700 text-slate-200"
-                            />
-                        </div>
-                        <div className="self-end pb-2.5">
-                            <Button variant="ghost" size="icon" onClick={() => setIsAspectRatioLocked(!isAspectRatioLocked)} className="h-8 w-8 text-slate-400 hover:bg-slate-700 hover:text-white">
-                                {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
-                            </Button>
-                        </div>
-                        <div>
-                            <Label htmlFor="height" className="text-xs font-medium text-slate-400">Height (px)</Label>
-                            <Input
-                                id="height"
-                                type="number"
-                                value={Math.round(activeSticker.size.height)}
-                                onChange={(e) => handleStickerSizeChange('height', e.target.value)}
-                                className="bg-slate-800 border-slate-700 text-slate-200"
-                            />
-                        </div>
-                    </div>
-                  </div>
-                </CustomizationSection>
-              )}
             
               <Accordion type="multiple" defaultValue={['material', 'quantity']} className="w-full space-y-4">
                 <AccordionItem value="material" className="border-none">
