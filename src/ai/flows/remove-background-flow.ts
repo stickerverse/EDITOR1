@@ -1,7 +1,6 @@
-
 'use server';
 /**
- * @fileOverview A background removal flow.
+ * @fileOverview A background removal flow that uses an image generation model.
  */
 
 import {ai} from '@/ai/genkit';
@@ -31,8 +30,8 @@ const removeBackgroundFlow = ai.defineFlow(
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
-        {media: {url: imageDataUri}},
-        {text: 'Remove the background from this image, leaving only the main subject. The background must be fully transparent, not a checkerboard pattern. The output must be a PNG.'},
+        { media: { url: imageDataUri } },
+        { text: `Remove the background from this image. The subject should be perfectly preserved. The background must be fully transparent, not a checkerboard pattern. The output must be a PNG.` },
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
@@ -46,11 +45,5 @@ const removeBackgroundFlow = ai.defineFlow(
     });
 
     if (!media?.url) {
-      throw new Error('Background removal failed');
+      throw new Error('Background removal failed to return image data.');
     }
-
-    return {
-      imageDataUri: media.url,
-    };
-  }
-);
