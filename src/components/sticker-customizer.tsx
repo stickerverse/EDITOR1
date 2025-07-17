@@ -30,6 +30,7 @@ import { addBorder } from '@/ai/flows/add-border-flow';
 import { Card } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { StickerPreview } from '@/components/3d-sticker-preview';
+import { AnimatedIconContainer } from '@/components/animated-icon';
 
 // Helper function to safely calculate aspect ratios
 const calculateAspectRatio = (design: Design): number => {
@@ -133,10 +134,10 @@ export type StickerShape = 'Die Cut' | 'circle' | 'square' | 'rounded';
 function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
     <div id={id} className={cn("space-y-3", className)}>
-        <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                <Icon className="h-4 w-4" />
-            </div>
+        <div className="flex items-center gap-3">
+            <AnimatedIconContainer>
+                <Icon className="h-4 w-4 text-white/80" />
+            </AnimatedIconContainer>
             <h2 className="text-lg font-semibold text-white">{title}</h2>
         </div>
         <div className="rounded-lg bg-slate-900/50 p-4">
@@ -1317,7 +1318,6 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 ref={canvasRef}
                 className={cn(
                   "relative w-full h-full p-0 transition-all duration-300",
-                  viewMode === 'preview' && "opacity-20 pointer-events-none"
                 )}
                 style={canvasShapeStyle}
                 onDrop={handleDropOnCanvas}
@@ -1333,7 +1333,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 </div>
               )}
                 {/* This area will become the sticker sheet canvas */}
-                <div className="w-full h-full flex items-center justify-center relative overflow-hidden" style={canvasShapeStyle}>
+                <div className={cn("w-full h-full flex items-center justify-center relative overflow-hidden", viewMode === 'preview' && "opacity-20 pointer-events-none")} style={canvasShapeStyle}>
                   {renderCanvasContent()}
                 </div>
               </div>
@@ -1449,9 +1449,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                           <div className="rounded-lg bg-slate-900/50" id="material-section">
                             <AccordionTrigger className="p-4 text-white hover:no-underline">
                               <div className="flex items-center gap-2">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                      <Palette className="h-4 w-4" />
-                                  </div>
+                                  <AnimatedIconContainer>
+                                    <Palette className="h-4 w-4 text-white/80" />
+                                  </AnimatedIconContainer>
                                   <h2 className="text-lg font-semibold text-white">Material</h2>
                               </div>
                             </AccordionTrigger>
@@ -1479,9 +1479,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                           <div className="rounded-lg bg-slate-900/50" id="size-section">
                             <AccordionTrigger className="p-4 text-white hover:no-underline">
                               <div className="flex items-center gap-2">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                      <Ruler className="h-4 w-4" />
-                                  </div>
+                                  <AnimatedIconContainer>
+                                    <Ruler className="h-4 w-4 text-white/80" />
+                                  </AnimatedIconContainer>
                                   <h2 className="text-lg font-semibold text-white">Size</h2>
                               </div>
                             </AccordionTrigger>
@@ -1505,9 +1505,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                             <div className="rounded-lg bg-slate-900/50" id="quantity-section">
                                 <AccordionTrigger className="p-4 text-white hover:no-underline">
                                     <div className="flex items-center gap-2">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                            <Sparkles className="h-4 w-4" />
-                                        </div>
+                                        <AnimatedIconContainer>
+                                            <Sparkles className="h-4 w-4 text-white/80" />
+                                        </AnimatedIconContainer>
                                         <h2 className="text-lg font-semibold text-white">Quantity</h2>
                                     </div>
                                 </AccordionTrigger>
