@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -808,6 +809,62 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     if (productType === 'sheet') {
       return (
         <>
+            <CustomizationSection id="add-layer-section" title="Add Designs" icon={Layers}>
+              <Tabs defaultValue="generate" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-800 text-slate-400">
+                  <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
+                  <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
+                </TabsList>
+                <TabsContent value="generate" className="mt-4">
+                  <div className="space-y-4">
+                      <Textarea
+                          placeholder="e.g., A cute baby panda developer writing code"
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                          rows={3}
+                          className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                      />
+                      <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
+                          {isGenerating ? (
+                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
+                          ) : (
+                              <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>
+                          )}
+                      </Button>
+                  </div>
+                </TabsContent>
+                <TabsContent value="upload" className="mt-4">
+                  <div className="space-y-2">
+                      <Label
+                          htmlFor="picture"
+                          className={cn(
+                              "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
+                              "hover:border-indigo-500 hover:bg-indigo-900/20",
+                              uploadedFileName && "border-emerald-500 bg-emerald-900/20"
+                          )}
+                      >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                              {uploadedFileName ? (
+                                  <>
+                                      <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
+                                      <p className="font-semibold text-emerald-500">File Uploaded!</p>
+                                      <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
+                                  </>
+                              ) : (
+                                  <>
+                                      <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
+                                      <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
+                                      <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
+                                  </>
+                              )}
+                          </div>
+                          <Input id="picture" type="file" accept="image/png, image/jpeg, image/webp" className="sr-only" onChange={handleImageUpload} />
+                      </Label>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CustomizationSection>
+            
             <CustomizationSection id="sheet-config-section" title="Sheet Configuration" icon={LayoutGrid}>
                 <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
                     <div className="flex-1">
