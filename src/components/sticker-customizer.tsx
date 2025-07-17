@@ -344,7 +344,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 borderWidth: 'thick'
             });
 
-            const img = document.createElement('img');
+            const img = new Image();
             
             img.onload = () => {
                 const newDesign = addDesignToLibrary(
@@ -433,7 +433,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
               borderWidth: 'thick'
           });
 
-        const img = document.createElement('img');
+        const img = new Image();
         
         img.onload = () => {
             const newDesign = addDesignToLibrary(
@@ -1464,7 +1464,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                       appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
                                     )}
                                   >
-                                    <NextImage src={m.image} alt={m.name} width={96} height={96} style={{width:'auto', height:'auto'}} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
+                                    <NextImage src={m.image} alt={m.name} width={96} height={96} style={{width:'auto', height:'auto'}} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" priority={m.id === 'matte'} />
                                     <p className="font-semibold text-sm text-slate-200">{m.name}</p>
                                   </button>
                                 ))}
