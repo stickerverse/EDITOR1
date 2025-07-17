@@ -811,9 +811,10 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         <>
             <CustomizationSection id="add-layer-section" title="Add Designs" icon={Layers}>
               <Tabs defaultValue="generate" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-slate-800 text-slate-400">
+                <TabsList className="grid w-full grid-cols-3 bg-slate-800 text-slate-400">
                   <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
                   <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
+                  <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
                 </TabsList>
                 <TabsContent value="generate" className="mt-4">
                   <div className="space-y-4">
@@ -861,6 +862,46 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                           <Input id="picture" type="file" accept="image/png, image/jpeg, image/webp" className="sr-only" onChange={handleImageUpload} />
                       </Label>
                   </div>
+                </TabsContent>
+                <TabsContent value="text" className="mt-4">
+                    <div className="space-y-4">
+                      <Textarea
+                        placeholder="Your Text Here"
+                        value={decalText}
+                        onChange={(e) => setDecalText(e.target.value)}
+                        rows={3}
+                        className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500 text-lg"
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="font-select" className="text-slate-400 mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
+                          <Select value={decalFont} onValueChange={setDecalFont}>
+                            <SelectTrigger id="font-select" className="bg-slate-800 border-slate-700 text-slate-200">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                              <SelectItem value="serif">Serif</SelectItem>
+                              <SelectItem value="sans-serif">Sans-Serif</SelectItem>
+                              <SelectItem value="monospace">Monospace</SelectItem>
+                              <SelectItem value="cursive">Cursive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                           <Label htmlFor="color-picker" className="text-slate-400 mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
+                           <Input 
+                              id="color-picker"
+                              type="color" 
+                              value={decalColor}
+                              onChange={(e) => setDecalColor(e.target.value)}
+                              className="w-full h-10 p-1 bg-slate-800 border-slate-700"
+                            />
+                        </div>
+                      </div>
+                      <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
+                        <Type className="mr-2 h-4 w-4" /> Add Text Layer
+                      </Button>
+                    </div>
                 </TabsContent>
               </Tabs>
             </CustomizationSection>
