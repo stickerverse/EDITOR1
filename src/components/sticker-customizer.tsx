@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIconShape, Ruler, Lock, Unlock } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
@@ -23,13 +22,19 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { AITourGuide } from '@/components/ai-tour-guide';
 import { SizeSelector } from '@/components/size-selector';
 import type { Size } from '@/components/size-selector';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
 import { addBorder } from '@/ai/flows/add-border-flow';
-import { useTheme } from 'next-themes';
 
+// Helper function to safely calculate aspect ratios
+const calculateAspectRatio = (design: Design): number => {
+  if (design.originalDimensions.height === 0) {
+    console.warn('Design height is zero, defaulting to square aspect ratio');
+    return 1;
+  }
+  return design.originalDimensions.width / design.originalDimensions.height;
+};
 
 const materials = [
     { id: 'vinyl', name: 'Vinyl', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/06/08/4d0ae46e9e164daa9171d70e51cd46c7acaa2419.png' },
@@ -116,7 +121,7 @@ type ContextMenuState = {
   stickerId: string | null;
 };
 
-export type StickerShape = 'contour' | 'circle' | 'square' | 'rounded';
+export type StickerShape = 'Die Cut' | 'circle' | 'square' | 'rounded';
 
 function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
@@ -170,7 +175,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   
   const [dragAction, setDragAction] = useState<DragAction>(null);
   
-  const [stickerShape, setStickerShape] = useState<StickerShape>('contour');
+  const [stickerShape, setStickerShape] = useState<StickerShape>('Die Cut');
 
   // State for Text Decals
   const [decalText, setDecalText] = useState('Your Text Here');
@@ -213,13 +218,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   
   const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text')?.sourceUrl;
 
-    const { theme } = useTheme();
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const updateStickerSize = (id: string, newSize: { width: number; height: number; unit: 'in' | 'px' }) => {
+  const updateStickerSize = useCallback((id: string, newSize: { width: number; height: number; unit: 'in' | 'px' }) => {
     setAppState(current => ({
         ...current,
         stickers: current.stickers.map(s => {
@@ -234,7 +239,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 let finalHeight = heightPx;
 
                 if (isAspectRatioLocked) {
-                    const aspectRatio = originalDesign.originalDimensions.width / originalDesign.originalDimensions.height;
+                    const aspectRatio = calculateAspectRatio(originalDesign);
                     if (widthPx !== s.size.width) { // Width changed
                         finalHeight = widthPx / aspectRatio;
                     } else if (heightPx !== s.size.height) { // Height changed
@@ -246,14 +251,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             return s;
         }),
     }));
-};
+  }, [isAspectRatioLocked]);
 
   useEffect(() => {
     if (activeStickerId) {
       updateStickerSize(activeStickerId, { ...size, unit: size.unit });
     }
-  }, [size, activeStickerId]);
-
+  }, [size, activeStickerId, updateStickerSize]);
 
   const handleAddToCart = () => {
     toast({
@@ -271,10 +275,17 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const handleCustomQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const numValue = parseInt(value, 10);
+    
     if (value === "") {
         setQuantity(0);
-    } else if (!isNaN(numValue) && numValue > 0) {
+    } else if (!isNaN(numValue) && numValue > 0 && numValue <= 10000) {
         setQuantity(numValue);
+    } else if (numValue > 10000) {
+        toast({
+            variant: "destructive",
+            title: "Quantity too large",
+            description: "Maximum quantity is 10,000 stickers.",
+        });
     }
   };
 
@@ -337,23 +348,36 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 borderWidth: 'thick'
             });
 
-            const img = new window.Image();
+            const img = document.createElement('img');
+            
             img.onload = () => {
-              const newDesign = addDesignToLibrary(
-                {
-                  sourceType: 'upload',
-                  sourceUrl: finalDataUri,
-                  fileName: file.name,
-                },
-                { width: img.width, height: img.height }
-              );
-              addStickerToSheet(newDesign.designId, newDesign);
-              setUploadedFileName(file.name);
-              toast({
-                  title: "Image Processed!",
-                  description: `${file.name} is ready and added to your design library.`,
-              });
+                const newDesign = addDesignToLibrary(
+                    {
+                        sourceType: 'upload',
+                        sourceUrl: finalDataUri,
+                        fileName: file.name,
+                    },
+                    { width: img.width, height: img.height }
+                );
+                addStickerToSheet(newDesign.designId, newDesign);
+                setUploadedFileName(file.name);
+                toast({
+                    title: "Image Processed!",
+                    description: `${file.name} is ready and added to your design library.`,
+                });
             };
+            
+            img.onerror = () => {
+                console.error('Failed to load processed image');
+                toast({
+                    variant: "destructive",
+                    title: "Image Load Failed",
+                    description: "Could not load the processed image.",
+                });
+                setIsLoading(false);
+                setLoadingText("");
+            };
+            
             img.src = finalDataUri;
         } catch (error) {
             console.error("Image processing failed:", error);
@@ -367,6 +391,17 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             setLoadingText("");
         }
     };
+    
+    reader.onerror = () => {
+        toast({
+            variant: "destructive",
+            title: "File Read Error",
+            description: "Could not read the selected file.",
+        });
+        setIsLoading(false);
+        setLoadingText("");
+    };
+    
     reader.readAsDataURL(file);
   };
 
@@ -376,7 +411,6 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       handleFileUpload(file);
     }
   };
-
 
   const handleGenerateSticker = async () => {
     if (!prompt) {
@@ -403,7 +437,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
               borderWidth: 'thick'
           });
 
-        const img = new window.Image();
+        const img = document.createElement('img');
+        
         img.onload = () => {
             const newDesign = addDesignToLibrary(
               {
@@ -419,6 +454,19 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
               description: "Your new design has been added.",
             });
         };
+        
+        img.onerror = () => {
+            console.error('Failed to load generated image');
+            toast({
+                variant: "destructive",
+                title: "Image Load Failed",
+                description: "Could not load the generated image.",
+            });
+            setIsGenerating(false);
+            setIsLoading(false);
+            setLoadingText("");
+        };
+        
         img.src = finalDataUri;
       } else {
         throw new Error("Image generation failed to return data.");
@@ -467,20 +515,28 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (contextMenu.isOpen && contextMenu.stickerId === stickerId) {
-      closeContextMenu();
-      return;
-    }
+    try {
+      if (contextMenu.isOpen && contextMenu.stickerId === stickerId) {
+        closeContextMenu();
+        return;
+      }
 
-    if (!canvasRef.current) return;
-    setContextMenu({
-      isOpen: true,
-      position: {
-        x: e.clientX,
-        y: e.clientY,
-      },
-      stickerId: stickerId,
-    });
+      if (!canvasRef.current) {
+        console.warn('Canvas ref not available for context menu');
+        return;
+      }
+      
+      setContextMenu({
+        isOpen: true,
+        position: {
+          x: e.clientX,
+          y: e.clientY,
+        },
+        stickerId: stickerId,
+      });
+    } catch (error) {
+      console.error('Error opening context menu:', error);
+    }
   };
 
   const closeContextMenu = () => {
@@ -522,7 +578,6 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     }));
     toast({ title: "Brought to Front" });
   };
-
 
   const handleAddTextDecal = () => {
     const textDesign = {
@@ -593,8 +648,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         
         if(isAspectRatioLocked) {
             const aspectRatio = design.sourceType === 'text' 
-                ? originalSticker.size.width / originalSticker.size.height 
-                : design.originalDimensions.width / design.originalDimensions.height;
+                ? (originalSticker.size.height === 0 ? 1 : originalSticker.size.width / originalSticker.size.height)
+                : calculateAspectRatio(design);
             newHeight = newWidth / aspectRatio;
         }
 
@@ -691,7 +746,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         const cellWidth = availableWidth / cols;
         const cellHeight = availableHeight / cols;
         
-        const designAspectRatio = currentDesign.originalDimensions.width / currentDesign.originalDimensions.height;
+        const designAspectRatio = calculateAspectRatio(currentDesign);
         
         let stickerWidth = cellWidth;
         let stickerHeight = cellWidth / designAspectRatio;
@@ -743,7 +798,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   };
 
   const shapeButtons = [
-    { shape: 'contour' as StickerShape, icon: ContourCutIcon, label: 'Contour' },
+    { shape: 'Die Cut' as StickerShape, icon: ContourCutIcon, label: 'Die Cut' },
     { shape: 'circle' as StickerShape, icon: CircleShapeIcon, label: 'Circle' },
     { shape: 'square' as StickerShape, icon: SquareShapeIcon, label: 'Square' },
     { shape: 'rounded' as StickerShape, icon: RoundedIcon, label: 'Rounded' },
@@ -831,7 +886,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                 </span>
                              </div>
                            ) : design.sourceUrl ? (
-                              <Image 
+                              <NextImage 
                                 src={design.sourceUrl}
                                 alt={design.fileName || design.aiPrompt || 'sticker design'}
                                 fill
@@ -1041,7 +1096,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                     zIndex: sticker.zIndex,
                 }}
             >
-                <Image
+                <NextImage
                     src={design.sourceUrl}
                     alt="sticker instance"
                     fill
@@ -1070,9 +1125,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     return null;
   }
   
-  const getCanvasStyle = () => {
+  const getShapeStyle = (shape: StickerShape) => {
     let borderRadius = '1rem'; // Default for contour
-    switch (stickerShape) {
+    switch (shape) {
         case 'circle':
             borderRadius = '50%';
             break;
@@ -1090,6 +1145,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     const showGrid = productType === 'sheet' && appState.stickerSheet.settings.autoPackEnabled;
       
       if (showGrid) {
+          const itemShapeStyle = getShapeStyle(stickerShape);
           return (
              <div 
               className="grid w-full h-full gap-2 p-2"
@@ -1099,9 +1155,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
               }}
             >
               {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-                <div key={i} className="relative w-full h-full bg-slate-800/50 rounded-md flex items-center justify-center">
+                <div key={i} className="relative w-full h-full bg-slate-800/50 flex items-center justify-center transition-all duration-300" style={itemShapeStyle}>
                   {imageToDisplay ? (
-                    <Image
+                    <NextImage
                       src={imageToDisplay}
                       alt={`Sticker preview ${i + 1}`}
                       fill
@@ -1140,6 +1196,10 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         </div>
     );
   }
+  
+  const canvasShapeStyle = productType === 'sheet' && !appState.stickerSheet.settings.autoPackEnabled
+    ? getShapeStyle(stickerShape)
+    : getShapeStyle('Die Cut'); // Default shape unless custom sheet layout
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
@@ -1152,7 +1212,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 className={cn(
                   "relative bg-slate-800/50 w-full h-full p-0 transition-all duration-300",
                 )}
-                style={getCanvasStyle()}
+                style={canvasShapeStyle}
                 onDrop={handleDropOnCanvas}
                 onDragOver={(e) => e.preventDefault()}
                 onPointerMove={handlePointerMove}
@@ -1160,13 +1220,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 onClick={closeContextMenu}
               >
               {isLoading && (
-                <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20" style={getCanvasStyle()}>
+                <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20" style={canvasShapeStyle}>
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
                   <p className="text-white mt-4 font-semibold">{loadingText}</p>
                 </div>
               )}
                 {/* This area will become the sticker sheet canvas */}
-                <div className="w-full h-full flex items-center justify-center relative overflow-hidden" style={getCanvasStyle()}>
+                <div className="w-full h-full flex items-center justify-center relative overflow-hidden" style={canvasShapeStyle}>
                   {renderCanvasContent()}
                 </div>
               </div>
@@ -1287,7 +1347,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                   appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
                                 )}
                               >
-                                <Image src={m.image} alt={m.name} width={96} height={96} style={{width:'auto', height:'auto'}} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
+                                <NextImage src={m.image} alt={m.name} width={96} height={96} style={{width:'auto', height:'auto'}} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
                                 <p className="font-semibold text-sm text-slate-200">{m.name}</p>
                               </button>
                             ))}
@@ -1392,7 +1452,6 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
           onDuplicate={handleDuplicateSticker}
           onBringToFront={handleBringToFront}
         />
-        <AITourGuide isActive={isTourActive} onComplete={() => setIsTourActive(false)} />
     </div>
   );
 }

@@ -19,14 +19,14 @@ interface SizeSelectorProps {
 }
 
 const PRESET_SIZES = [
-  { id: 'xxs', label: '1" x 1"', width: 1, height: 1 },
-  { id: 'sm', label: '2" x 2"', width: 2, height: 2 },
-  { id: 'md', label: '3" x 3"', width: 3, height: 3 },
-  { id: 'lg', label: '4" x 4"', width: 4, height: 4 },
-  { id: 'xs_rect', label: '2" x 3"', width: 2, height: 3 },
-  { id: 'sm_rect', label: '3" x 4"', width: 3, height: 4 },
-  { id: 'md_rect', label: '4" x 6"', width: 4, height: 6 },
-  { id: 'xl', label: '5" x 5"', width: 5, height: 5 },
+  { id: '1in', label: '1" x 1"', width: 1, height: 1 },
+  { id: '2in', label: '2" x 2"', width: 2, height: 2 },
+  { id: '3in', label: '3" x 3"', width: 3, height: 3 },
+  { id: '4in', label: '4" x 4"', width: 4, height: 4 },
+  { id: '5in', label: '5" x 5"', width: 5, height: 5 },
+  { id: '6in', label: '6" x 6"', width: 6, height: 6 },
+  { id: '7in', label: '7" x 7"', width: 7, height: 7 },
+  { id: '8in', label: '8" x 8"', width: 8, height: 8 },
 ];
 
 export function SizeSelector({ size, onSizeChange }: SizeSelectorProps) {
