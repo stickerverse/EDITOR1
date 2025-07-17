@@ -1481,7 +1481,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="p-4 pt-0">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                                     {quantityOptions.map((q) => {
                                         const isActive = quantitySelectionType === 'preset' && quantity === q.quantity;
                                         return (
