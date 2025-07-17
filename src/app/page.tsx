@@ -2,10 +2,10 @@
 "use client";
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import { GlowCard } from '@/components/ui/spotlight-card';
 
 const stickerCategories = [
   {
@@ -71,30 +71,30 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {stickerCategories.map((category) => (
             <Link href={category.href} key={category.title} className="group block">
-              <Card
-                className="h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 border-border/50 bg-card text-card-foreground"
-              >
-                <div className="relative h-48 w-full">
+              <GlowCard customSize className="h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 p-0">
+                 <div className="relative h-48 w-full">
                   <Image
                     src={category.imageUrl}
                     alt={category.title}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-t-xl"
                     data-ai-hint={category.imageHint}
                   />
                 </div>
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-card-foreground">{category.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground flex-grow">{category.description}</p>
-                   <div className="mt-4 flex items-center justify-end text-sm font-semibold text-primary group-hover:underline">
-                      Customize
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                    </div>
-                </CardContent>
-              </Card>
+                <div className="p-6">
+                  <CardHeader className="p-0">
+                    <CardTitle className="text-xl font-bold text-card-foreground">{category.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 mt-2">
+                    <p className="text-muted-foreground flex-grow">{category.description}</p>
+                    <div className="mt-4 flex items-center justify-end text-sm font-semibold text-primary group-hover:underline">
+                        Customize
+                        <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      </div>
+                  </CardContent>
+                </div>
+              </GlowCard>
             </Link>
           ))}
         </div>

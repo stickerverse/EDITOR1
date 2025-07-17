@@ -27,6 +27,7 @@ import { SizeSelector } from '@/components/size-selector';
 import type { Size } from '@/components/size-selector';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
 import { addBorder } from '@/ai/flows/add-border-flow';
+import { GlowCard } from '@/components/ui/spotlight-card';
 
 // Helper function to safely calculate aspect ratios
 const calculateAspectRatio = (design: Design): number => {
@@ -1294,12 +1295,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     <div className="container mx-auto px-0 py-0 md:py-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
-            <div className="w-full max-w-lg aspect-square">
+          <GlowCard customSize className="w-full max-w-lg aspect-square p-0">
               <div 
                 id="canvas-container"
                 ref={canvasRef}
                 className={cn(
-                  "relative bg-slate-800/50 w-full h-full p-0 transition-all duration-300",
+                  "relative w-full h-full p-0 transition-all duration-300",
                 )}
                 style={canvasShapeStyle}
                 onDrop={handleDropOnCanvas}
@@ -1319,12 +1320,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                   {renderCanvasContent()}
                 </div>
               </div>
-            </div>
+          </GlowCard>
         </div>
         
         <div className="lg:col-span-2">
-            <div className="rounded-xl bg-slate-950">
-              <div className="flex flex-col space-y-6 p-4">
+            <GlowCard customSize className="p-4">
+              <div className="flex flex-col space-y-6">
                 <header>
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
@@ -1548,7 +1549,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                       </div>
                   </div>
               </div>
-            </div>
+            </GlowCard>
         </div>
 
       </div>
