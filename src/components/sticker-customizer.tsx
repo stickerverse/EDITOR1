@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import NextImage from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIconShape, Ruler, Lock, Unlock, Eye, Code } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Type, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIconShape, Ruler, Lock, Unlock, Eye, Code } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ import { Card } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { StickerPreview } from '@/components/3d-sticker-preview';
 import { AnimatedIconContainer } from '@/components/animated-icon';
+import { FabricToolbar } from '@/components/fabric-toolbar';
 
 // Helper function to safely calculate aspect ratios
 const calculateAspectRatio = (design: Design): number => {
@@ -45,7 +46,7 @@ const materials = [
     { id: 'vinyl', name: 'Vinyl', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/06/08/4d0ae46e9e164daa9171d70e51cd46c7acaa2419.png' },
     { id: 'holographic', name: 'Holographic', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/48e2c5c8c6ab57d013675b3b245daa2136e0c7cf.png' },
     { id: 'transparent', name: 'Transparent', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/2d46e2873ec899b83a152c2f2ad52c1368398333.png' },
-    { id: 'matte', name: 'Matte', image: 'https://i.postimg.cc/ZR7rdC6t/mattepreview.png' },
+    { id: 'matte', name: 'Matte', image: 'https://i.postimg.cc/D0HPYtFy/matte.png' },
 ];
 
 const quantityOptions = [
@@ -73,11 +74,12 @@ interface StickerSheet {
 
 interface Design {
   designId: string;
-  sourceType: 'upload' | 'ai_generated' | 'library' | 'text';
+  sourceType: 'upload' | 'ai_generated' | 'library' | 'text' | 'clipart';
   sourceUrl?: string; // Optional for text
   originalDimensions: { width: number; height: number; };
   fileName?: string;
   aiPrompt?: string;
+  clipartId?: string;
   textData?: {
     content: string;
     font: string;
@@ -103,8 +105,8 @@ interface AppState {
 
 const initialAppState: AppState = {
   stickerSheet: {
-    sheetId: `sheet_${Math.random().toString(36).substr(2, 9)}`,
-    userId: `user_${Math.random().toString(36).substr(2, 9)}`,
+    sheetId: `sheet_${Math.random().toString(36).substring(2, 11)}`,
+    userId: `user_${Math.random().toString(36).substring(2, 11)}`,
     title: 'My Awesome Project',
     lastModified: new Date().toISOString(),
     dimensions: { width: 8.5, height: 11, unit: 'inches' },
@@ -196,6 +198,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const [isTourActive, setIsTourActive] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'design' | 'preview'>('design');
+  const [borderPreview, setBorderPreview] = useState<{ width: number; color: string; style: string } | null>(null);
 
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
@@ -208,13 +211,65 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
   const activeDesign = activeSticker ? appState.designLibrary.find(d => d.designId === activeSticker.designId) : null;
   
-  const imageToDisplay = activeDesign?.sourceUrl ?? appState.designLibrary.find(d => d.sourceType !== 'text')?.sourceUrl;
+  // Find the best image to display for preview - prioritize active design, then any image design, then any design with sourceUrl
+  const imageToDisplay = activeDesign?.sourceUrl ?? 
+    appState.designLibrary.find(d => d.sourceType !== 'text' && d.sourceUrl)?.sourceUrl ??
+    appState.designLibrary.find(d => d.sourceUrl)?.sourceUrl;
 
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
     setMounted(true);
-  }, []);
+
+    // Add keyboard shortcuts for canvas tools
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return; // Don't trigger shortcuts when typing in input fields
+      }
+
+      switch (e.key.toLowerCase()) {
+        case 'delete':
+        case 'backspace':
+          if (activeStickerId) {
+            e.preventDefault();
+            setAppState(current => ({
+              ...current,
+              stickers: current.stickers.filter(s => s.stickerId !== activeStickerId)
+            }));
+            setActiveStickerId(null);
+          }
+          break;
+        case 'd':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            if (activeStickerId) {
+              const originalSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
+              if (originalSticker) {
+                addStickerToSheet(originalSticker.designId, undefined, {
+                  position: { x: originalSticker.position.x + 20, y: originalSticker.position.y + 20 },
+                  rotation: originalSticker.rotation
+                });
+              }
+            }
+          }
+          break;
+        case 'escape':
+          setActiveStickerId(null);
+          closeContextMenu();
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activeStickerId, appState.stickers]);
+
+  // Auto-switch back to design mode if no image is available for preview
+  useEffect(() => {
+    if (viewMode === 'preview' && !imageToDisplay) {
+      setViewMode('design');
+    }
+  }, [imageToDisplay, viewMode]);
 
   const updateStickerSize = useCallback((id: string, newSize: { width: number; height: number; unit: 'in' | 'px' }) => {
     setAppState(current => ({
@@ -289,8 +344,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   };
 
 
-  const addDesignToLibrary = (design: Omit<Design, 'designId'>, dimensions: {width: number, height: number}) => {
-    const designId = `design_${Math.random().toString(36).substr(2, 9)}`;
+  const addDesignToLibrary = (design: Omit<Design, 'designId' | 'originalDimensions'>, dimensions: {width: number, height: number}) => {
+    const designId = `design_${Math.random().toString(36).substring(2, 11)}`;
     const newDesign: Design = {
       ...design,
       designId,
@@ -308,7 +363,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     const design = designData || appState.designLibrary.find(d => d.designId === designId);
     if (!design) return;
 
-    const stickerId = `inst_${Math.random().toString(36).substr(2, 9)}`;
+    const stickerId = `inst_${Math.random().toString(36).substring(2, 11)}`;
     
     const maxZIndex = appState.stickers.reduce((max, s) => Math.max(max, s.zIndex), 0);
 
@@ -334,59 +389,61 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   const handleFileUpload = (file: File) => {
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
         setIsLoading(true);
-        setLoadingText("Removing background...");
+        setLoadingText("Uploading image...");
 
         try {
-            const { imageDataUri: noBgDataUri } = await removeBackground({ imageDataUri: dataUrl });
-            setLoadingText("Adding die-cut border...");
-            const { imageDataUri: finalDataUri } = await addBorder({
-                imageDataUri: noBgDataUri,
-                borderColor: 'white',
-                borderWidth: 'thick'
-            });
-
             const img = new Image();
             
             img.onload = () => {
                 const newDesign = addDesignToLibrary(
                     {
                         sourceType: 'upload',
-                        sourceUrl: finalDataUri,
+                        sourceUrl: dataUrl,
                         fileName: file.name,
                     },
                     { width: img.width, height: img.height }
                 );
-                addStickerToSheet(newDesign.designId, newDesign);
+                
+                // Add the sticker to the center of the canvas
+                const canvasRect = canvasRef.current?.getBoundingClientRect();
+                const centerX = canvasRect ? canvasRect.width / 2 - 50 : 200; // Default center position
+                const centerY = canvasRect ? canvasRect.height / 2 - 50 : 200;
+                
+                addStickerToSheet(newDesign.designId, newDesign, {
+                    position: { x: centerX, y: centerY }
+                });
+                
                 setUploadedFileName(file.name);
                 toast({
-                    title: "Image Processed!",
-                    description: `${file.name} is ready and added to your design library.`,
-                });
-            };
-            
-            img.onerror = () => {
-                console.error('Failed to load processed image');
-                toast({
-                    variant: "destructive",
-                    title: "Image Load Failed",
-                    description: "Could not load the processed image.",
+                    title: "Image Uploaded!",
+                    description: `${file.name} has been added to your canvas.`,
                 });
                 setIsLoading(false);
                 setLoadingText("");
             };
             
-            img.src = finalDataUri;
+            img.onerror = () => {
+                console.error('Failed to load uploaded image');
+                toast({
+                    variant: "destructive",
+                    title: "Image Load Failed",
+                    description: "Could not load the uploaded image.",
+                });
+                setIsLoading(false);
+                setLoadingText("");
+            };
+            
+            img.src = dataUrl;
         } catch (error) {
-            console.error("Image processing failed:", error);
+            console.error("Image upload failed:", error);
             toast({
                 variant: "destructive",
-                title: "Processing Failed",
-                description: "Could not process the image. Please try another one.",
+                title: "Upload Failed",
+                description: "Could not upload the image. Please try another one.",
             });
-        } finally {
             setIsLoading(false);
             setLoadingText("");
         }
@@ -596,6 +653,182 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     });
   }
 
+  // Fabric toolbar handlers
+  const handleRemoveBackground = async () => {
+    if (!activeDesign?.sourceUrl) {
+      toast({
+        variant: "destructive",
+        title: "No Image Selected",
+        description: "Please select an image to remove its background.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingText("Removing background...");
+
+    try {
+      const { imageDataUri: noBgDataUri } = await removeBackground({ 
+        imageDataUri: activeDesign.sourceUrl 
+      });
+
+      // Ensure the background is truly transparent by processing the image
+      const transparentImageUri = await ensureTransparentBackground(noBgDataUri);
+
+      // Update the active design with the background-removed image
+      setAppState(current => ({
+        ...current,
+        designLibrary: current.designLibrary.map(d => 
+          d.designId === activeDesign.designId 
+            ? { ...d, sourceUrl: transparentImageUri }
+            : d
+        )
+      }));
+
+      toast({
+        title: "Background Removed!",
+        description: "The background has been successfully removed.",
+      });
+    } catch (error) {
+      console.error("Background removal failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Background Removal Failed",
+        description: "Could not remove the background. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+      setLoadingText("");
+    }
+  };
+
+  // Helper function to ensure transparent background
+  const ensureTransparentBackground = async (imageDataUri: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(imageDataUri);
+          return;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        // Draw the image on a transparent canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        // Get the image data
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // Convert white or near-white pixels to transparent
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const alpha = data[i + 3];
+
+          // If pixel is white or very light (and not already transparent)
+          if (alpha > 0 && r > 240 && g > 240 && b > 240) {
+            data[i + 3] = 0; // Make it transparent
+          }
+        }
+
+        // Put the modified image data back
+        ctx.putImageData(imageData, 0, 0);
+
+        // Convert to data URI with transparency
+        const transparentDataUri = canvas.toDataURL('image/png');
+        resolve(transparentDataUri);
+      };
+      
+      img.onerror = () => {
+        resolve(imageDataUri); // Fallback to original
+      };
+      
+      img.src = imageDataUri;
+    });
+  };
+
+  const handleAddBorder = async (borderStyle: { width: number; color: string; style: string }) => {
+    if (!activeDesign?.sourceUrl) {
+      toast({
+        variant: "destructive",
+        title: "No Image Selected",
+        description: "Please select an image to add a border.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingText("Adding border...");
+
+    try {
+      const { imageDataUri: borderedDataUri } = await addBorder({
+        imageDataUri: activeDesign.sourceUrl,
+        borderColor: borderStyle.color,
+        borderWidth: borderStyle.width > 10 ? 'thick' : borderStyle.width > 5 ? 'medium' : 'thin'
+      });
+
+      // Update the active design with the bordered image
+      setAppState(current => ({
+        ...current,
+        designLibrary: current.designLibrary.map(d => 
+          d.designId === activeDesign.designId 
+            ? { ...d, sourceUrl: borderedDataUri }
+            : d
+        )
+      }));
+
+      toast({
+        title: "Border Added!",
+        description: "The border has been successfully added.",
+      });
+    } catch (error) {
+      console.error("Border addition failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Border Addition Failed",
+        description: "Could not add the border. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+      setLoadingText("");
+    }
+  };
+
+  const handleAddClipart = (clipartId: string) => {
+    // For now, we'll create a simple colored shape based on the clipart ID
+    // In a real implementation, you'd have actual clipart images
+    const clipartDesign = {
+      sourceType: 'clipart' as const,
+      clipartId: clipartId,
+      // This would be replaced with actual clipart image URLs
+      sourceUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="60">${clipartId === 'heart' ? '❤️' : clipartId === 'star' ? '⭐' : '🔸'}</text></svg>`,
+    };
+    
+    const newDesign = addDesignToLibrary(clipartDesign, { width: 100, height: 100 });
+    addStickerToSheet(newDesign.designId, newDesign);
+    
+    toast({
+      title: "Clipart Added!",
+      description: "The clipart has been added to your canvas.",
+    });
+  };
+
+  // Live preview handlers
+  const handleBorderPreview = (borderStyle: { width: number; color: string; style: string }) => {
+    setBorderPreview(borderStyle);
+  };
+
+  const handleClearBorderPreview = () => {
+    setBorderPreview(null);
+  };
+
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'resize-br' | 'rotate', stickerId: string) => {
     if (e.button !== 0) return; // Only allow left-clicks for dragging
     if (contextMenu.isOpen) {
@@ -609,7 +842,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     const targetSticker = appState.stickers.find(s => s.stickerId === stickerId);
     if (!targetSticker) return;
     
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch (error) {
+      console.warn('Could not capture pointer:', error);
+    }
     
     setActiveStickerId(stickerId);
     setDragAction({
@@ -632,8 +869,16 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     const isDraggable = productType !== 'sheet' || !appState.stickerSheet.settings.autoPackEnabled;
 
     if (dragAction.type === 'move' && isDraggable) {
-        const newX = dragAction.originalSticker.position.x + dx;
-        const newY = dragAction.originalSticker.position.y + dy;
+        const canvasRect = canvasRef.current?.getBoundingClientRect();
+        if (!canvasRect) return;
+        
+        let newX = dragAction.originalSticker.position.x + dx;
+        let newY = dragAction.originalSticker.position.y + dy;
+        
+        // Constrain within canvas bounds
+        newX = Math.max(0, Math.min(newX, canvasRect.width - dragAction.originalSticker.size.width));
+        newY = Math.max(0, Math.min(newY, canvasRect.height - dragAction.originalSticker.size.height));
+        
         setAppState(current => ({
             ...current,
             stickers: current.stickers.map(s => s.stickerId === dragAction.stickerId ? { ...s, position: { ...s.position, x: newX, y: newY } } : s)
@@ -643,8 +888,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         const design = appState.designLibrary.find(d => d.designId === originalSticker.designId);
         if (!design) return;
 
-        let newWidth = originalSticker.size.width + dx;
-        let newHeight = originalSticker.size.height + dy;
+        let newWidth = Math.max(20, originalSticker.size.width + dx);
+        let newHeight = Math.max(20, originalSticker.size.height + dy);
         
         if(isAspectRatioLocked) {
             const aspectRatio = design.sourceType === 'text' 
@@ -653,7 +898,16 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             newHeight = newWidth / aspectRatio;
         }
 
-        if (newWidth > 10 && newHeight > 10) {
+        const canvasRect = canvasRef.current?.getBoundingClientRect();
+        if (canvasRect) {
+            // Constrain size within canvas bounds
+            const maxWidth = canvasRect.width - originalSticker.position.x;
+            const maxHeight = canvasRect.height - originalSticker.position.y;
+            newWidth = Math.min(newWidth, maxWidth);
+            newHeight = Math.min(newHeight, maxHeight);
+        }
+
+        if (newWidth > 20 && newHeight > 20) {
             setAppState(current => ({
                 ...current,
                 stickers: current.stickers.map(s => s.stickerId === dragAction.stickerId ? { ...s, size: { ...s.size, width: newWidth, height: newHeight } } : s)
@@ -681,7 +935,10 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         
         const startAngle = Math.atan2(dragAction.startY - canvasRect.top - centerY, dragAction.startX - canvasRect.left - centerX) * (180 / Math.PI);
         
-        const newRotation = originalSticker.rotation + (angle - startAngle);
+        let newRotation = originalSticker.rotation + (angle - startAngle);
+        
+        // Normalize rotation to 0-360 degrees for better UX
+        newRotation = ((newRotation % 360) + 360) % 360;
         
         setAppState(current => ({
             ...current,
@@ -714,7 +971,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             }
         }
 
-        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+        try {
+          (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+        } catch (error) {
+          console.warn('Could not release pointer capture:', error);
+        }
         setDragAction(null);
     }
   };
@@ -765,7 +1026,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
           for (let j = 0; j < cols; j++) {
             const x = padding + j * (cellWidth + gap) + offsetX;
             const y = padding + i * (cellHeight + gap) + offsetY;
-            const stickerId = `inst_grid_${i}_${j}_${Math.random().toString(36).substr(2, 5)}`;
+            const stickerId = `inst_grid_${i}_${j}_${Math.random().toString(36).substring(2, 7)}`;
             maxZ++;
     
             newStickers.push({
@@ -809,30 +1070,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       return (
         <>
             <CustomizationSection id="add-layer-section" title="Add Designs" icon={Layers}>
-              <Tabs defaultValue="generate" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-slate-800 text-slate-400">
-                  <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
+              <Tabs defaultValue="upload" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-800 text-slate-400">
                   <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
                   <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
                 </TabsList>
-                <TabsContent value="generate" className="mt-4">
-                  <div className="space-y-4">
-                      <Textarea
-                          placeholder="e.g., A cute baby panda developer writing code"
-                          value={prompt}
-                          onChange={(e) => setPrompt(e.target.value)}
-                          rows={3}
-                          className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                      />
-                      <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
-                          {isGenerating ? (
-                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
-                          ) : (
-                              <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>
-                          )}
-                      </Button>
-                  </div>
-                </TabsContent>
                 <TabsContent value="upload" className="mt-4">
                   <div className="space-y-2">
                       <Label
@@ -1008,33 +1250,14 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
     return (
       <CustomizationSection id="layer-section" title="Add a Layer" icon={Layers}>
-        <Tabs defaultValue="generate" className="w-full">
+        <Tabs defaultValue="upload" className="w-full">
           <TabsList className={cn(
             "grid w-full bg-slate-800 text-slate-400",
-            showTextTab ? "grid-cols-3" : "grid-cols-2"
+            showTextTab ? "grid-cols-2" : "grid-cols-1"
           )}>
-            <TabsTrigger value="generate"><Wand2 className="mr-2 h-4 w-4"/>Generate</TabsTrigger>
             <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
             {showTextTab && <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>}
           </TabsList>
-          <TabsContent value="generate" className="mt-4">
-            <div className="space-y-4">
-                <Textarea
-                    placeholder="e.g., A cute baby panda developer writing code"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    rows={3}
-                    className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                />
-                <Button onClick={handleGenerateSticker} disabled={isGenerating} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold hover:from-indigo-600 hover:to-purple-600">
-                    {isGenerating ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>
-                    ) : (
-                        <><Sparkles className="mr-2 h-4 w-4" />Generate & Add</>
-                    )}
-                </Button>
-            </div>
-          </TabsContent>
           <TabsContent value="upload" className="mt-4">
             <div className="space-y-2">
                 <Label
@@ -1118,6 +1341,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     
     const showControls = isSelected && isDraggable;
 
+    // Apply border preview if this is the active sticker and preview is active
+    const shouldShowBorderPreview = isSelected && borderPreview;
+    const previewBorderStyle = shouldShowBorderPreview ? {
+      border: `${borderPreview.width}px ${borderPreview.style} ${borderPreview.color}`,
+      borderRadius: '4px'
+    } : {};
+
     if (design.sourceType === 'text' && design.textData) {
         const fontSize = sticker.size.width / 10;
         return (
@@ -1130,7 +1360,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 className={cn(
                     "absolute flex items-center justify-center p-2 break-words text-center select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
-                    isSelected && "outline-dashed outline-2 outline-indigo-400 rounded-md",
+                    isSelected && !shouldShowBorderPreview && "outline-dashed outline-2 outline-indigo-400 rounded-md",
                 )}
                 style={{
                     left: `${sticker.position.x}px`,
@@ -1139,6 +1369,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                     height: `${sticker.size.height}px`,
                     transform: `rotate(${sticker.rotation}deg)`,
                     zIndex: sticker.zIndex,
+                    ...previewBorderStyle,
                 }}
             >
                 <span
@@ -1182,7 +1413,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 className={cn(
                     "absolute select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
-                    isSelected && "outline-dashed outline-2 outline-indigo-400 rounded-md",
+                    isSelected && !shouldShowBorderPreview && "outline-dashed outline-2 outline-indigo-400 rounded-md",
                 )}
                 style={{
                     left: `${sticker.position.x}px`,
@@ -1191,6 +1422,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                     height: `${sticker.size.height}px`,
                     transform: `rotate(${sticker.rotation}deg)`,
                     zIndex: sticker.zIndex,
+                    ...previewBorderStyle,
                 }}
             >
                 <NextImage
@@ -1317,13 +1549,14 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 id="canvas-container"
                 ref={canvasRef}
                 className={cn(
-                  "relative w-full h-full p-0 transition-all duration-300",
+                  "relative w-full h-full p-0 transition-all duration-300 touch-none",
                 )}
                 style={canvasShapeStyle}
                 onDrop={handleDropOnCanvas}
                 onDragOver={(e) => e.preventDefault()}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
                 onClick={closeContextMenu}
               >
               {isLoading && (
@@ -1338,6 +1571,19 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 </div>
               </div>
           </Card>
+          
+          {/* Fabric.js Toolbar */}
+          <div className="w-full max-w-lg">
+            <FabricToolbar
+              onRemoveBackground={handleRemoveBackground}
+              onAddBorder={handleAddBorder}
+              onBorderPreview={handleBorderPreview}
+              onClearBorderPreview={handleClearBorderPreview}
+              onAddClipart={handleAddClipart}
+              isLoading={isLoading}
+              hasActiveImage={!!activeDesign?.sourceUrl}
+            />
+          </div>
         </div>
         
         <div className="lg:col-span-2">
@@ -1346,14 +1592,19 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 <header>
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-                            Create Your Sticker
+                            QR Sticker Editor
                         </h1>
                          <ToggleGroup 
                             type="single" 
-                            defaultValue="design"
                             value={viewMode}
                             onValueChange={(value) => {
-                                if (value) setViewMode(value as 'design' | 'preview');
+                                if (value && value !== viewMode) {
+                                    if (value === 'preview' && imageToDisplay) {
+                                        setViewMode('preview');
+                                    } else if (value === 'design') {
+                                        setViewMode('design');
+                                    }
+                                }
                             }}
                             className="bg-slate-800/50 border border-slate-700 rounded-lg p-1"
                             >
@@ -1361,7 +1612,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                 <Code className="h-4 w-4 mr-2" />
                                 Design
                             </ToggleGroupItem>
-                            <ToggleGroupItem value="preview" aria-label="Preview mode" className="data-[state=on]:bg-indigo-500 data-[state=on]:text-white" disabled={!imageToDisplay}>
+                            <ToggleGroupItem value="preview" aria-label="Preview mode" className="data-[state=on]:bg-indigo-500 data-[state=on]:text-white disabled:opacity-50 disabled:cursor-not-allowed" disabled={!imageToDisplay}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Preview
                             </ToggleGroupItem>
@@ -1385,43 +1636,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                     <div className="flex flex-col space-y-6">
 
                 
-                      <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
-                        <Select value={productType} onValueChange={(value) => {
-                            window.location.href = `/${value}`;
-                        }}>
-                            <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
-                                <SelectValue placeholder="Select a product type" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
-                                <SelectItem value="die-cut">
-                                    <div className="flex items-center gap-3">
-                                        <Scissors className="h-5 w-5 text-indigo-400" />
-                                        <span className="font-semibold">Die-cut Stickers</span>
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="sheet">
-                                    <div className="flex items-center gap-3">
-                                        <LayoutGrid className="h-5 w-5 text-purple-400" />
-                                        <span className="font-semibold">Sticker Sheets</span>
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="kiss-cut">
-                                   <div className="flex items-center gap-3">
-                                        <ContourCutIcon className="h-5 w-5 text-pink-400" />
-                                        <span className="font-semibold">Kiss-cut Stickers</span>
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="decal">
-                                   <div className="flex items-center gap-3">
-                                        <Type className="h-5 w-5 text-emerald-400" />
-                                        <span className="font-semibold">Text Decals</span>
-                                    </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                      </CustomizationSection>
 
-                      <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
+
+                      <CustomizationSection id="sticker-shape-section" title="QR Sticker Shape" icon={ContourCutIcon}>
                         <div className="flex flex-col space-y-2">
                             {shapeButtons.map(({ shape, icon: Icon, label }) => (
                                 <button
