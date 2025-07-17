@@ -798,9 +798,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   const shapeButtons = [
     { shape: 'Die Cut' as StickerShape, icon: ContourCutIcon, label: 'Die Cut' },
-    { shape: 'circle' as StickerShape, icon: CircleShapeIcon, label: 'Circle' },
     { shape: 'square' as StickerShape, icon: SquareShapeIcon, label: 'Square' },
-    { shape: 'rounded' as StickerShape, icon: RoundedIcon, label: 'Rounded' },
+    { shape: 'circle' as StickerShape, icon: CircleShapeIcon, label: 'Circle' },
+    { shape: 'rounded' as StickerShape, icon: RoundedIcon, label: 'Rounded Corners' },
   ];
 
   const renderDesignControls = () => {
@@ -1422,21 +1422,21 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                       </CustomizationSection>
 
                       <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="flex flex-col space-y-2">
                             {shapeButtons.map(({ shape, icon: Icon, label }) => (
-                                <Button
+                                <button
                                     key={shape}
-                                    variant="outline"
                                     onClick={() => setStickerShape(shape)}
                                     className={cn(
-                                        "h-auto flex-col py-3 px-2 text-center transition-all duration-200",
-                                        "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
-                                        stickerShape === shape && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                        "w-full flex items-center gap-3 p-3 rounded-md text-left transition-all duration-200",
+                                        stickerShape === shape
+                                            ? "bg-slate-700/80 text-white font-semibold shadow-inner"
+                                            : "bg-transparent text-slate-300 hover:bg-slate-800/80 hover:text-white"
                                     )}
                                 >
-                                    <Icon className="h-7 w-7 mb-2" />
-                                    <span className="font-semibold text-sm">{label}</span>
-                                </Button>
+                                    <Icon className="h-7 w-7" />
+                                    <span className="text-sm">{label}</span>
+                                </button>
                             ))}
                         </div>
                       </CustomizationSection>
@@ -1597,3 +1597,4 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     </div>
   );
 }
+
