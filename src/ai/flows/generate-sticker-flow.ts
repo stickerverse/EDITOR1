@@ -37,6 +37,12 @@ const generateStickerFlow = ai.defineFlow(
       prompt: `A die-cut sticker of ${prompt}, vector art, vibrant colors. The background must be fully transparent, not a checkerboard pattern. The output must be a PNG.`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
+        safetySettings: [
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        ],
       },
     });
 
