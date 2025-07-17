@@ -140,25 +140,6 @@ function CustomizationSection({ id, title, icon: Icon, children, className }: { 
   );
 }
 
-const ThemedCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, children, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "group relative flex w-full flex-col rounded-xl bg-slate-950 p-4 shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/20",
-        className
-      )}
-      {...props}
-    >
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20 blur-sm transition-opacity duration-300 group-hover:opacity-30"></div>
-      <div className="absolute inset-px rounded-[11px] bg-slate-950"></div>
-      <div className="relative h-full">
-        {children}
-      </div>
-    </div>
-));
-ThemedCard.displayName = "ThemedCard";
-
 interface StickerCustomizerProps {
     productType: string;
 }
@@ -171,6 +152,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const [activeStickerId, setActiveStickerId] = useState<string | null>(null);
 
   const [quantity, setQuantity] = useState(quantityOptions[0].quantity);
+  const [quantitySelectionType, setQuantitySelectionType] = useState<'preset' | 'custom'>('preset');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   
@@ -195,7 +177,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     height: 2,
     unit: 'in',
     selectionType: 'preset',
-    activePresetId: 'sm'
+    activePresetId: '2in'
   });
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -267,21 +249,28 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     })
   }
 
-  const handleQuantityButtonClick = (qty: number) => {
+  const handlePresetQuantityClick = (qty: number) => {
     setQuantity(qty);
-    const customInput = document.getElementById('custom-quantity-input') as HTMLInputElement;
-    if (customInput) customInput.value = '';
-  }
+    setQuantitySelectionType('preset');
+  };
+
+  const handleCustomQuantityClick = () => {
+    setQuantitySelectionType('custom');
+    setQuantity(0);
+  };
 
   const handleCustomQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const numValue = parseInt(value, 10);
     
+    setQuantitySelectionType('custom');
+
     if (value === "") {
         setQuantity(0);
     } else if (!isNaN(numValue) && numValue > 0 && numValue <= 10000) {
         setQuantity(numValue);
     } else if (numValue > 10000) {
+        setQuantity(10000);
         toast({
             variant: "destructive",
             title: "Quantity too large",
@@ -289,6 +278,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         });
     }
   };
+
 
   const addDesignToLibrary = (design: Omit<Design, 'designId'>, dimensions: {width: number, height: number}) => {
     const designId = `design_${Math.random().toString(36).substr(2, 9)}`;
@@ -1277,9 +1267,10 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     }
 
     return (
-      <div className="text-center text-slate-500">
+      <div className="text-center text-slate-500 flex flex-col items-center justify-center h-full">
+        <Layers className="h-12 w-12 mb-4 text-slate-600" />
         <p className="text-lg font-semibold">Sticker Canvas</p>
-        <p className="text-sm">Select a product and add a design to start.</p>
+        <p className="text-sm">Add a design to get started.</p>
       </div>
     );
   }
@@ -1295,9 +1286,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     );
   }
   
-  const canvasShapeStyle = productType === 'sheet' && !appState.stickerSheet.settings.autoPackEnabled
+  const canvasShapeStyle = (productType === 'sheet' && !appState.stickerSheet.settings.autoPackEnabled) || (productType !== 'sheet')
     ? getShapeStyle(stickerShape)
-    : getShapeStyle('Die Cut'); // Default shape unless custom sheet layout
+    : {}; // No special shape for auto-layout grid container
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
@@ -1480,46 +1471,65 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                       </div>
                     </AccordionItem>
                     <AccordionItem value="quantity" className="border-none">
-                      <div className="rounded-lg bg-slate-900/50" id="quantity-section">
-                        <AccordionTrigger className="p-4 text-white hover:no-underline">
-                          <div className="flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                  <Sparkles className="h-4 w-4" />
-                              </div>
-                              <h2 className="text-lg font-semibold text-white">Quantity</h2>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="p-4 pt-0">
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {quantityOptions.map((q) => (
-                              <Button 
-                                key={q.quantity} 
-                                variant={quantity === q.quantity ? "default" : "outline"} 
-                                onClick={() => handleQuantityButtonClick(q.quantity)} 
-                                className={cn(
-                                  "h-auto flex-col py-3 px-2 text-center",
-                                  quantity === q.quantity 
-                                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-purple-500" 
-                                    : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                        <div className="rounded-lg bg-slate-900/50" id="quantity-section">
+                            <AccordionTrigger className="p-4 text-white hover:no-underline">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                                        <Sparkles className="h-4 w-4" />
+                                    </div>
+                                    <h2 className="text-lg font-semibold text-white">Quantity</h2>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="p-4 pt-0">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {quantityOptions.map((q) => {
+                                        const isActive = quantitySelectionType === 'preset' && quantity === q.quantity;
+                                        return (
+                                            <Button
+                                                key={q.quantity}
+                                                variant="outline"
+                                                onClick={() => handlePresetQuantityClick(q.quantity)}
+                                                aria-pressed={isActive}
+                                                className={cn(
+                                                    "h-auto flex-col justify-center items-center gap-1 py-3 px-2 text-center transition-all duration-200",
+                                                    "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
+                                                    isActive && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                                )}
+                                            >
+                                                <span className="font-bold text-base leading-none">{q.quantity}</span>
+                                                <span className="text-xs text-slate-400">${q.pricePer.toFixed(2)}/sticker</span>
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleCustomQuantityClick}
+                                    aria-pressed={quantitySelectionType === 'custom'}
+                                    className={cn(
+                                        "w-full justify-center transition-all duration-200 mt-3",
+                                        "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
+                                        quantitySelectionType === 'custom' && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                    )}
+                                >
+                                    Custom Quantity
+                                </Button>
+
+                                {quantitySelectionType === 'custom' && (
+                                    <div className="pt-4">
+                                        <Label htmlFor="custom-quantity" className="text-slate-400 mb-2 block">Quantity (10,000 max)</Label>
+                                        <Input
+                                            id="custom-quantity"
+                                            type="number"
+                                            value={quantity === 0 ? '' : quantity}
+                                            onChange={handleCustomQuantityChange}
+                                            className="w-full bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                                            placeholder="e.g. 125"
+                                        />
+                                    </div>
                                 )}
-                              >
-                                <span className="font-bold text-lg leading-none">{q.quantity}</span>
-                                <span className="text-xs text-slate-400 mt-1">${q.pricePer.toFixed(2)}/sticker</span>
-                              </Button>
-                            ))}
-                          </div>
-                          <div className="mt-4">
-                              <Input
-                                  type="number"
-                                  id="custom-quantity-input"
-                                  className="w-full h-12 text-center text-lg font-bold bg-slate-800/80 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:ring-indigo-500 focus:border-indigo-500"
-                                  placeholder="Custom quantity..."
-                                  onChange={handleCustomQuantityChange}
-                                  onFocus={() => setQuantity(0)}
-                              />
-                          </div>
-                        </AccordionContent>
-                      </div>
+                            </AccordionContent>
+                        </div>
                     </AccordionItem>
                   </Accordion>
                 
