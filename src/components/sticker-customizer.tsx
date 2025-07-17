@@ -41,7 +41,7 @@ const materials = [
     { id: 'vinyl', name: 'Vinyl', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/06/08/4d0ae46e9e164daa9171d70e51cd46c7acaa2419.png' },
     { id: 'holographic', name: 'Holographic', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/48e2c5c8c6ab57d013675b3b245daa2136e0c7cf.png' },
     { id: 'transparent', name: 'Transparent', image: 'https://d6ce0no7ktiq.cloudfront.net/images/attachment/2023/03/09/2d46e2873ec899b83a152c2f2ad52c1368398333.png' },
-    { id: 'matte', name: 'Matte', image: 'https://placehold.co/100x100.png' },
+    { id: 'matte', name: 'Matte', image: 'https://i.postimg.cc/ZR7rdC6t/mattepreview.png' },
 ];
 
 const quantityOptions = [
