@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import NextImage from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIconShape, Ruler, Lock, Unlock } from 'lucide-react';
+import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Scissors, Type, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIconShape, Ruler, Lock, Unlock, Eye, Code } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,8 @@ import type { Size } from '@/components/size-selector';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
 import { addBorder } from '@/ai/flows/add-border-flow';
 import { GlowCard } from '@/components/ui/spotlight-card';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { StickerPreview } from '@/components/3d-sticker-preview';
 
 // Helper function to safely calculate aspect ratios
 const calculateAspectRatio = (design: Design): number => {
@@ -189,6 +191,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   const [isTourActive, setIsTourActive] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'design' | 'preview'>('design');
+
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
@@ -1293,7 +1297,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
+      {viewMode === 'preview' && imageToDisplay && (
+        <StickerPreview 
+            imageUrl={imageToDisplay} 
+            material={appState.stickerSheet.material.id}
+        />
+      )}
+      <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8 transition-opacity duration-300", viewMode === 'preview' && "opacity-20 pointer-events-none")}>
         <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
           <GlowCard customSize className="w-full max-w-lg aspect-square p-0">
               <div 
@@ -1331,15 +1341,23 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
                             Create Your Sticker
                         </h1>
-                        <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white"
-                            onClick={() => setIsTourActive(prev => !prev)}
-                            aria-label="Start AI Tour"
-                        >
-                            <Bot className="h-5 w-5" />
-                        </Button>
+                         <ToggleGroup 
+                            type="single" 
+                            value={viewMode}
+                            onValueChange={(value) => {
+                                if (value) setViewMode(value as 'design' | 'preview');
+                            }}
+                            className="bg-slate-800/50 border border-slate-700 rounded-lg p-1"
+                            >
+                            <ToggleGroupItem value="design" aria-label="Design mode" className="data-[state=on]:bg-indigo-500 data-[state=on]:text-white">
+                                <Code className="h-4 w-4 mr-2" />
+                                Design
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="preview" aria-label="Preview mode" className="data-[state=on]:bg-indigo-500 data-[state=on]:text-white" disabled={!imageToDisplay}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
+                            </ToggleGroupItem>
+                        </ToggleGroup>
                     </div>
                     <div className="mt-2 flex items-center gap-4">
                         <div className="flex items-center gap-1">
