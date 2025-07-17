@@ -47,3 +47,7 @@ const removeBackgroundFlow = ai.defineFlow(
     if (!media?.url) {
       throw new Error('Background removal failed to return image data.');
     }
+
+    return { imageDataUri: media.url };
+  }
+);
