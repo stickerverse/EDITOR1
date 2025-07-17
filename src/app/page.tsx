@@ -69,7 +69,7 @@ export default function HomePage() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {stickerCategories.map((category) => (
+          {stickerCategories.map((category, index) => (
             <Link href={category.href} key={category.title} className="group block">
               <GlowCard customSize className="h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 p-0">
                  <div className="relative h-48 w-full">
@@ -80,6 +80,7 @@ export default function HomePage() {
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-t-xl"
                     data-ai-hint={category.imageHint}
+                    priority={index === 0}
                   />
                 </div>
                 <div className="p-6">
