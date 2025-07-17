@@ -71,7 +71,7 @@ export default function HomePage() {
           {stickerCategories.map((category, index) => (
             <Link href={category.href} key={category.title} className="group block">
               <Card className="h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 p-0 bg-slate-900/50">
-                 <CardSkeletonContainer className="w-full">
+                 <CardSkeletonContainer className="w-full h-auto aspect-[4/3]">
                     <Image
                         src={category.imageUrl}
                         alt={category.title}

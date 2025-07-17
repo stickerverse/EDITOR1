@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -158,7 +157,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const [loadingText, setLoadingText] = useState("");
   const [activeStickerId, setActiveStickerId] = useState<string | null>(null);
 
-  const [quantity, setQuantity] = useState(quantityOptions[0].quantity);
+  const [quantity, setQuantity] = useState(quantityOptions[1].quantity);
   const [quantitySelectionType, setQuantitySelectionType] = useState<'preset' | 'custom'>('preset');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1301,14 +1300,14 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   return (
     <div className="container mx-auto px-0 py-0 md:py-4">
-      {viewMode === 'preview' && imageToDisplay && (
+      {viewMode === 'preview' && imageToDisplay ? (
         <StickerPreview 
             imageUrl={imageToDisplay} 
             material={appState.stickerSheet.material.id}
             onClose={() => setViewMode('design')}
         />
-      )}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
+      ) : null}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className={cn(
             "lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group",
         )}>
