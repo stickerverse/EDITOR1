@@ -48,8 +48,11 @@ const materials = [
 ];
 
 const quantityOptions = [
+  { quantity: 25, pricePer: 1.29 },
   { quantity: 50, pricePer: 0.89 },
+  { quantity: 75, pricePer: 0.79 },
   { quantity: 100, pricePer: 0.69 },
+  { quantity: 150, pricePer: 0.62 },
   { quantity: 200, pricePer: 0.54 },
   { quantity: 500, pricePer: 0.44 },
   { quantity: 1000, pricePer: 0.35 },
