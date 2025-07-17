@@ -1301,12 +1301,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         <StickerPreview 
             imageUrl={imageToDisplay} 
             material={appState.stickerSheet.material.id}
+            onClose={() => setViewMode('design')}
         />
       )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
         <div className={cn(
-            "lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group transition-opacity duration-300",
-            viewMode === 'preview' && "opacity-20 pointer-events-none"
+            "lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group",
         )}>
           <GlowCard customSize className="w-full max-w-lg aspect-square p-0">
               <div 
@@ -1314,6 +1314,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 ref={canvasRef}
                 className={cn(
                   "relative w-full h-full p-0 transition-all duration-300",
+                  viewMode === 'preview' && "opacity-20 pointer-events-none"
                 )}
                 style={canvasShapeStyle}
                 onDrop={handleDropOnCanvas}
