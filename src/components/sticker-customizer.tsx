@@ -1301,11 +1301,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         <StickerPreview 
             imageUrl={imageToDisplay} 
             material={appState.stickerSheet.material.id}
-            onClose={() => setViewMode('design')}
         />
       )}
-      <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8 transition-opacity duration-300", viewMode === 'preview' && "opacity-20 pointer-events-none")}>
-        <div className="lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
+        <div className={cn(
+            "lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group transition-opacity duration-300",
+            viewMode === 'preview' && "opacity-20 pointer-events-none"
+        )}>
           <GlowCard customSize className="w-full max-w-lg aspect-square p-0">
               <div 
                 id="canvas-container"
@@ -1345,6 +1347,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                          <ToggleGroup 
                             type="single" 
                             defaultValue="design"
+                            value={viewMode}
                             onValueChange={(value) => {
                                 if (value) setViewMode(value as 'design' | 'preview');
                             }}
@@ -1373,199 +1376,206 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                         </div>
                     </div>
                   </header>
-                
-                  <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
-                    <Select value={productType} onValueChange={(value) => {
-                        window.location.href = `/${value}`;
-                    }}>
-                        <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
-                            <SelectValue placeholder="Select a product type" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
-                            <SelectItem value="die-cut">
-                                <div className="flex items-center gap-3">
-                                    <Scissors className="h-5 w-5 text-indigo-400" />
-                                    <span className="font-semibold">Die-cut Stickers</span>
-                                </div>
-                            </SelectItem>
-                            <SelectItem value="sheet">
-                                <div className="flex items-center gap-3">
-                                    <LayoutGrid className="h-5 w-5 text-purple-400" />
-                                    <span className="font-semibold">Sticker Sheets</span>
-                                </div>
-                            </SelectItem>
-                            <SelectItem value="kiss-cut">
-                               <div className="flex items-center gap-3">
-                                    <ContourCutIcon className="h-5 w-5 text-pink-400" />
-                                    <span className="font-semibold">Kiss-cut Stickers</span>
-                                </div>
-                            </SelectItem>
-                            <SelectItem value="decal">
-                               <div className="flex items-center gap-3">
-                                    <Type className="h-5 w-5 text-emerald-400" />
-                                    <span className="font-semibold">Text Decals</span>
-                                </div>
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                  </CustomizationSection>
 
-                  <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {shapeButtons.map(({ shape, icon: Icon, label }) => (
-                            <Button
-                                key={shape}
-                                variant="outline"
-                                onClick={() => setStickerShape(shape)}
-                                className={cn(
-                                    "h-auto flex-col py-3 px-2 text-center transition-all duration-200",
-                                    "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
-                                    stickerShape === shape && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
-                                )}
-                            >
-                                <Icon className="h-7 w-7 mb-2" />
-                                <span className="font-semibold text-sm">{label}</span>
-                            </Button>
-                        ))}
-                    </div>
-                  </CustomizationSection>
-
-                  {renderDesignControls()}
+                  <div className={cn("transition-opacity duration-300", viewMode === 'preview' && "opacity-20 pointer-events-none")}>
+                    <div className="flex flex-col space-y-6">
 
                 
-                  <Accordion type="multiple" defaultValue={['material', 'size', 'quantity']} className="w-full space-y-4">
-                    <AccordionItem value="material" className="border-none">
-                      <div className="rounded-lg bg-slate-900/50" id="material-section">
-                        <AccordionTrigger className="p-4 text-white hover:no-underline">
-                          <div className="flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                  <Palette className="h-4 w-4" />
-                              </div>
-                              <h2 className="text-lg font-semibold text-white">Material</h2>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="p-4 pt-0">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {materials.map((m) => (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
-                                className={cn(
-                                  "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50",
-                                  appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
-                                )}
-                              >
-                                <NextImage src={m.image} alt={m.name} width={96} height={96} style={{width:'auto', height:'auto'}} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
-                                <p className="font-semibold text-sm text-slate-200">{m.name}</p>
-                              </button>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </div>
-                    </AccordionItem>
-                     <AccordionItem value="size" className="border-none">
-                      <div className="rounded-lg bg-slate-900/50" id="size-section">
-                        <AccordionTrigger className="p-4 text-white hover:no-underline">
-                          <div className="flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                  <Ruler className="h-4 w-4" />
-                              </div>
-                              <h2 className="text-lg font-semibold text-white">Size</h2>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="p-4 pt-0 space-y-4">
-                           <div className="flex items-center justify-between">
-                              <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2 text-slate-300">
-                                  {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
-                                  <span>Lock Aspect Ratio</span>
-                              </Label>
-                              <Switch
-                                  id="aspect-ratio-lock"
-                                  checked={isAspectRatioLocked}
-                                  onCheckedChange={setIsAspectRatioLocked}
-                              />
-                          </div>
-                          <SizeSelector size={size} onSizeChange={setSize} />
-                        </AccordionContent>
-                      </div>
-                    </AccordionItem>
-                    <AccordionItem value="quantity" className="border-none">
-                        <div className="rounded-lg bg-slate-900/50" id="quantity-section">
-                            <AccordionTrigger className="p-4 text-white hover:no-underline">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                        <Sparkles className="h-4 w-4" />
+                      <CustomizationSection id="product-type-section" title="Product Type" icon={Scissors}>
+                        <Select value={productType} onValueChange={(value) => {
+                            window.location.href = `/${value}`;
+                        }}>
+                            <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-slate-200 h-12 text-base">
+                                <SelectValue placeholder="Select a product type" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                                <SelectItem value="die-cut">
+                                    <div className="flex items-center gap-3">
+                                        <Scissors className="h-5 w-5 text-indigo-400" />
+                                        <span className="font-semibold">Die-cut Stickers</span>
                                     </div>
-                                    <h2 className="text-lg font-semibold text-white">Quantity</h2>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="p-4 pt-0">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                                    {quantityOptions.map((q) => {
-                                        const isActive = quantitySelectionType === 'preset' && quantity === q.quantity;
-                                        return (
-                                            <Button
-                                                key={q.quantity}
-                                                variant="outline"
-                                                onClick={() => handlePresetQuantityClick(q.quantity)}
-                                                aria-pressed={isActive}
-                                                className={cn(
-                                                    "h-auto flex-col justify-center items-center gap-1 py-3 px-2 text-center transition-all duration-200",
-                                                    "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
-                                                    isActive && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
-                                                )}
-                                            >
-                                                <span className="font-bold text-base leading-none">{q.quantity}</span>
-                                                <span className="text-xs text-slate-400">${q.pricePer.toFixed(2)}/sticker</span>
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
+                                </SelectItem>
+                                <SelectItem value="sheet">
+                                    <div className="flex items-center gap-3">
+                                        <LayoutGrid className="h-5 w-5 text-purple-400" />
+                                        <span className="font-semibold">Sticker Sheets</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="kiss-cut">
+                                   <div className="flex items-center gap-3">
+                                        <ContourCutIcon className="h-5 w-5 text-pink-400" />
+                                        <span className="font-semibold">Kiss-cut Stickers</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="decal">
+                                   <div className="flex items-center gap-3">
+                                        <Type className="h-5 w-5 text-emerald-400" />
+                                        <span className="font-semibold">Text Decals</span>
+                                    </div>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </CustomizationSection>
+
+                      <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {shapeButtons.map(({ shape, icon: Icon, label }) => (
                                 <Button
+                                    key={shape}
                                     variant="outline"
-                                    onClick={handleCustomQuantityClick}
-                                    aria-pressed={quantitySelectionType === 'custom'}
+                                    onClick={() => setStickerShape(shape)}
                                     className={cn(
-                                        "w-full justify-center transition-all duration-200 mt-3",
+                                        "h-auto flex-col py-3 px-2 text-center transition-all duration-200",
                                         "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
-                                        quantitySelectionType === 'custom' && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                        stickerShape === shape && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
                                     )}
                                 >
-                                    Custom Quantity
+                                    <Icon className="h-7 w-7 mb-2" />
+                                    <span className="font-semibold text-sm">{label}</span>
                                 </Button>
+                            ))}
+                        </div>
+                      </CustomizationSection>
 
-                                {quantitySelectionType === 'custom' && (
-                                    <div className="pt-4">
-                                        <Label htmlFor="custom-quantity" className="text-slate-400 mb-2 block">Quantity (10,000 max)</Label>
-                                        <Input
-                                            id="custom-quantity"
-                                            type="number"
-                                            value={quantity === 0 ? '' : quantity}
-                                            onChange={handleCustomQuantityChange}
-                                            className="w-full bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
-                                            placeholder="e.g. 125"
-                                        />
-                                    </div>
-                                )}
+                      {renderDesignControls()}
+
+                    
+                      <Accordion type="multiple" defaultValue={['material', 'size', 'quantity']} className="w-full space-y-4">
+                        <AccordionItem value="material" className="border-none">
+                          <div className="rounded-lg bg-slate-900/50" id="material-section">
+                            <AccordionTrigger className="p-4 text-white hover:no-underline">
+                              <div className="flex items-center gap-2">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                                      <Palette className="h-4 w-4" />
+                                  </div>
+                                  <h2 className="text-lg font-semibold text-white">Material</h2>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="p-4 pt-0">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {materials.map((m) => (
+                                  <button
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
+                                    className={cn(
+                                      "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50",
+                                      appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
+                                    )}
+                                  >
+                                    <NextImage src={m.image} alt={m.name} width={96} height={96} style={{width:'auto', height:'auto'}} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" />
+                                    <p className="font-semibold text-sm text-slate-200">{m.name}</p>
+                                  </button>
+                                ))}
+                              </div>
                             </AccordionContent>
-                        </div>
-                    </AccordionItem>
-                  </Accordion>
-                
-                  <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
-                      <div className="bg-slate-900 rounded-lg p-4">
-                        <div className="flex flex-row items-center justify-between pb-4">
-                          <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
-                          <div className="text-right">
-                             <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
-                             {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
                           </div>
-                        </div>
-                        <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
-                          Add to Cart
-                        </Button>
+                        </AccordionItem>
+                         <AccordionItem value="size" className="border-none">
+                          <div className="rounded-lg bg-slate-900/50" id="size-section">
+                            <AccordionTrigger className="p-4 text-white hover:no-underline">
+                              <div className="flex items-center gap-2">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                                      <Ruler className="h-4 w-4" />
+                                  </div>
+                                  <h2 className="text-lg font-semibold text-white">Size</h2>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="p-4 pt-0 space-y-4">
+                               <div className="flex items-center justify-between">
+                                  <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2 text-slate-300">
+                                      {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
+                                      <span>Lock Aspect Ratio</span>
+                                  </Label>
+                                  <Switch
+                                      id="aspect-ratio-lock"
+                                      checked={isAspectRatioLocked}
+                                      onCheckedChange={setIsAspectRatioLocked}
+                                  />
+                              </div>
+                              <SizeSelector size={size} onSizeChange={setSize} />
+                            </AccordionContent>
+                          </div>
+                        </AccordionItem>
+                        <AccordionItem value="quantity" className="border-none">
+                            <div className="rounded-lg bg-slate-900/50" id="quantity-section">
+                                <AccordionTrigger className="p-4 text-white hover:no-underline">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                                            <Sparkles className="h-4 w-4" />
+                                        </div>
+                                        <h2 className="text-lg font-semibold text-white">Quantity</h2>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="p-4 pt-0">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                                        {quantityOptions.map((q) => {
+                                            const isActive = quantitySelectionType === 'preset' && quantity === q.quantity;
+                                            return (
+                                                <Button
+                                                    key={q.quantity}
+                                                    variant="outline"
+                                                    onClick={() => handlePresetQuantityClick(q.quantity)}
+                                                    aria-pressed={isActive}
+                                                    className={cn(
+                                                        "h-auto flex-col justify-center items-center gap-1 py-3 px-2 text-center transition-all duration-200",
+                                                        "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
+                                                        isActive && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                                    )}
+                                                >
+                                                    <span className="font-bold text-base leading-none">{q.quantity}</span>
+                                                    <span className="text-xs text-slate-400">${q.pricePer.toFixed(2)}/sticker</span>
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleCustomQuantityClick}
+                                        aria-pressed={quantitySelectionType === 'custom'}
+                                        className={cn(
+                                            "w-full justify-center transition-all duration-200 mt-3",
+                                            "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
+                                            quantitySelectionType === 'custom' && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                        )}
+                                    >
+                                        Custom Quantity
+                                    </Button>
+
+                                    {quantitySelectionType === 'custom' && (
+                                        <div className="pt-4">
+                                            <Label htmlFor="custom-quantity" className="text-slate-400 mb-2 block">Quantity (10,000 max)</Label>
+                                            <Input
+                                                id="custom-quantity"
+                                                type="number"
+                                                value={quantity === 0 ? '' : quantity}
+                                                onChange={handleCustomQuantityChange}
+                                                className="w-full bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                                                placeholder="e.g. 125"
+                                            />
+                                        </div>
+                                    )}
+                                </AccordionContent>
+                            </div>
+                        </AccordionItem>
+                      </Accordion>
+                    
+                      <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
+                          <div className="bg-slate-900 rounded-lg p-4">
+                            <div className="flex flex-row items-center justify-between pb-4">
+                              <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
+                              <div className="text-right">
+                                 <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
+                                 {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
+                              </div>
+                            </div>
+                            <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
+                              Add to Cart
+                            </Button>
+                          </div>
                       </div>
+
+                    </div>
                   </div>
               </div>
             </GlowCard>
