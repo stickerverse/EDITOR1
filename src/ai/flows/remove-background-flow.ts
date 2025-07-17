@@ -39,7 +39,7 @@ const removeBackgroundFlow = ai.defineFlow(
       },
     });
 
-    if (!media.url) {
+    if (!media?.url) {
       throw new Error('Background removal failed');
     }
 

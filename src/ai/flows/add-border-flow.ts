@@ -43,7 +43,7 @@ const addBorderFlow = ai.defineFlow(
       },
     });
 
-    if (!media.url) {
+    if (!media?.url) {
       throw new Error('Border addition failed to return image data.');
     }
 
