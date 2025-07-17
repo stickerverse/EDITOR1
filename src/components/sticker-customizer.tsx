@@ -1301,6 +1301,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         <StickerPreview 
             imageUrl={imageToDisplay} 
             material={appState.stickerSheet.material.id}
+            onClose={() => setViewMode('design')}
         />
       )}
       <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8 transition-opacity duration-300", viewMode === 'preview' && "opacity-20 pointer-events-none")}>
@@ -1343,7 +1344,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                         </h1>
                          <ToggleGroup 
                             type="single" 
-                            value={viewMode}
+                            defaultValue="design"
                             onValueChange={(value) => {
                                 if (value) setViewMode(value as 'design' | 'preview');
                             }}
