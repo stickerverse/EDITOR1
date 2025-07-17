@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -27,7 +28,7 @@ import { SizeSelector } from '@/components/size-selector';
 import type { Size } from '@/components/size-selector';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
 import { addBorder } from '@/ai/flows/add-border-flow';
-import { GlowCard } from '@/components/ui/spotlight-card';
+import { Card } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { StickerPreview } from '@/components/3d-sticker-preview';
 
@@ -1311,7 +1312,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         <div className={cn(
             "lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group",
         )}>
-          <GlowCard customSize className="w-full max-w-lg aspect-square p-0">
+          <Card className="w-full max-w-lg aspect-square p-0 bg-slate-900/50">
               <div 
                 id="canvas-container"
                 ref={canvasRef}
@@ -1337,11 +1338,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                   {renderCanvasContent()}
                 </div>
               </div>
-          </GlowCard>
+          </Card>
         </div>
         
         <div className="lg:col-span-2">
-            <GlowCard customSize className="p-4">
+            <Card className="p-4 bg-slate-900/50">
               <div className="flex flex-col space-y-6">
                 <header>
                     <div className="flex items-center justify-between">
@@ -1582,7 +1583,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                     </div>
                   </div>
               </div>
-            </GlowCard>
+            </Card>
         </div>
 
       </div>
@@ -1597,4 +1598,3 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     </div>
   );
 }
-

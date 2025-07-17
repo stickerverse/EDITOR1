@@ -2,10 +2,9 @@
 "use client";
 import Image from 'next/image';
 import Link from 'next/link';
-import { CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardSkeletonContainer } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { GlowCard } from '@/components/ui/spotlight-card';
 
 const stickerCategories = [
   {
@@ -71,31 +70,31 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {stickerCategories.map((category, index) => (
             <Link href={category.href} key={category.title} className="group block">
-              <GlowCard customSize className="h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 p-0">
-                 <div className="relative h-48 w-full">
-                  <Image
-                    src={category.imageUrl}
-                    alt={category.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-t-xl"
-                    data-ai-hint={category.imageHint}
-                    priority={index === 0}
-                  />
-                </div>
+              <Card className="h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 p-0 bg-slate-900/50">
+                 <CardSkeletonContainer className="w-full">
+                    <Image
+                        src={category.imageUrl}
+                        alt={category.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-t-xl"
+                        data-ai-hint={category.imageHint}
+                        priority={index === 0}
+                    />
+                 </CardSkeletonContainer>
                 <div className="p-6">
-                  <CardHeader className="p-0">
-                    <CardTitle className="text-xl font-bold text-card-foreground">{category.title}</CardTitle>
+                  <CardHeader>
+                    <CardTitle className="text-xl font-bold text-white">{category.title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-0 mt-2">
-                    <p className="text-muted-foreground flex-grow">{category.description}</p>
+                  <CardContent>
+                    <CardDescription className="text-muted-foreground flex-grow">{category.description}</CardDescription>
                     <div className="mt-4 flex items-center justify-end text-sm font-semibold text-primary group-hover:underline">
                         Customize
                         <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                       </div>
                   </CardContent>
                 </div>
-              </GlowCard>
+              </Card>
             </Link>
           ))}
         </div>
