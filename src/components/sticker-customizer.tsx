@@ -655,11 +655,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
   // Fabric toolbar handlers
   const handleRemoveBackground = async () => {
-    if (!activeDesign?.sourceUrl) {
+    if (!activeStickerId || !activeDesign?.sourceUrl) {
       toast({
         variant: "destructive",
         title: "No Image Selected",
-        description: "Please select an image to remove its background.",
+        description: "Please select an image on the canvas to remove its background.",
       });
       return;
     }
@@ -668,15 +668,15 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     setLoadingText("Removing background...");
 
     try {
-      const { imageDataUri: noBgDataUri } = await removeBackgroundAction({ 
-        imageDataUri: activeDesign.sourceUrl 
+      const { imageDataUri: noBgDataUri } = await removeBackgroundAction({
+        imageDataUri: activeDesign.sourceUrl,
       });
 
       // Update the active design with the background-removed image
       setAppState(current => ({
         ...current,
-        designLibrary: current.designLibrary.map(d => 
-          d.designId === activeDesign.designId 
+        designLibrary: current.designLibrary.map(d =>
+          d.designId === activeDesign.designId
             ? { ...d, sourceUrl: noBgDataUri }
             : d
         )
