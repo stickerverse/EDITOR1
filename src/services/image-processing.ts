@@ -230,6 +230,7 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
 
     // Create final image by compositing the original with the mask
     const outputBuffer = await sharp(imageBuffer)
+        .ensureAlpha()
         .composite([{ 
             input: finalMaskBuffer, 
             blend: 'dest-in' 
