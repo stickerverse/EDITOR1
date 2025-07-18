@@ -613,3 +613,5 @@ export async function analyzeImage(imageDataUri: string): Promise<{
     complexity
   };
 }
+
+    
