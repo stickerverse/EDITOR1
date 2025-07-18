@@ -32,6 +32,12 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
+        success: 
+          "border-green-500 bg-green-50 text-green-900 dark:border-green-500/50 dark:bg-green-900/20 dark:text-green-100",
+        warning: 
+          "border-yellow-500 bg-yellow-50 text-yellow-900 dark:border-yellow-500/50 dark:bg-yellow-900/20 dark:text-yellow-100",
+        info: 
+          "border-blue-500 bg-blue-50 text-blue-900 dark:border-blue-500/50 dark:bg-blue-900/20 dark:text-blue-100",
       },
     },
     defaultVariants: {
@@ -40,11 +46,20 @@ const toastVariants = cva(
   }
 )
 
+// Custom props that should not be passed to DOM elements
+interface CustomToastProps {
+  createdAt?: Date;
+  persistent?: boolean;
+  onDismiss?: () => void;
+}
+
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
-    VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => {
+    VariantProps<typeof toastVariants> &
+    CustomToastProps
+>(({ className, variant, createdAt, persistent, onDismiss, ...props }, ref) => {
+  // Note: createdAt, persistent, and onDismiss are destructured but not passed to the DOM element
   return (
     <ToastPrimitives.Root
       ref={ref}

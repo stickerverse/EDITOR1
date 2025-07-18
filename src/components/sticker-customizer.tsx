@@ -1,10 +1,9 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import NextImage from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Star, Wand2, Upload, Sparkles, FileCheck2, ImagePlus, Type, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Bot, Layers, Circle, RectangleHorizontal, Square as SquareIconShape, Ruler, Lock, Unlock, Eye, Code } from 'lucide-react';
+import { Loader2, Star, Upload, Sparkles, FileCheck2, ImagePlus, Type, Library, Palette, CaseSensitive, LayoutGrid, GripVertical, Settings, RotateCw, Copy, ChevronsUp, Trash2, Layers, Lock, Unlock, Eye, Code, Ruler } from 'lucide-react';
 import { generateSticker } from '@/ai/flows/generate-sticker-flow';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
 import { ContourCutIcon, RoundedRectangleIcon as RoundedIcon, SquareIcon as SquareShapeIcon, CircleIcon as CircleShapeIcon } from '@/components/icons';
 import { StickerContextMenu } from '@/components/sticker-context-menu';
 import {
@@ -32,11 +30,18 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { StickerPreview } from '@/components/3d-sticker-preview';
 import { AnimatedIconContainer } from '@/components/animated-icon';
 import { FabricToolbar } from '@/components/fabric-toolbar';
+import type { BorderStyle } from '@/components/fabric-toolbar';
+
+// Constants
+const PIXELS_PER_INCH = 96;
+const MAX_QUANTITY = 10000;
+const MIN_STICKER_SIZE = 20; // minimum size in pixels
+const DEFAULT_STICKER_SIZE = 100; // default size for new stickers
 
 // Helper function to safely calculate aspect ratios
 const calculateAspectRatio = (design: Design): number => {
-  if (design.originalDimensions.height === 0) {
-    console.warn('Design height is zero, defaulting to square aspect ratio');
+  if (!design.originalDimensions || design.originalDimensions.height === 0) {
+    console.warn('Design height is zero or missing, defaulting to square aspect ratio');
     return 1;
   }
   return design.originalDimensions.width / design.originalDimensions.height;
@@ -59,7 +64,6 @@ const quantityOptions = [
   { quantity: 500, pricePer: 0.44 },
   { quantity: 1000, pricePer: 0.35 },
 ];
-
 
 // Data models based on the new JSON structure
 interface StickerSheet {
@@ -133,7 +137,13 @@ type ContextMenuState = {
 
 export type StickerShape = 'Die Cut' | 'circle' | 'square' | 'rounded';
 
-function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
+function CustomizationSection({ id, title, icon: Icon, children, className }: { 
+  id?: string; 
+  title: string; 
+  icon: React.ElementType; 
+  children: React.ReactNode; 
+  className?: string 
+}) {
   return (
     <div id={id} className={cn("space-y-4", className)}>
         <div className="flex items-center gap-3">
@@ -195,17 +205,14 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     stickerId: null,
   });
 
-  const [isTourActive, setIsTourActive] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'design' | 'preview'>('design');
-  const [borderPreview, setBorderPreview] = useState<{ width: number; color: string; style: string } | null>(null);
-
+  const [borderPreview, setBorderPreview] = useState<BorderStyle | null>(null);
 
   const selectedQuantityOption = quantityOptions.find(q => q.quantity === quantity) || { quantity: quantity, pricePer: 1.25 };
   const totalPrice = (selectedQuantityOption.pricePer * selectedQuantityOption.quantity).toFixed(2);
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const PIXELS_PER_INCH = 96;
 
   // Find the active sticker and its design
   const activeSticker = appState.stickers.find(s => s.stickerId === activeStickerId);
@@ -307,11 +314,29 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   }, [size, activeStickerId, updateStickerSize]);
 
   const handleAddToCart = () => {
+    if (quantity <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Quantity",
+        description: "Please select a valid quantity.",
+      });
+      return;
+    }
+
+    if (appState.stickers.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Designs",
+        description: "Please add at least one design to your sticker.",
+      });
+      return;
+    }
+
     toast({
       title: "Added to Cart!",
-      description: `Your custom stickers are on the way.`,
-    })
-  }
+      description: `${quantity} custom stickers have been added to your cart.`,
+    });
+  };
 
   const handlePresetQuantityClick = (qty: number) => {
     setQuantity(qty);
@@ -331,18 +356,17 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
     if (value === "") {
         setQuantity(0);
-    } else if (!isNaN(numValue) && numValue > 0 && numValue <= 10000) {
+    } else if (!isNaN(numValue) && numValue > 0 && numValue <= MAX_QUANTITY) {
         setQuantity(numValue);
-    } else if (numValue > 10000) {
-        setQuantity(10000);
+    } else if (numValue > MAX_QUANTITY) {
+        setQuantity(MAX_QUANTITY);
         toast({
             variant: "destructive",
             title: "Quantity too large",
-            description: "Maximum quantity is 10,000 stickers.",
+            description: `Maximum quantity is ${MAX_QUANTITY.toLocaleString()} stickers.`,
         });
     }
   };
-
 
   const addDesignToLibrary = (design: Omit<Design, 'designId' | 'originalDimensions'>, dimensions: {width: number, height: number}) => {
     const designId = `design_${Math.random().toString(36).substring(2, 11)}`;
@@ -357,11 +381,14 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       designLibrary: [...current.designLibrary, newDesign],
     }));
     return newDesign;
-  }
+  };
 
   const addStickerToSheet = (designId: string, designData?: Design, options?: { position?: {x: number, y: number}, zIndex?: number, rotation?: number }) => {
     const design = designData || appState.designLibrary.find(d => d.designId === designId);
-    if (!design) return;
+    if (!design) {
+      console.error(`Design not found: ${designId}`);
+      return;
+    }
 
     const stickerId = `inst_${Math.random().toString(36).substring(2, 11)}`;
     
@@ -370,10 +397,17 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     const initialWidthPx = size.width * PIXELS_PER_INCH;
     const initialHeightPx = size.height * PIXELS_PER_INCH;
     
+    // Get canvas dimensions for centering if no position provided
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    const defaultPosition = {
+      x: canvasRect ? canvasRect.width / 2 - initialWidthPx / 2 : 50,
+      y: canvasRect ? canvasRect.height / 2 - initialHeightPx / 2 : 50
+    };
+    
     const newSticker: StickerInstance = {
       stickerId,
       designId,
-      position: options?.position ? { ...options.position, unit: 'px' } : { x: 50, y: 50, unit: 'px' },
+      position: options?.position ? { ...options.position, unit: 'px' } : { ...defaultPosition, unit: 'px' },
       size: { width: initialWidthPx, height: initialHeightPx, unit: 'px' },
       rotation: options?.rotation ?? 0,
       zIndex: options?.zIndex ?? (maxZIndex + 1),
@@ -385,19 +419,28 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       return { ...current, stickers: newStickers.sort((a, b) => a.zIndex - b.zIndex) };
     });
     setActiveStickerId(stickerId);
-  }
+  };
 
   const handleFileUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid File Type",
+        description: "Please upload an image file (PNG, JPG, or WEBP).",
+      });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
         setIsLoading(true);
         setLoadingText("Uploading image...");
 
-        try {
-            const img = new Image();
-            
-            img.onload = () => {
+        const img = new Image();
+        
+        img.onload = () => {
+            try {
                 const newDesign = addDesignToLibrary(
                     {
                         sourceType: 'upload',
@@ -409,8 +452,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 
                 // Add the sticker to the center of the canvas
                 const canvasRect = canvasRef.current?.getBoundingClientRect();
-                const centerX = canvasRect ? canvasRect.width / 2 - 50 : 200; // Default center position
-                const centerY = canvasRect ? canvasRect.height / 2 - 50 : 200;
+                const centerX = canvasRect ? canvasRect.width / 2 - DEFAULT_STICKER_SIZE / 2 : 200;
+                const centerY = canvasRect ? canvasRect.height / 2 - DEFAULT_STICKER_SIZE / 2 : 200;
                 
                 addStickerToSheet(newDesign.designId, newDesign, {
                     position: { x: centerX, y: centerY }
@@ -421,32 +464,31 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                     title: "Image Uploaded!",
                     description: `${file.name} has been added to your canvas.`,
                 });
-                setIsLoading(false);
-                setLoadingText("");
-            };
-            
-            img.onerror = () => {
-                console.error('Failed to load uploaded image');
+            } catch (error) {
+                console.error('Error processing uploaded image:', error);
                 toast({
                     variant: "destructive",
-                    title: "Image Load Failed",
-                    description: "Could not load the uploaded image.",
+                    title: "Processing Failed",
+                    description: "Could not process the uploaded image.",
                 });
+            } finally {
                 setIsLoading(false);
                 setLoadingText("");
-            };
-            
-            img.src = dataUrl;
-        } catch (error) {
-            console.error("Image upload failed:", error);
+            }
+        };
+        
+        img.onerror = () => {
+            console.error('Failed to load uploaded image');
             toast({
                 variant: "destructive",
-                title: "Upload Failed",
-                description: "Could not upload the image. Please try another one.",
+                title: "Image Load Failed",
+                description: "Could not load the uploaded image.",
             });
             setIsLoading(false);
             setLoadingText("");
-        }
+        };
+        
+        img.src = dataUrl;
     };
     
     reader.onerror = () => {
@@ -470,7 +512,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   };
 
   const handleGenerateSticker = async () => {
-    if (!prompt) {
+    if (!prompt.trim()) {
       toast({
         variant: "destructive",
         title: "Prompt is empty",
@@ -481,18 +523,21 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     setIsGenerating(true);
     setLoadingText("Generating your masterpiece...");
     setUploadedFileName(null);
+    
     try {
       const result = await generateSticker({ prompt });
       if (result.imageDataUri) {
-          setIsLoading(true);
-          setLoadingText("Removing background...");
-          const { imageDataUri: noBgDataUri } = await removeBackgroundAction({ imageDataUri: result.imageDataUri });
-          setLoadingText("Adding die-cut border...");
-          const { imageDataUri: finalDataUri } = await addBorder({
-              imageDataUri: noBgDataUri,
-              borderColor: 'white',
-              borderWidth: 'thick'
-          });
+        setIsLoading(true);
+        setLoadingText("Removing background...");
+        
+        const { imageDataUri: noBgDataUri } = await removeBackgroundAction({ imageDataUri: result.imageDataUri });
+        
+        setLoadingText("Adding die-cut border...");
+        const { imageDataUri: finalDataUri } = await addBorder({
+            imageDataUri: noBgDataUri,
+            borderColor: 'white',
+            borderWidth: 'thick'
+        });
 
         const img = new Image();
         
@@ -510,6 +555,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
               title: "Sticker Generated!",
               description: "Your new design has been added.",
             });
+            setIsLoading(false);
+            setLoadingText("");
         };
         
         img.onerror = () => {
@@ -535,10 +582,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         title: "Generation Failed",
         description: "Could not generate sticker. Please try again.",
       });
-    } finally {
       setIsGenerating(false);
       setIsLoading(false);
       setLoadingText("");
+    } finally {
+      setIsGenerating(false);
     }
   };
   
@@ -552,19 +600,24 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     if (!canvasRef.current) return;
     const canvasRect = canvasRef.current.getBoundingClientRect();
 
-    const dataString = e.dataTransfer.getData('application/json');
-    if (dataString) {
-      try {
-        const data: {type: 'design' | 'canvas-sticker', id: string} = JSON.parse(dataString);
-        const x = e.clientX - canvasRect.left;
-        const y = e.clientY - canvasRect.top;
+    try {
+        const dataString = e.dataTransfer.getData('application/json');
+        if (dataString) {
+            const data: {type: 'design' | 'canvas-sticker', id: string} = JSON.parse(dataString);
+            const x = e.clientX - canvasRect.left;
+            const y = e.clientY - canvasRect.top;
 
-        if (data.type === 'design') { // Adding a new sticker from the library
-            addStickerToSheet(data.id, undefined, { position: { x: x - 50, y: y - 50 }}); // Offset to center
+            if (data.type === 'design') {
+                addStickerToSheet(data.id, undefined, { position: { x: x - 50, y: y - 50 }});
+            }
         }
-      } catch (err) {
+    } catch (err) {
         console.error("Failed to parse dropped data", err);
-      }
+        toast({
+            variant: "destructive",
+            title: "Drop Failed",
+            description: "Could not process the dropped item.",
+        });
     }
   };
 
@@ -610,6 +663,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       setActiveStickerId(null);
     }
     toast({ title: "Sticker Removed" });
+    closeContextMenu();
   };
   
   const handleDuplicateSticker = () => {
@@ -622,6 +676,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       });
       toast({ title: "Sticker Duplicated" });
     }
+    closeContextMenu();
   };
 
   const handleBringToFront = () => {
@@ -631,12 +686,22 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       ...current,
       stickers: current.stickers.map(s => 
         s.stickerId === contextMenu.stickerId ? { ...s, zIndex: maxZIndex + 1 } : s
-      ).sort((a,b) => a.zIndex - b.zIndex)
+      ).sort((a, b) => a.zIndex - b.zIndex)
     }));
     toast({ title: "Brought to Front" });
+    closeContextMenu();
   };
 
   const handleAddTextDecal = () => {
+    if (!decalText.trim()) {
+      toast({
+        variant: "destructive",
+        title: "No Text",
+        description: "Please enter some text for your decal.",
+      });
+      return;
+    }
+
     const textDesign = {
       sourceType: 'text' as const,
       textData: {
@@ -651,7 +716,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       title: "Text Layer Added",
       description: "Your text has been added to the canvas."
     });
-  }
+  };
 
   // Fabric toolbar handlers
   const handleRemoveBackground = async () => {
@@ -699,7 +764,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     }
   };
 
-  const handleAddBorder = async (borderStyle: { width: number; color: string; style: string }) => {
+  const handleAddBorder = async (borderStyle: BorderStyle) => {
     if (!activeDesign?.sourceUrl) {
       toast({
         variant: "destructive",
@@ -743,6 +808,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     } finally {
       setIsLoading(false);
       setLoadingText("");
+      setBorderPreview(null);
     }
   };
 
@@ -766,7 +832,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   };
 
   // Live preview handlers
-  const handleBorderPreview = (borderStyle: { width: number; color: string; style: string }) => {
+  const handleBorderPreview = (borderStyle: BorderStyle) => {
     setBorderPreview(borderStyle);
   };
 
@@ -826,15 +892,19 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         
         setAppState(current => ({
             ...current,
-            stickers: current.stickers.map(s => s.stickerId === dragAction.stickerId ? { ...s, position: { ...s.position, x: newX, y: newY } } : s)
+            stickers: current.stickers.map(s => 
+                s.stickerId === dragAction.stickerId 
+                    ? { ...s, position: { ...s.position, x: newX, y: newY } } 
+                    : s
+            )
         }));
     } else if (dragAction.type === 'resize-br') {
         const { originalSticker } = dragAction;
         const design = appState.designLibrary.find(d => d.designId === originalSticker.designId);
         if (!design) return;
 
-        let newWidth = Math.max(20, originalSticker.size.width + dx);
-        let newHeight = Math.max(20, originalSticker.size.height + dy);
+        let newWidth = Math.max(MIN_STICKER_SIZE, originalSticker.size.width + dx);
+        let newHeight = Math.max(MIN_STICKER_SIZE, originalSticker.size.height + dy);
         
         if(isAspectRatioLocked) {
             const aspectRatio = design.sourceType === 'text' 
@@ -852,10 +922,14 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             newHeight = Math.min(newHeight, maxHeight);
         }
 
-        if (newWidth > 20 && newHeight > 20) {
+        if (newWidth > MIN_STICKER_SIZE && newHeight > MIN_STICKER_SIZE) {
             setAppState(current => ({
                 ...current,
-                stickers: current.stickers.map(s => s.stickerId === dragAction.stickerId ? { ...s, size: { ...s.size, width: newWidth, height: newHeight } } : s)
+                stickers: current.stickers.map(s => 
+                    s.stickerId === dragAction.stickerId 
+                        ? { ...s, size: { ...s.size, width: newWidth, height: newHeight } } 
+                        : s
+                )
             }));
             setSize(prev => ({
                 ...prev,
@@ -887,7 +961,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         
         setAppState(current => ({
             ...current,
-            stickers: current.stickers.map(s => s.stickerId === dragAction.stickerId ? { ...s, rotation: newRotation } : s)
+            stickers: current.stickers.map(s => 
+                s.stickerId === dragAction.stickerId 
+                    ? { ...s, rotation: newRotation } 
+                    : s
+            )
         }));
     }
   };
@@ -967,6 +1045,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
         const newStickers: StickerInstance[] = [];
         let maxZ = currentAppState.stickers.reduce((max, s) => Math.max(max, s.zIndex), 0);
+        
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < cols; j++) {
             const x = padding + j * (cellWidth + gap) + offsetX;
@@ -988,7 +1067,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         return {
           ...currentAppState,
           stickerSheet: { ...currentAppState.stickerSheet, settings: { ...currentAppState.stickerSheet.settings, autoPackEnabled: false } },
-          stickers: newStickers.sort((a,b) => a.zIndex - b.zIndex)
+          stickers: newStickers.sort((a, b) => a.zIndex - b.zIndex)
         };
 
       } else {
@@ -1126,7 +1205,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                               <div
                                 key={i}
                                 className={cn(
-                                  "w-8 h-8 border rounded-sm transition-colors",
+                                  "w-8 h-8 border rounded-sm transition-colors cursor-pointer",
                                   (isHovered || isSelected) ? "bg-primary" : "bg-muted"
                                 )}
                                 onMouseEnter={() => setHoveredLayout({rows: row, cols: col})}
@@ -1275,7 +1354,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         </Tabs>
       </CustomizationSection>
     );
-  }
+  };
   
   const renderStickerInstance = (sticker: StickerInstance) => {
     const design = appState.designLibrary.find(d => d.designId === sticker.designId);
@@ -1294,7 +1373,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     } : {};
 
     if (design.sourceType === 'text' && design.textData) {
-        const fontSize = sticker.size.width / 10;
+        const fontSize = Math.max(12, sticker.size.width / 10);
         return (
             <div
                 id={`sticker-${sticker.stickerId}`}
@@ -1314,81 +1393,32 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                     height: `${sticker.size.height}px`,
                     transform: `rotate(${sticker.rotation}deg)`,
                     zIndex: sticker.zIndex,
-                    ...previewBorderStyle,
+                    ...previewBorderStyle
                 }}
             >
-                <span
+                <span 
                     id={`sticker-text-${sticker.stickerId}`}
-                    className="font-bold pointer-events-none"
                     style={{
                         color: design.textData.color,
                         fontFamily: design.textData.font,
                         fontSize: `${fontSize}px`,
-                        lineHeight: 1,
+                        lineHeight: 1.2,
                     }}
                 >
                     {design.textData.content}
                 </span>
+                
                 {showControls && (
                     <>
                         <div
-                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-se-resize"
-                            onPointerDown={(e) => handlePointerDown(e, 'resize-br', sticker.stickerId)}
+                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-nwse-resize touch-none"
+                            onPointerDown={(e) => {e.stopPropagation(); handlePointerDown(e, 'resize-br', sticker.stickerId);}}
                         />
                         <div
-                            className="absolute -top-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-grab"
-                            onPointerDown={(e) => handlePointerDown(e, 'rotate', sticker.stickerId)}
+                            className="absolute -top-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-grab active:cursor-grabbing touch-none"
+                            onPointerDown={(e) => {e.stopPropagation(); handlePointerDown(e, 'rotate', sticker.stickerId);}}
                         >
-                          <RotateCw className="w-full h-full p-0.5 text-background" />
-                        </div>
-                    </>
-                )}
-            </div>
-        )
-    }
-
-    if (design.sourceUrl) {
-        return (
-            <div
-                id={`sticker-${sticker.stickerId}`}
-                key={sticker.stickerId}
-                onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
-                onClick={() => setActiveStickerId(sticker.stickerId)}
-                onContextMenu={(e) => handleContextMenu(e, sticker.stickerId)}
-                className={cn(
-                    "absolute select-none",
-                    isDraggable && "cursor-grab active:cursor-grabbing",
-                    isSelected && !shouldShowBorderPreview && "outline-dashed outline-2 outline-primary rounded-md",
-                )}
-                style={{
-                    left: `${sticker.position.x}px`,
-                    top: `${sticker.position.y}px`,
-                    width: `${sticker.size.width}px`,
-                    height: `${sticker.size.height}px`,
-                    transform: `rotate(${sticker.rotation}deg)`,
-                    zIndex: sticker.zIndex,
-                    ...previewBorderStyle,
-                }}
-            >
-                <NextImage
-                    src={design.sourceUrl}
-                    alt="sticker instance"
-                    fill
-                    sizes="(max-width: 768px) 10vw, 100px"
-                    className="object-contain pointer-events-none"
-                    priority={sticker.stickerId === activeStickerId}
-                />
-                 {showControls && (
-                    <>
-                        <div
-                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-se-resize"
-                            onPointerDown={(e) => handlePointerDown(e, 'resize-br', sticker.stickerId)}
-                        />
-                        <div
-                            className="absolute -top-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-grab"
-                            onPointerDown={(e) => handlePointerDown(e, 'rotate', sticker.stickerId)}
-                        >
-                          <RotateCw className="w-full h-full p-0.5 text-background" />
+                            <RotateCw className="w-3 h-3 text-primary-foreground" style={{margin: '0.125rem'}} />
                         </div>
                     </>
                 )}
@@ -1396,129 +1426,163 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         );
     }
 
-    return null;
-  }
-  
-  const getShapeStyle = (shape: StickerShape) => {
-    let borderRadius = '1rem'; // Default for contour
-    switch (shape) {
-        case 'circle':
-            borderRadius = '50%';
-            break;
-        case 'square':
-            borderRadius = '0';
-            break;
-        case 'rounded':
-            borderRadius = '2rem';
-            break;
-    }
-    return { borderRadius };
-  };
-  
-  const renderCanvasContent = () => {
-    const showGrid = productType === 'sheet' && appState.stickerSheet.settings.autoPackEnabled;
-      
-      if (showGrid) {
-          const itemShapeStyle = getShapeStyle(stickerShape);
-          return (
-             <div 
-              className="grid w-full h-full gap-2 p-2"
-              style={{
-                gridTemplateRows: `repeat(${sheetLayout.rows}, 1fr)`,
-                gridTemplateColumns: `repeat(${sheetLayout.cols}, 1fr)`,
-              }}
-            >
-              {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-                <div key={i} className="relative w-full h-full bg-muted/50 flex items-center justify-center transition-all duration-300" style={itemShapeStyle}>
-                  {imageToDisplay ? (
-                    <NextImage
-                      src={imageToDisplay}
-                      alt={`Sticker preview ${i + 1}`}
-                      fill
-                      sizes="(max-width: 768px) 10vw, 5vw"
-                      className="object-contain p-1"
+    // For image-based stickers
+    return (
+        <div
+            id={`sticker-${sticker.stickerId}`}
+            key={sticker.stickerId}
+            onPointerDown={(e) => { if(isDraggable) handlePointerDown(e, 'move', sticker.stickerId) }}
+            onClick={() => setActiveStickerId(sticker.stickerId)}
+            onContextMenu={(e) => handleContextMenu(e, sticker.stickerId)}
+            className={cn(
+                "absolute select-none",
+                isDraggable && "cursor-grab active:cursor-grabbing",
+                isSelected && !shouldShowBorderPreview && "outline-dashed outline-2 outline-primary rounded-md"
+            )}
+            style={{
+                left: `${sticker.position.x}px`,
+                top: `${sticker.position.y}px`,
+                width: `${sticker.size.width}px`,
+                height: `${sticker.size.height}px`,
+                transform: `rotate(${sticker.rotation}deg)`,
+                zIndex: sticker.zIndex,
+                ...previewBorderStyle
+            }}
+        >
+            {design.sourceUrl && (
+                <NextImage
+                    src={design.sourceUrl}
+                    alt={design.fileName || design.aiPrompt || 'sticker'}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-contain pointer-events-none"
+                    draggable={false}
+                />
+            )}
+            
+            {showControls && (
+                <>
+                    <div
+                        className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-nwse-resize touch-none"
+                        onPointerDown={(e) => {e.stopPropagation(); handlePointerDown(e, 'resize-br', sticker.stickerId);}}
                     />
-                  ) : (
-                    <ImagePlus className="h-6 w-6 text-muted-foreground"/>
-                  )}
-                </div>
-              ))}
-            </div>
-          )
-      }
-    
-    // For other product types (die-cut, kiss-cut, decal) or sheet with autopack off
-    if (appState.stickers.length > 0) {
-      return appState.stickers.map(renderStickerInstance);
-    }
-
-    return (
-      <div className="text-center text-muted-foreground flex flex-col items-center justify-center h-full">
-        <Layers className="h-12 w-12 mb-4" />
-        <p className="text-lg font-semibold">Sticker Canvas</p>
-        <p className="text-sm">Add a design to get started.</p>
-      </div>
-    );
-  }
-
-  if (!mounted) {
-    return (
-        <div className="container mx-auto px-0 py-0 md:py-4">
-            <div className="text-center p-8 bg-card rounded-lg">
-                <Loader2 className="mx-auto h-12 w-12 animate-spin" />
-                <h1 className="text-3xl font-bold mt-4">Loading Customizer...</h1>
-            </div>
+                    <div
+                        className="absolute -top-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-grab active:cursor-grabbing touch-none"
+                        onPointerDown={(e) => {e.stopPropagation(); handlePointerDown(e, 'rotate', sticker.stickerId);}}
+                    >
+                        <RotateCw className="w-3 h-3 text-primary-foreground" style={{margin: '0.125rem'}} />
+                    </div>
+                </>
+            )}
         </div>
     );
-  }
-  
-  const canvasShapeStyle = (productType === 'sheet' && !appState.stickerSheet.settings.autoPackEnabled) || (productType !== 'sheet')
-    ? getShapeStyle(stickerShape)
-    : {}; // No special shape for auto-layout grid container
+};
 
+  // Main component render
   return (
-    <div className="container mx-auto px-0 py-0 md:py-4">
-      {viewMode === 'preview' && imageToDisplay ? (
-        <StickerPreview 
-            imageUrl={imageToDisplay} 
-            material={appState.stickerSheet.material.id}
-            onClose={() => setViewMode('design')}
-        />
-      ) : null}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className={cn(
-            "lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group",
-        )}>
-          <Card className="w-full max-w-lg aspect-square p-0 bg-transparent shadow-none border-none">
-              <div 
-                id="canvas-container"
+    <div className="w-full max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8">
+        {/* Canvas Area */}
+        <div className="space-y-6">
+          {/* Canvas Toolbar */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Label className="text-sm font-medium">View Mode:</Label>
+                <ToggleGroup value={viewMode} onValueChange={(value) => value && setViewMode(value as 'design' | 'preview')}>
+                  <ToggleGroupItem value="design" aria-label="Design View">
+                    <Code className="h-4 w-4 mr-2" />
+                    Design
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="preview" aria-label="Preview" disabled={!imageToDisplay}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              
+              {activeSticker && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (activeStickerId) {
+                        const sticker = appState.stickers.find(s => s.stickerId === activeStickerId);
+                        if (sticker) {
+                          addStickerToSheet(sticker.designId, undefined, {
+                            position: { x: sticker.position.x + 20, y: sticker.position.y + 20 },
+                            rotation: sticker.rotation
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (activeStickerId) {
+                        setAppState(current => ({
+                          ...current,
+                          stickers: current.stickers.filter(s => s.stickerId !== activeStickerId)
+                        }));
+                        setActiveStickerId(null);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Main Canvas */}
+          {viewMode === 'design' ? (
+            <Card className="relative bg-card overflow-hidden">
+              <div
                 ref={canvasRef}
-                className={cn(
-                  "relative w-full h-full p-0 transition-all duration-300 touch-none transparent-bg",
-                )}
-                style={canvasShapeStyle}
+                className="relative w-full h-[600px] bg-white rounded-lg overflow-hidden"
                 onDrop={handleDropOnCanvas}
                 onDragOver={(e) => e.preventDefault()}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
-                onPointerLeave={handlePointerUp}
-                onClick={closeContextMenu}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setActiveStickerId(null);
+                    closeContextMenu();
+                  }
+                }}
               >
-              {isLoading && (
-                <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center z-20" style={canvasShapeStyle}>
-                  <Loader2 className="h-12 w-12 animate-spin text-foreground" />
-                  <p className="text-foreground mt-4 font-semibold">{loadingText}</p>
-                </div>
-              )}
-                {/* This area will become the sticker sheet canvas */}
-                <div className={cn("w-full h-full flex items-center justify-center relative overflow-hidden", viewMode === 'preview' && "opacity-20 pointer-events-none")} style={canvasShapeStyle}>
-                  {renderCanvasContent()}
-                </div>
+                {appState.stickers.map(renderStickerInstance)}
+                
+                {appState.stickers.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">Canvas is empty</p>
+                      <p className="text-sm">Upload an image or add text to get started</p>
+                    </div>
+                  </div>
+                )}
               </div>
-          </Card>
-          
-          {/* Fabric.js Toolbar */}
-          <div className="w-full max-w-lg">
+            </Card>
+          ) : (
+            <Card className="p-8">
+              <StickerPreview 
+                imageUrl={imageToDisplay || ''}
+                material={appState.stickerSheet.material.id}
+                size={size}
+                shape={stickerShape}
+              />
+            </Card>
+          )}
+
+          {/* Fabric Toolbar */}
+          {viewMode === 'design' && (
             <FabricToolbar
               onRemoveBackground={handleRemoveBackground}
               onAddBorder={handleAddBorder}
@@ -1528,198 +1592,159 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
               isLoading={isLoading}
               hasActiveImage={!!activeDesign?.sourceUrl}
             />
-          </div>
+          )}
         </div>
-        
-        <div className="lg:col-span-2">
-            <Card className="p-4 shadow-lg">
-              <div className="flex flex-col space-y-6">
-                <header>
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                            {productType.charAt(0).toUpperCase() + productType.slice(1).replace('-', ' ')} Stickers
-                        </h1>
-                         <ToggleGroup 
-                            type="single" 
-                            value={viewMode}
-                            onValueChange={(value) => {
-                                if (value && value !== viewMode) {
-                                    if (value === 'preview' && imageToDisplay) {
-                                        setViewMode('preview');
-                                    } else if (value === 'design') {
-                                        setViewMode('design');
-                                    }
-                                }
-                            }}
-                            className="p-1"
-                            >
-                            <ToggleGroupItem value="design" aria-label="Design mode">
-                                <Code className="h-4 w-4 mr-2" />
-                                Design
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="preview" aria-label="Preview mode" disabled={!imageToDisplay}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Preview
-                            </ToggleGroupItem>
-                        </ToggleGroup>
+
+        {/* Right Panel - Controls */}
+        <div className="space-y-6">
+          {/* Product Controls */}
+          <Accordion type="multiple" defaultValue={["layer", "shape", "size", "quantity"]} className="w-full">
+            <AccordionItem value="layer">
+              <AccordionTrigger className="text-lg font-semibold">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-5 w-5" />
+                  Design
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                {renderDesignControls()}
+              </AccordionContent>
+            </AccordionItem>
+
+            {productType !== 'sheet' && (
+              <>
+                <AccordionItem value="shape">
+                  <AccordionTrigger className="text-lg font-semibold">
+                    <div className="flex items-center gap-2">
+                      <SquareShapeIcon className="h-5 w-5" />
+                      Shape
                     </div>
-                    <div className="mt-2 flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                            <div className="flex text-yellow-400">
-                                <Star className="w-5 h-5 fill-current" />
-                                <Star className="w-5 h-5 fill-current" />
-                                <Star className="w-5 h-5 fill-current" />
-                                <Star className="w-5 h-5 fill-current" />
-                                <Star className="w-5 h-5 fill-current" />
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium"><span className="text-foreground font-semibold">5.0</span> (4,882 reviews)</p>
-                        </div>
-                    </div>
-                  </header>
-
-                  <div className={cn("transition-opacity duration-300", viewMode === 'preview' && "opacity-20 pointer-events-none")}>
-                    <div className="flex flex-col space-y-6">
-                      <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
-                        <div className="flex flex-col space-y-2">
-                            {shapeButtons.map(({ shape, icon: Icon, label }) => (
-                                <button
-                                    key={shape}
-                                    onClick={() => setStickerShape(shape)}
-                                    className={cn(
-                                        "w-full flex items-center gap-3 p-3 rounded-md text-left transition-all duration-200",
-                                        stickerShape === shape
-                                            ? "bg-secondary text-foreground font-semibold shadow-inner"
-                                            : "bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
-                                    )}
-                                >
-                                    <Icon className="h-7 w-7" />
-                                    <span className="text-sm">{label}</span>
-                                </button>
-                            ))}
-                        </div>
-                      </CustomizationSection>
-
-                      {renderDesignControls()}
-
-                    
-                      <Accordion type="multiple" defaultValue={['material', 'size', 'quantity']} className="w-full space-y-6">
-                        <AccordionItem value="material" className="border-none">
-                          <CustomizationSection id="material-section" title="Material" icon={Palette}>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {materials.map((m) => (
-                                  <button
-                                    key={m.id}
-                                    type="button"
-                                    onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
-                                    className={cn(
-                                      "relative group rounded-lg p-1 text-center transition-all duration-200 border-2 bg-card",
-                                      appState.stickerSheet.material.id === m.id ? "border-primary" : "border-border hover:border-muted-foreground"
-                                    )}
-                                  >
-                                    <NextImage src={m.image} alt={m.name} width={80} height={80} style={{width:'auto', height:'auto'}} className="mx-auto mb-1 rounded-md" data-ai-hint="sticker material" priority={m.id === 'matte'} />
-                                    <p className="font-semibold text-xs text-foreground">{m.name}</p>
-                                  </button>
-                                ))}
-                              </div>
-                          </CustomizationSection>
-                        </AccordionItem>
-                         <AccordionItem value="size" className="border-none">
-                          <CustomizationSection id="size-section" title="Size" icon={Ruler}>
-                               <div className="flex items-center justify-between">
-                                  <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2">
-                                      {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
-                                      <span>Lock Aspect Ratio</span>
-                                  </Label>
-                                  <Switch
-                                      id="aspect-ratio-lock"
-                                      checked={isAspectRatioLocked}
-                                      onCheckedChange={setIsAspectRatioLocked}
-                                  />
-                              </div>
-                              <SizeSelector size={size} onSizeChange={setSize} />
-                          </CustomizationSection>
-                        </AccordionItem>
-                        <AccordionItem value="quantity" className="border-none">
-                            <CustomizationSection id="quantity-section" title="Quantity" icon={Sparkles}>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        {quantityOptions.map((q) => {
-                                            const isActive = quantitySelectionType === 'preset' && quantity === q.quantity;
-                                            return (
-                                                <Button
-                                                    key={q.quantity}
-                                                    variant="outline"
-                                                    onClick={() => handlePresetQuantityClick(q.quantity)}
-                                                    aria-pressed={isActive}
-                                                    className={cn(
-                                                        "h-auto flex-col justify-center items-center gap-1 py-3 px-2 text-center transition-all duration-200",
-                                                        isActive && "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg"
-                                                    )}
-                                                >
-                                                    <span className="font-bold text-base leading-none">{q.quantity}</span>
-                                                    <span className="text-xs text-muted-foreground">${q.pricePer.toFixed(2)}/ea</span>
-                                                </Button>
-                                            );
-                                        })}
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        onClick={handleCustomQuantityClick}
-                                        aria-pressed={quantitySelectionType === 'custom'}
-                                        className={cn(
-                                            "w-full justify-center transition-all duration-200 mt-3",
-                                             quantitySelectionType === 'custom' && "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg"
-                                        )}
-                                    >
-                                        Custom Quantity
-                                    </Button>
-
-                                    {quantitySelectionType === 'custom' && (
-                                        <div className="pt-4">
-                                            <Label htmlFor="custom-quantity" className="mb-2 block">Quantity (10,000 max)</Label>
-                                            <Input
-                                                id="custom-quantity"
-                                                type="number"
-                                                value={quantity === 0 ? '' : quantity}
-                                                onChange={handleCustomQuantityChange}
-                                                className="w-full"
-                                                placeholder="e.g. 125"
-                                            />
-                                        </div>
-                                    )}
-                            </CustomizationSection>
-                        </AccordionItem>
-                      </Accordion>
-                    
-                      <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-primary via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-primary/20">
-                          <div className="bg-card rounded-lg p-4">
-                            <div className="flex flex-row items-center justify-between pb-4">
-                              <h3 className="text-lg font-semibold text-foreground">Total Price</h3>
-                              <div className="text-right">
-                                 <span className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
-                                 {quantity > 0 && <p className="text-sm text-muted-foreground">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
-                              </div>
-                            </div>
-                            <Button size="lg" className="w-full text-lg h-14 font-bold bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
-                              Add to Cart
-                            </Button>
-                          </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <CustomizationSection title="Sticker Shape" icon={SquareShapeIcon}>
+                      <div className="grid grid-cols-2 gap-3">
+                        {shapeButtons.map(({ shape, icon: Icon, label }) => (
+                          <Button
+                            key={shape}
+                            variant={stickerShape === shape ? "default" : "outline"}
+                            onClick={() => setStickerShape(shape)}
+                            className="h-20 flex flex-col gap-2"
+                          >
+                            <Icon className="h-8 w-8" />
+                            <span className="text-xs">{label}</span>
+                          </Button>
+                        ))}
                       </div>
+                    </CustomizationSection>
+                  </AccordionContent>
+                </AccordionItem>
 
+                <AccordionItem value="size">
+                  <AccordionTrigger className="text-lg font-semibold">
+                    <div className="flex items-center gap-2">
+                      <Ruler className="h-5 w-5" />
+                      Size
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <CustomizationSection title="Sticker Size" icon={Ruler}>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label>Lock Aspect Ratio</Label>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={isAspectRatioLocked}
+                              onCheckedChange={setIsAspectRatioLocked}
+                            />
+                            {isAspectRatioLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                          </div>
+                        </div>
+                        <SizeSelector size={size} onSizeChange={setSize} />
+                      </div>
+                    </CustomizationSection>
+                  </AccordionContent>
+                </AccordionItem>
+              </>
+            )}
+
+            <AccordionItem value="quantity">
+              <AccordionTrigger className="text-lg font-semibold">
+                <div className="flex items-center gap-2">
+                  <ChevronsUp className="h-5 w-5" />
+                  Quantity & Cart
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <CustomizationSection title="Quantity" icon={ChevronsUp}>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-2">
+                      {quantityOptions.map((option) => (
+                        <Button
+                          key={option.quantity}
+                          variant={quantitySelectionType === 'preset' && quantity === option.quantity ? "default" : "outline"}
+                          onClick={() => handlePresetQuantityClick(option.quantity)}
+                          className="h-16 flex flex-col"
+                        >
+                          <span className="font-bold">{option.quantity}</span>
+                          <span className="text-xs opacity-70">${option.pricePer}/ea</span>
+                        </Button>
+                      ))}
+                    </div>
+                    <div>
+                      <Label>Custom Quantity</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max={MAX_QUANTITY}
+                        value={quantitySelectionType === 'custom' ? quantity : ''}
+                        onChange={handleCustomQuantityChange}
+                        onClick={handleCustomQuantityClick}
+                        placeholder="Enter custom quantity"
+                      />
+                    </div>
+                    <div className="pt-4 border-t">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-lg font-semibold">Total Price:</span>
+                        <span className="text-2xl font-bold text-primary">${totalPrice}</span>
+                      </div>
+                      <Button 
+                        onClick={handleAddToCart} 
+                        className="w-full"
+                        size="lg"
+                        disabled={appState.stickers.length === 0 || quantity === 0}
+                      >
+                        <Star className="mr-2 h-5 w-5" />
+                        Add to Cart
+                      </Button>
                     </div>
                   </div>
-              </div>
-            </Card>
+                </CustomizationSection>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
-
       </div>
-      <StickerContextMenu
-          isOpen={contextMenu.isOpen}
+
+      {/* Context Menu */}
+      {contextMenu.isOpen && contextMenu.stickerId && (
+        <StickerContextMenu
           position={contextMenu.position}
           onClose={closeContextMenu}
           onDelete={handleDeleteSticker}
           onDuplicate={handleDuplicateSticker}
           onBringToFront={handleBringToFront}
         />
+      )}
+
+      {/* Loading Overlay */}
+      {(isLoading || isGenerating) && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card p-6 rounded-lg shadow-lg text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-lg font-medium">{loadingText || "Processing..."}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
