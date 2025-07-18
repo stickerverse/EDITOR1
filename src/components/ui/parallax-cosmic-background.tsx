@@ -56,19 +56,16 @@ const CosmicParallaxBg: React.FC<CosmicParallaxBgProps> = ({
   };
   
   useEffect(() => {
-    // This check is to prevent errors during server-side rendering
-    if (typeof window !== 'undefined') {
-        // Generate star shadows when component mounts
-        setSmallStars(generateStarBoxShadow(700));
-        setMediumStars(generateStarBoxShadow(200));
-        setBigStars(generateStarBoxShadow(100));
-        
-        // Set animation iteration based on loop prop
-        document.documentElement.style.setProperty(
-          '--animation-iteration', 
-          loop ? 'infinite' : '1'
-        );
-    }
+    // Generate star shadows when component mounts on the client
+    setSmallStars(generateStarBoxShadow(700));
+    setMediumStars(generateStarBoxShadow(200));
+    setBigStars(generateStarBoxShadow(100));
+    
+    // Set animation iteration based on loop prop
+    document.documentElement.style.setProperty(
+      '--animation-iteration', 
+      loop ? 'infinite' : '1'
+    );
   }, [loop]);
   
   return (
