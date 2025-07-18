@@ -1,107 +1,15 @@
 
 "use client";
-import Image from 'next/image';
-import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardSkeletonContainer } from '@/components/ui/card';
-import { ArrowRight } from 'lucide-react';
-import { useState, useEffect } from 'react';
-
-const stickerCategories = [
-  {
-    title: 'Die-cut Stickers',
-    description: 'Custom-shaped stickers with a premium look and feel.',
-    href: '/die-cut',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'die cut sticker'
-  },
-  {
-    title: 'Kiss-cut Stickers',
-    description: 'Individually cut stickers on a single backing sheet.',
-    href: '/kiss-cut',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'sticker sheet'
-  },
-  {
-    title: 'Sticker Sheets',
-    description: 'Multiple stickers, one page. Perfect for collections.',
-    href: '/sheet',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'sticker collection'
-  },
-  {
-    title: 'Text Decals',
-    description: 'Durable vinyl lettering for a clean, professional look.',
-    href: '/decal',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'vinyl decal'
-  },
-  {
-    title: 'QR Code Stickers',
-    description: 'Connect your physical brand to the digital world instantly.',
-    href: '/qr-code',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'qr code'
-  },
-];
+import { CosmicParallaxBg } from "@/components/ui/parallax-cosmic-background";
 
 export default function HomePage() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-  
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="w-full max-w-6xl mx-auto p-4 sm:p-8">
-        <header className="text-center mb-12 mt-12">
-          <h1 className="mt-16 text-4xl md:text-6xl font-bold tracking-tight text-foreground bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Your Vision, Your Sticker
-          </h1>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            From die-cut masterpieces to vibrant sticker sheets, bring your creative ideas to life with Stickerific. High-quality, custom stickers made easy.
-          </p>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {stickerCategories.map((category, index) => (
-            <Link href={category.href} key={category.title} className="group block">
-              <Card className="h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-2 p-0 bg-slate-900/50">
-                 <CardSkeletonContainer className="w-full h-auto aspect-[4/3]">
-                    <Image
-                        src={category.imageUrl}
-                        alt={category.title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-t-xl"
-                        data-ai-hint={category.imageHint}
-                        priority={index === 0}
-                    />
-                 </CardSkeletonContainer>
-                <div className="p-6">
-                  <CardHeader>
-                    <CardTitle className="text-xl font-bold text-white">{category.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-muted-foreground flex-grow">{category.description}</CardDescription>
-                    <div className="mt-4 flex items-center justify-end text-sm font-semibold text-primary group-hover:underline">
-                        Customize
-                        <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                      </div>
-                  </CardContent>
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
-         <footer className="text-center mt-16 text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Stickerific. All rights reserved.</p>
-        </footer>
-      </div>
+    <main>
+      <CosmicParallaxBg 
+        head="Stickerific" 
+        text="Your Vision, Your Sticker, Instantly" 
+        loop={true}
+      />
     </main>
   );
 }

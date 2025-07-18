@@ -1,0 +1,171 @@
+
+/* Base styles for the parallax container */
+.cosmic-parallax-container {
+  height: 100vh;
+  background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  color: white;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+/* Star styles */
+.cosmic-stars, .cosmic-stars-medium, .cosmic-stars-large {
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  animation: animStar 50s linear var(--animation-iteration);
+}
+
+.cosmic-stars-medium {
+  width: 2px;
+  height: 2px;
+  animation: animStar 100s linear var(--animation-iteration);
+}
+
+.cosmic-stars-large {
+  width: 3px;
+  height: 3px;
+  animation: animStar 150s linear var(--animation-iteration);
+}
+
+/* Star animations */
+@keyframes animStar {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-2000px);
+  }
+}
+
+/* Earth and horizon styles */
+#horizon {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to top, rgba(27, 39, 53, 0.8) 0%, transparent 100%);
+  z-index: 10;
+}
+
+.glow {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: #3B82F6; /* A blue glow */
+  filter: blur(15px);
+  opacity: 0.6;
+}
+
+#earth {
+  position: absolute;
+  bottom: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200%;
+  height: 300px;
+  background: #1B2735;
+  border-radius: 50%;
+  z-index: 5;
+}
+
+/* Title and Subtitle styles */
+#title, #subtitle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 20;
+}
+
+#title {
+  top: 40%;
+  font-size: 5rem;
+  font-weight: bold;
+  letter-spacing: 0.5rem;
+  color: #fff;
+  text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 40px #3B82F6;
+}
+
+#subtitle {
+  top: 55%;
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: 0.2rem;
+  color: #e0e0e0;
+}
+
+/* Subtitle animation parts */
+#subtitle span {
+  display: inline-block;
+  opacity: 0;
+}
+
+.subtitle-part-1 {
+  animation: animGravity 8s ease-in-out var(--animation-iteration);
+}
+
+.subtitle-part-2 {
+  animation: animDont 8s ease-in-out var(--animation-iteration);
+}
+
+.subtitle-part-3 {
+  animation: animLet 8s ease-in-out var(--animation-iteration);
+}
+
+/* Subtitle animations */
+@keyframes animGravity {
+  0% {
+    transform: translateY(-26px);
+    opacity: 0;
+  }
+  30%, 80% {
+    letter-spacing: 0.5rem;
+    transform: translateY(0px);
+    opacity: 1;
+  }
+  92%, 100% {
+    letter-spacing: 0.4rem;
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+}
+
+@keyframes animDont {
+  0%, 15% {
+    transform: translateY(-26px);
+    opacity: 0;
+  }
+  35%, 80% {
+    transform: translateY(0px);
+    opacity: 1;
+  }
+  92%, 100% {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+}
+
+@keyframes animLet {
+  0%, 25% {
+    transform: translateY(-26px);
+    opacity: 0;
+  }
+  45%, 80% {
+    transform: translateY(0px);
+    opacity: 1;
+  }
+  92%, 100% {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+}
+
+:root {
+  --animation-iteration: infinite;
+}
