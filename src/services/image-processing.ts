@@ -59,133 +59,31 @@ function bufferToDataUri(buffer: Buffer, mimeType: string = 'image/png'): string
   return `data:${mimeType};base64,${base64}`;
 }
 
-// ===================== COLOR UTILITIES =====================
+async function getBackgroundColor(image: sharp.Sharp): Promise<sharp.Color> {
+    const { width, height } = await image.metadata();
+    if (!width || !height) throw new Error("Invalid image dimensions");
 
-interface Color {
-  r: number;
-  g: number;
-  b: number;
-}
+    const cornerPixels = await Promise.all([
+        image.clone().extract({ left: 0, top: 0, width: 1, height: 1 }).raw().toBuffer(),
+        image.clone().extract({ left: width - 1, top: 0, width: 1, height: 1 }).raw().toBuffer(),
+        image.clone().extract({ left: 0, top: height - 1, width: 1, height: 1 }).raw().toBuffer(),
+        image.clone().extract({ left: width - 1, top: height - 1, width: 1, height: 1 }).raw().toBuffer(),
+    ]);
 
-function colorDistance(c1: Color, c2: Color): number {
-  // Using weighted Euclidean distance for better perceptual accuracy
-  const rMean = (c1.r + c2.r) / 2;
-  const deltaR = c1.r - c2.r;
-  const deltaG = c1.g - c2.g;
-  const deltaB = c1.b - c2.b;
-  
-  const weightR = 2 + rMean / 256;
-  const weightG = 4;
-  const weightB = 2 + (255 - rMean) / 256;
-  
-  return Math.sqrt(
-    weightR * deltaR * deltaR +
-    weightG * deltaG * deltaG +
-    Math.max(0, weightB) * deltaB * deltaB
-  );
-}
+    const avg = cornerPixels.reduce((acc, pixel) => {
+        acc.r += pixel[0];
+        acc.g += pixel[1];
+        acc.b += pixel[2];
+        return acc;
+    }, { r: 0, g: 0, b: 0 });
 
-
-// ===================== FLOOD FILL ALGORITHM =====================
-
-class FloodFillSegmentation {
-  private width: number;
-  private height: number;
-  private pixels: Uint8ClampedArray;
-  private visited: Uint8Array;
-  private mask: Uint8Array;
-
-  constructor(width: number, height: number, pixels: Uint8ClampedArray) {
-    this.width = width;
-    this.height = height;
-    this.pixels = pixels;
-    this.visited = new Uint8Array(width * height);
-    this.mask = new Uint8Array(width * height); // 0 = foreground, 255 = background
-  }
-
-  segment(threshold: number, startPoints?: Array<{x: number, y: number, isBackground: boolean}>): Uint8Array {
-    // Initialize with corner sampling if no manual points
-    if (!startPoints || startPoints.length === 0) {
-      startPoints = this.getCornerPoints();
-    }
-
-    // Process each starting point
-    for (const point of startPoints) {
-      if (point.isBackground) {
-        this.floodFill(point.x, point.y, threshold, true);
-      }
-    }
-
-    // Invert mask (background = 0, foreground = 255)
-    for (let i = 0; i < this.mask.length; i++) {
-      this.mask[i] = this.mask[i] > 0 ? 0 : 255;
-    }
-
-    return this.mask;
-  }
-
-  private getCornerPoints(): Array<{x: number, y: number, isBackground: boolean}> {
-    const margin = 5;
-    return [
-      { x: margin, y: margin, isBackground: true },
-      { x: this.width - margin - 1, y: margin, isBackground: true },
-      { x: margin, y: this.height - margin - 1, isBackground: true },
-      { x: this.width - margin - 1, y: this.height - margin - 1, isBackground: true }
-    ];
-  }
-
-  private floodFill(startX: number, startY: number, threshold: number, markAsBackground: boolean): void {
-    const stack: Array<{x: number, y: number}> = [{x: startX, y: startY}];
-    const startIdx = (startY * this.width + startX) * 4;
-    const startAlpha = this.pixels[startIdx + 3];
-
-    // Don't start flood fill on a fully transparent pixel
-    if (startAlpha === 0) {
-        return;
-    }
-    
-    const targetColor: Color = {
-      r: this.pixels[startIdx],
-      g: this.pixels[startIdx + 1],
-      b: this.pixels[startIdx + 2]
+    return {
+        r: Math.round(avg.r / 4),
+        g: Math.round(avg.g / 4),
+        b: Math.round(avg.b / 4),
     };
-
-    while (stack.length > 0) {
-      const {x, y} = stack.pop()!;
-      
-      if (x < 0 || x >= this.width || y < 0 || y >= this.height) continue;
-      
-      const idx = y * this.width + x;
-      if (this.visited[idx]) continue;
-      
-      this.visited[idx] = 1;
-
-      const pixelIdx = idx * 4;
-      const pixelAlpha = this.pixels[pixelIdx + 3];
-
-      // Skip fully transparent pixels
-      if(pixelAlpha === 0) continue;
-
-      const currentColor: Color = {
-        r: this.pixels[pixelIdx],
-        g: this.pixels[pixelIdx + 1],
-        b: this.pixels[pixelIdx + 2]
-      };
-
-      const distance = colorDistance(currentColor, targetColor);
-      
-      if (distance <= threshold) {
-        if(markAsBackground) this.mask[idx] = 255;
-        
-        // Add neighbors
-        stack.push({x: x + 1, y});
-        stack.push({x: x - 1, y});
-        stack.push({x, y: y + 1});
-        stack.push({x, y: y - 1});
-      }
-    }
-  }
 }
+
 
 // ===================== MAIN FUNCTION =====================
 
@@ -193,49 +91,46 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
   const startTime = Date.now();
   
   try {
-    // Parse input
     const validatedInput = RemoveBackgroundInputSchema.parse(input);
     const imageBuffer = dataUriToBuffer(validatedInput.imageDataUri);
     
-    // Load image and get metadata
-    const metadata = await sharp(imageBuffer).metadata();
+    const image = sharp(imageBuffer).ensureAlpha();
+    const metadata = await image.metadata();
     const { width, height } = metadata;
     
     if (!width || !height) {
       throw new Error('Invalid image dimensions');
     }
 
-    // Ensure the image has 4 channels (RGBA) before processing
-    const rgbaImageBuffer = await sharp({
-        create: {
-            width,
-            height,
-            channels: 4,
-            background: { r: 0, g: 0, b: 0, alpha: 0 }
-        }
-    })
-    .composite([{ input: imageBuffer, gravity: 'center' }])
-    .png()
-    .toBuffer();
+    const bgColor = await getBackgroundColor(image.clone().removeAlpha());
+
+    // Create a version of the image without an alpha channel for comparison
+    const rgbImage = image.clone().removeAlpha();
     
-    // Get raw RGBA pixel data from the normalized image
-    const { data: pixels } = await sharp(rgbaImageBuffer)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    
-    // Perform segmentation
-    const segmenter = new FloodFillSegmentation(width, height, pixels);
-    let mask = segmenter.segment(
-      validatedInput.threshold,
-      validatedInput.manualHints?.samplePoints
+    // Create a mask where pixels similar to bgColor are white, others are black
+    const similarityThreshold = validatedInput.threshold; 
+    const mask = await rgbImage.toBuffer().then(buffer =>
+      sharp(buffer, { raw: { width, height, channels: 3 } })
+        .bandbool('and') // Placeholder, will be overwritten by threshold
+        .linear([1, 1, 1], [0, 0, 0])
+        .threshold(similarityThreshold)
+        .composite([{
+          input: Buffer.from([
+            (bgColor.r as number), (bgColor.g as number), (bgColor.b as number)
+          ]),
+          raw: { width: 1, height: 1, channels: 3 },
+          tile: true,
+          blend: 'difference'
+        }])
+        .extractChannel(0) // Use one channel for the mask
+        .negate() // Invert mask (subject is white, background is black)
     );
-    
-    // Create a sharp object for the mask
-    let maskSharp = sharp(Buffer.from(mask), { raw: { width, height, channels: 1 } });
-    
-    // Apply morphological operations (opening and closing) for smoothing
+
+    let refinedMask = mask.clone();
+
+    // Apply morphological operations for smoothing
     if (validatedInput.smoothing > 0) {
-        maskSharp = maskSharp.morphology({
+        refinedMask = refinedMask.morphology({
             operation: 'open',
             kernel: `circle:${validatedInput.smoothing}`
         }).morphology({
@@ -246,22 +141,22 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
 
     // Apply feathering (blur) to the mask edges
     if (validatedInput.featherRadius > 0) {
-        maskSharp = maskSharp.blur(validatedInput.featherRadius);
+        refinedMask = refinedMask.blur(validatedInput.featherRadius);
     }
-
-    const finalMaskBuffer = await maskSharp.toBuffer();
+    
+    const finalMaskBuffer = await refinedMask.toBuffer();
 
     // Create final image by compositing the original with the mask
-    const outputBuffer = await sharp(rgbaImageBuffer)
+    const outputBuffer = await image
         .composite([{ 
-            input: finalMaskBuffer, 
-            blend: 'dest-in' 
+            input: finalMaskBuffer,
+            blend: 'dest-in'
         }])
         .png()
         .toBuffer();
     
     // Create a visual mask image for debugging/display
-    const visualMaskBuffer = await sharp(finalMaskBuffer, {raw: {width, height, channels: 1}}).png().toBuffer();
+    const visualMaskBuffer = await refinedMask.png().toBuffer();
     
     return {
       imageDataUri: bufferToDataUri(outputBuffer),
@@ -269,7 +164,7 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
       metadata: {
         processingTime: Date.now() - startTime,
         dimensions: { width, height },
-        technique: 'Flood Fill Segmentation with Edge Refinement'
+        technique: 'Sharp-based Color Segmentation with Edge Refinement'
       }
     };
   } catch (error) {
@@ -320,7 +215,7 @@ export async function batchRemoveBackground(
 }
 
 // ===================== HELPER FUNCTIONS =====================
-
+type Color = { r: number, g: number, b: number };
 /**
  * Analyze image to suggest optimal parameters
  */
