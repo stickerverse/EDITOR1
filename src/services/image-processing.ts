@@ -628,20 +628,4 @@ export async function analyzeImage(imageDataUri: string): Promise<{
   };
 }
 
-const Presets = {
-  simple: {
-    threshold: 20,
-    smoothing: 1,
-    featherRadius: 2
-  },
-  standard: {
-    threshold: 30,
-    smoothing: 2,
-    featherRadius: 3
-  },
-  complex: {
-    threshold: 40,
-    smoothing: 3,
-    featherRadius: 5
-  }
-};
+    
