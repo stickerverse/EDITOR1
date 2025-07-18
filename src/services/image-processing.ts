@@ -628,8 +628,6 @@ export async function analyzeImage(imageDataUri: string): Promise<{
   };
 }
 
-// ===================== PRESETS =====================
-
 const Presets = {
   simple: {
     threshold: 20,
