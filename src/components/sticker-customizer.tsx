@@ -1625,12 +1625,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                     type="button"
                                     onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
                                     className={cn(
-                                      "relative group rounded-lg p-2 text-center transition-all duration-200 border-2 bg-slate-900/50",
+                                      "relative group rounded-lg p-1 text-center transition-all duration-200 border-2 bg-slate-900/50",
                                       appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
                                     )}
                                   >
-                                    <NextImage src={m.image} alt={m.name} width={96} height={96} style={{width:'auto', height:'auto'}} className="mx-auto mb-2 rounded-md" data-ai-hint="sticker material" priority={m.id === 'matte'} />
-                                    <p className="font-semibold text-sm text-slate-200">{m.name}</p>
+                                    <NextImage src={m.image} alt={m.name} width={80} height={80} style={{width:'auto', height:'auto'}} className="mx-auto mb-1 rounded-md" data-ai-hint="sticker material" priority={m.id === 'matte'} />
+                                    <p className="font-semibold text-xs text-slate-200">{m.name}</p>
                                   </button>
                                 ))}
                               </div>
