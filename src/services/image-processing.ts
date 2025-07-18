@@ -630,7 +630,7 @@ export async function analyzeImage(imageDataUri: string): Promise<{
 
 // ===================== PRESETS =====================
 
-export const Presets = {
+const Presets = {
   simple: {
     threshold: 20,
     smoothing: 1,
