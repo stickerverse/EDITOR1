@@ -668,7 +668,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     setLoadingText("Removing background...");
 
     try {
-      const { imageDataUri: noBgDataUri } = await removeBackgroundAction({
+      const { imageDataUri } = await removeBackgroundAction({
         imageDataUri: activeDesign.sourceUrl,
       });
 
@@ -677,7 +677,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         ...current,
         designLibrary: current.designLibrary.map(d =>
           d.designId === activeDesign.designId
-            ? { ...d, sourceUrl: noBgDataUri }
+            ? { ...d, sourceUrl: imageDataUri }
             : d
         )
       }));
@@ -928,7 +928,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   const handleToggleCustomLayout = (checked: boolean) => {
     setAppState(currentAppState => {
       const designLibrary = currentAppState.designLibrary;
-      const currentDesign = designLibrary.find(d => d.sourceType !== 'text') ?? (designLibrary.length > 0 ? designLibrary[0] : null);
+      const currentDesign = designLibrary.find(d => d.sourceType !== 'text' && d.sourceUrl) ?? (designLibrary.find(d => d.sourceUrl));
 
       if (checked) {
         // Switching to Custom Layout from Auto Layout
@@ -950,7 +950,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         const availableHeight = canvasRect.height - (padding * 2) - (gap * (rows - 1));
 
         const cellWidth = availableWidth / cols;
-        const cellHeight = availableHeight / cols;
+        const cellHeight = availableHeight / rows;
         
         const designAspectRatio = calculateAspectRatio(currentDesign);
         
@@ -1537,7 +1537,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 <header>
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                            Die Cut Stickers
+                            {productType.charAt(0).toUpperCase() + productType.slice(1).replace('-', ' ')} Stickers
                         </h1>
                          <ToggleGroup 
                             type="single" 
@@ -1579,7 +1579,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
                   <div className={cn("transition-opacity duration-300", viewMode === 'preview' && "opacity-20 pointer-events-none")}>
                     <div className="flex flex-col space-y-6">
-                      <CustomizationSection id="sticker-shape-section" title="Die Cut Sticker Shape" icon={ContourCutIcon}>
+                      <CustomizationSection id="sticker-shape-section" title="Sticker Shape" icon={ContourCutIcon}>
                         <div className="flex flex-col space-y-2">
                             {shapeButtons.map(({ shape, icon: Icon, label }) => (
                                 <button
