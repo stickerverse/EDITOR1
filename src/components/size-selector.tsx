@@ -72,12 +72,11 @@ export function SizeSelector({ size, onSizeChange }: SizeSelectorProps) {
                             aria-pressed={isActive}
                             className={cn(
                                 "h-auto flex-row justify-center items-baseline gap-1.5 py-3 px-2 text-center transition-all duration-200",
-                                "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
-                                isActive && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                isActive && "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg"
                             )}
                         >
                             <span className="font-bold text-base leading-none">{preset.label.split(' ')[0]}</span>
-                            <span className="text-xs text-slate-400">x</span>
+                            <span className="text-xs text-muted-foreground">x</span>
                              <span className="font-bold text-base leading-none">{preset.label.split(' ')[2]}</span>
                         </Button>
                     );
@@ -90,8 +89,7 @@ export function SizeSelector({ size, onSizeChange }: SizeSelectorProps) {
                  aria-pressed={size.selectionType === 'custom'}
                 className={cn(
                     "w-full justify-center transition-all duration-200",
-                    "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
-                     size.activePresetId === 'custom' && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                     size.activePresetId === 'custom' && "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg"
                 )}
             >
                 Custom Size
@@ -100,24 +98,24 @@ export function SizeSelector({ size, onSizeChange }: SizeSelectorProps) {
             {size.selectionType === 'custom' && (
                 <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
-                        <Label htmlFor="custom-width" className="text-slate-400 mb-2 block">Width (in)</Label>
+                        <Label htmlFor="custom-width" className="mb-2 block">Width (in)</Label>
                         <Input
                             id="custom-width"
                             type="number"
                             value={size.width}
                             onChange={(e) => handleCustomInputChange('width', e.target.value)}
-                            className="w-full bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                            className="w-full"
                             placeholder="e.g. 3.5"
                         />
                     </div>
                     <div>
-                         <Label htmlFor="custom-height" className="text-slate-400 mb-2 block">Height (in)</Label>
+                         <Label htmlFor="custom-height" className="mb-2 block">Height (in)</Label>
                         <Input
                             id="custom-height"
                             type="number"
                             value={size.height}
                             onChange={(e) => handleCustomInputChange('height', e.target.value)}
-                            className="w-full bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                            className="w-full"
                              placeholder="e.g. 5"
                         />
                     </div>

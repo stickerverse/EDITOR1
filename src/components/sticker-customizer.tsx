@@ -135,16 +135,16 @@ export type StickerShape = 'Die Cut' | 'circle' | 'square' | 'rounded';
 
 function CustomizationSection({ id, title, icon: Icon, children, className }: { id?: string; title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
-    <div id={id} className={cn("space-y-3", className)}>
+    <div id={id} className={cn("space-y-4", className)}>
         <div className="flex items-center gap-3">
             <AnimatedIconContainer>
                 <Icon className="h-4 w-4 text-white/80" />
             </AnimatedIconContainer>
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            <h2 className="text-xl font-semibold text-foreground">{title}</h2>
         </div>
-        <div className="rounded-lg bg-slate-900/50 p-4">
+        <Card className="p-4 shadow-sm">
             {children}
-        </div>
+        </Card>
     </div>
   );
 }
@@ -172,7 +172,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   // State for Text Decals
   const [decalText, setDecalText] = useState('Your Text Here');
   const [decalFont, setDecalFont] = useState('serif');
-  const [decalColor, setDecalColor] = useState('#FFFFFF');
+  const [decalColor, setDecalColor] = useState('#000000');
   
   // State for Sheet Configuration
   const [sheetLayout, setSheetLayout] = useState({ rows: 2, cols: 2 });
@@ -1016,7 +1016,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         <>
             <CustomizationSection id="add-layer-section" title="Add Designs" icon={Layers}>
               <Tabs defaultValue="upload" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-slate-800 text-slate-400">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
                   <TabsTrigger value="text"><Type className="mr-2 h-4 w-4"/>Text</TabsTrigger>
                 </TabsList>
@@ -1025,23 +1025,23 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                       <Label
                           htmlFor="picture"
                           className={cn(
-                              "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
-                              "hover:border-indigo-500 hover:bg-indigo-900/20",
-                              uploadedFileName && "border-emerald-500 bg-emerald-900/20"
+                              "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-muted/50 transition-colors",
+                              "hover:border-primary",
+                              uploadedFileName && "border-accent"
                           )}
                       >
                           <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                               {uploadedFileName ? (
                                   <>
-                                      <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
-                                      <p className="font-semibold text-emerald-500">File Uploaded!</p>
-                                      <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
+                                      <FileCheck2 className="w-8 h-8 mb-2 text-accent" />
+                                      <p className="font-semibold text-accent">File Uploaded!</p>
+                                      <p className="text-xs text-muted-foreground truncate max-w-xs">{uploadedFileName}</p>
                                   </>
                               ) : (
                                   <>
-                                      <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
-                                      <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
-                                      <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
+                                      <ImagePlus className="w-8 h-8 mb-2 text-muted-foreground" />
+                                      <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> or drag and drop</p>
+                                      <p className="text-xs text-muted-foreground">PNG, JPG, or WEBP</p>
                                   </>
                               )}
                           </div>
@@ -1056,16 +1056,16 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                         value={decalText}
                         onChange={(e) => setDecalText(e.target.value)}
                         rows={3}
-                        className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500 text-lg"
+                        className="text-lg"
                       />
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="font-select" className="text-slate-400 mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
+                          <Label htmlFor="font-select" className="mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
                           <Select value={decalFont} onValueChange={setDecalFont}>
-                            <SelectTrigger id="font-select" className="bg-slate-800 border-slate-700 text-slate-200">
+                            <SelectTrigger id="font-select">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                            <SelectContent>
                               <SelectItem value="serif">Serif</SelectItem>
                               <SelectItem value="sans-serif">Sans-Serif</SelectItem>
                               <SelectItem value="monospace">Monospace</SelectItem>
@@ -1074,17 +1074,17 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                           </Select>
                         </div>
                         <div>
-                           <Label htmlFor="color-picker" className="text-slate-400 mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
+                           <Label htmlFor="color-picker" className="mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
                            <Input 
                               id="color-picker"
                               type="color" 
                               value={decalColor}
                               onChange={(e) => setDecalColor(e.target.value)}
-                              className="w-full h-10 p-1 bg-slate-800 border-slate-700"
+                              className="w-full h-10 p-1"
                             />
                         </div>
                       </div>
-                      <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
+                      <Button onClick={handleAddTextDecal} className="w-full">
                         <Type className="mr-2 h-4 w-4" /> Add Text Layer
                       </Button>
                     </div>
@@ -1093,10 +1093,10 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             </CustomizationSection>
             
             <CustomizationSection id="sheet-config-section" title="Sheet Configuration" icon={LayoutGrid}>
-                <div className="flex items-center space-x-4 rounded-lg bg-slate-800/50 p-3 border border-slate-700">
+                <div className="flex items-center space-x-4 rounded-lg bg-secondary p-3">
                     <div className="flex-1">
-                      <Label htmlFor="custom-layout" className="text-slate-200 font-semibold">Custom Layout</Label>
-                      <p className="text-xs text-slate-400">Manually arrange and resize stickers.</p>
+                      <Label htmlFor="custom-layout" className="font-semibold">Custom Layout</Label>
+                      <p className="text-xs text-muted-foreground">Manually arrange and resize stickers.</p>
                     </div>
                     <Switch
                       id="custom-layout"
@@ -1106,12 +1106,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white">
+                    <Button variant="outline" className="w-full justify-between">
                       <span>Sheet Layout: {sheetLayout.rows} x {sheetLayout.cols}</span>
                       <Settings className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-slate-900 border-slate-700 text-white">
+                  <DropdownMenuContent className="w-56">
                       <div className="p-2">
                         <div 
                           className="grid grid-cols-5 gap-1"
@@ -1126,8 +1126,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                               <div
                                 key={i}
                                 className={cn(
-                                  "w-8 h-8 border border-slate-700 rounded-sm transition-colors",
-                                  (isHovered || isSelected) ? "bg-indigo-500" : "bg-slate-800"
+                                  "w-8 h-8 border rounded-sm transition-colors",
+                                  (isHovered || isSelected) ? "bg-primary" : "bg-muted"
                                 )}
                                 onMouseEnter={() => setHoveredLayout({rows: row, cols: col})}
                                 onClick={() => setSheetLayout({rows: row, cols: col})}
@@ -1142,9 +1142,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             
             <CustomizationSection id="library-section" title="Design Library" icon={Library}>
               <div className="space-y-4">
-                  <div className="min-h-[120px] bg-slate-800/50 border border-slate-700 rounded-lg p-2 flex gap-2 overflow-x-auto">
+                  <div className="min-h-[120px] bg-secondary border rounded-lg p-2 flex gap-2 overflow-x-auto">
                     {appState.designLibrary.length === 0 ? (
-                       <div className="w-full text-center text-slate-400 flex flex-col justify-center items-center p-4">
+                       <div className="w-full text-center text-muted-foreground flex flex-col justify-center items-center p-4">
                           <Library className="h-8 w-8 mb-2" />
                           <p className="text-sm">Your design library is empty.</p>
                           <p className="text-xs">Add a design to start.</p>
@@ -1159,7 +1159,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                         >
                            {design.sourceType === 'text' && design.textData ? (
                              <div 
-                                className="w-full h-full flex items-center justify-center bg-slate-700 rounded-md p-1 overflow-hidden"
+                                className="w-full h-full flex items-center justify-center bg-card rounded-md p-1 overflow-hidden"
                                 style={{
                                     color: design.textData.color,
                                     fontFamily: design.textData.font,
@@ -1175,7 +1175,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                 alt={design.fileName || design.aiPrompt || 'sticker design'}
                                 fill
                                 sizes="96px"
-                                className="object-contain bg-slate-700/50 rounded-md"
+                                className="object-contain bg-card/50 rounded-md"
                               />
                            ) : null}
                            <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -1197,7 +1197,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       <CustomizationSection id="layer-section" title="Add a Layer" icon={Layers}>
         <Tabs defaultValue="upload" className="w-full">
           <TabsList className={cn(
-            "grid w-full bg-slate-800 text-slate-400",
+            "grid w-full",
             showTextTab ? "grid-cols-2" : "grid-cols-1"
           )}>
             <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
@@ -1208,23 +1208,23 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 <Label
                     htmlFor="picture"
                     className={cn(
-                        "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 transition-colors border-slate-700",
-                        "hover:border-indigo-500 hover:bg-indigo-900/20",
-                        uploadedFileName && "border-emerald-500 bg-emerald-900/20"
+                        "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-muted/50 transition-colors",
+                        "hover:border-primary",
+                         uploadedFileName && "border-accent"
                     )}
                 >
                     <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                         {uploadedFileName ? (
                             <>
-                                <FileCheck2 className="w-8 h-8 mb-2 text-emerald-500" />
-                                <p className="font-semibold text-emerald-500">File Uploaded!</p>
-                                <p className="text-xs text-slate-400 truncate max-w-xs">{uploadedFileName}</p>
+                                <FileCheck2 className="w-8 h-8 mb-2 text-accent" />
+                                <p className="font-semibold text-accent">File Uploaded!</p>
+                                <p className="text-xs text-muted-foreground truncate max-w-xs">{uploadedFileName}</p>
                             </>
                         ) : (
                             <>
-                                <ImagePlus className="w-8 h-8 mb-2 text-slate-500" />
-                                <p className="mb-1 text-sm text-slate-400"><span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop</p>
-                                <p className="text-xs text-slate-500">PNG, JPG, or WEBP</p>
+                                <ImagePlus className="w-8 h-8 mb-2 text-muted-foreground" />
+                                <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> or drag and drop</p>
+                                <p className="text-xs text-muted-foreground">PNG, JPG, or WEBP</p>
                             </>
                         )}
                     </div>
@@ -1239,16 +1239,16 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 value={decalText}
                 onChange={(e) => setDecalText(e.target.value)}
                 rows={3}
-                className="bg-slate-800 border-slate-700 text-slate-200 focus:ring-indigo-500 text-lg"
+                className="text-lg"
               />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="font-select" className="text-slate-400 mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
+                  <Label htmlFor="font-select" className="mb-2 block"><CaseSensitive className="inline-block mr-2 h-4 w-4"/>Font</Label>
                   <Select value={decalFont} onValueChange={setDecalFont}>
-                    <SelectTrigger id="font-select" className="bg-slate-800 border-slate-700 text-slate-200">
+                    <SelectTrigger id="font-select">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                    <SelectContent>
                       <SelectItem value="serif">Serif</SelectItem>
                       <SelectItem value="sans-serif">Sans-Serif</SelectItem>
                       <SelectItem value="monospace">Monospace</SelectItem>
@@ -1257,17 +1257,17 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                   </Select>
                 </div>
                 <div>
-                   <Label htmlFor="color-picker" className="text-slate-400 mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
+                   <Label htmlFor="color-picker" className="mb-2 block"><Palette className="inline-block mr-2 h-4 w-4"/>Color</Label>
                    <Input 
                       id="color-picker"
                       type="color" 
                       value={decalColor}
                       onChange={(e) => setDecalColor(e.target.value)}
-                      className="w-full h-10 p-1 bg-slate-800 border-slate-700"
+                      className="w-full h-10 p-1"
                     />
                 </div>
               </div>
-              <Button onClick={handleAddTextDecal} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold hover:from-blue-600 hover:to-cyan-600">
+              <Button onClick={handleAddTextDecal} className="w-full">
                 <Type className="mr-2 h-4 w-4" /> Add Text Layer
               </Button>
             </div>
@@ -1305,7 +1305,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 className={cn(
                     "absolute flex items-center justify-center p-2 break-words text-center select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
-                    isSelected && !shouldShowBorderPreview && "outline-dashed outline-2 outline-indigo-400 rounded-md",
+                    isSelected && !shouldShowBorderPreview && "outline-dashed outline-2 outline-primary rounded-md",
                 )}
                 style={{
                     left: `${sticker.position.x}px`,
@@ -1332,14 +1332,14 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 {showControls && (
                     <>
                         <div
-                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-indigo-400 rounded-full cursor-se-resize"
+                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-se-resize"
                             onPointerDown={(e) => handlePointerDown(e, 'resize-br', sticker.stickerId)}
                         />
                         <div
-                            className="absolute -top-2 -right-2 w-4 h-4 bg-indigo-400 rounded-full cursor-grab"
+                            className="absolute -top-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-grab"
                             onPointerDown={(e) => handlePointerDown(e, 'rotate', sticker.stickerId)}
                         >
-                          <RotateCw className="w-full h-full p-0.5 text-slate-900" />
+                          <RotateCw className="w-full h-full p-0.5 text-background" />
                         </div>
                     </>
                 )}
@@ -1358,7 +1358,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 className={cn(
                     "absolute select-none",
                     isDraggable && "cursor-grab active:cursor-grabbing",
-                    isSelected && !shouldShowBorderPreview && "outline-dashed outline-2 outline-indigo-400 rounded-md",
+                    isSelected && !shouldShowBorderPreview && "outline-dashed outline-2 outline-primary rounded-md",
                 )}
                 style={{
                     left: `${sticker.position.x}px`,
@@ -1381,14 +1381,14 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                  {showControls && (
                     <>
                         <div
-                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-indigo-400 rounded-full cursor-se-resize"
+                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-se-resize"
                             onPointerDown={(e) => handlePointerDown(e, 'resize-br', sticker.stickerId)}
                         />
                         <div
-                            className="absolute -top-2 -right-2 w-4 h-4 bg-indigo-400 rounded-full cursor-grab"
+                            className="absolute -top-2 -right-2 w-4 h-4 bg-primary rounded-full cursor-grab"
                             onPointerDown={(e) => handlePointerDown(e, 'rotate', sticker.stickerId)}
                         >
-                          <RotateCw className="w-full h-full p-0.5 text-slate-900" />
+                          <RotateCw className="w-full h-full p-0.5 text-background" />
                         </div>
                     </>
                 )}
@@ -1429,7 +1429,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
               }}
             >
               {Array.from({ length: sheetLayout.rows * sheetLayout.cols }).map((_, i) => (
-                <div key={i} className="relative w-full h-full bg-slate-800/50 flex items-center justify-center transition-all duration-300" style={itemShapeStyle}>
+                <div key={i} className="relative w-full h-full bg-muted/50 flex items-center justify-center transition-all duration-300" style={itemShapeStyle}>
                   {imageToDisplay ? (
                     <NextImage
                       src={imageToDisplay}
@@ -1439,7 +1439,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                       className="object-contain p-1"
                     />
                   ) : (
-                    <ImagePlus className="h-6 w-6 text-slate-500"/>
+                    <ImagePlus className="h-6 w-6 text-muted-foreground"/>
                   )}
                 </div>
               ))}
@@ -1453,8 +1453,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     }
 
     return (
-      <div className="text-center text-slate-500 flex flex-col items-center justify-center h-full">
-        <Layers className="h-12 w-12 mb-4 text-slate-600" />
+      <div className="text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+        <Layers className="h-12 w-12 mb-4" />
         <p className="text-lg font-semibold">Sticker Canvas</p>
         <p className="text-sm">Add a design to get started.</p>
       </div>
@@ -1464,7 +1464,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
   if (!mounted) {
     return (
         <div className="container mx-auto px-0 py-0 md:py-4">
-            <div className="text-white text-center p-8 bg-slate-800 rounded-lg">
+            <div className="text-center p-8 bg-card rounded-lg">
                 <Loader2 className="mx-auto h-12 w-12 animate-spin" />
                 <h1 className="text-3xl font-bold mt-4">Loading Customizer...</h1>
             </div>
@@ -1489,12 +1489,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         <div className={cn(
             "lg:sticky lg:top-8 h-max flex flex-col items-center gap-4 group",
         )}>
-          <Card className="w-full max-w-lg aspect-square p-0 bg-slate-900/50">
+          <Card className="w-full max-w-lg aspect-square p-0 bg-transparent shadow-none border-none">
               <div 
                 id="canvas-container"
                 ref={canvasRef}
                 className={cn(
-                  "relative w-full h-full p-0 transition-all duration-300 touch-none",
+                  "relative w-full h-full p-0 transition-all duration-300 touch-none transparent-bg",
                 )}
                 style={canvasShapeStyle}
                 onDrop={handleDropOnCanvas}
@@ -1505,9 +1505,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 onClick={closeContextMenu}
               >
               {isLoading && (
-                <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20" style={canvasShapeStyle}>
-                  <Loader2 className="h-12 w-12 animate-spin text-white" />
-                  <p className="text-white mt-4 font-semibold">{loadingText}</p>
+                <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center z-20" style={canvasShapeStyle}>
+                  <Loader2 className="h-12 w-12 animate-spin text-foreground" />
+                  <p className="text-foreground mt-4 font-semibold">{loadingText}</p>
                 </div>
               )}
                 {/* This area will become the sticker sheet canvas */}
@@ -1532,11 +1532,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         </div>
         
         <div className="lg:col-span-2">
-            <Card className="p-4 bg-slate-900/50">
+            <Card className="p-4 shadow-lg">
               <div className="flex flex-col space-y-6">
                 <header>
                     <div className="flex items-center justify-between">
-                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
                             Die Cut Stickers
                         </h1>
                          <ToggleGroup 
@@ -1551,13 +1551,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                     }
                                 }
                             }}
-                            className="bg-slate-800/50 border border-slate-700 rounded-lg p-1"
+                            className="p-1"
                             >
-                            <ToggleGroupItem value="design" aria-label="Design mode" className="data-[state=on]:bg-indigo-500 data-[state=on]:text-white">
+                            <ToggleGroupItem value="design" aria-label="Design mode">
                                 <Code className="h-4 w-4 mr-2" />
                                 Design
                             </ToggleGroupItem>
-                            <ToggleGroupItem value="preview" aria-label="Preview mode" className="data-[state=on]:bg-indigo-500 data-[state=on]:text-white disabled:opacity-50 disabled:cursor-not-allowed" disabled={!imageToDisplay}>
+                            <ToggleGroupItem value="preview" aria-label="Preview mode" disabled={!imageToDisplay}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Preview
                             </ToggleGroupItem>
@@ -1572,17 +1572,13 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                 <Star className="w-5 h-5 fill-current" />
                                 <Star className="w-5 h-5 fill-current" />
                             </div>
-                            <p className="text-sm text-slate-300 font-medium"><span className="text-white font-semibold">5.0</span> (4,882 reviews)</p>
+                            <p className="text-sm text-muted-foreground font-medium"><span className="text-foreground font-semibold">5.0</span> (4,882 reviews)</p>
                         </div>
                     </div>
                   </header>
 
                   <div className={cn("transition-opacity duration-300", viewMode === 'preview' && "opacity-20 pointer-events-none")}>
                     <div className="flex flex-col space-y-6">
-
-                
-
-
                       <CustomizationSection id="sticker-shape-section" title="Die Cut Sticker Shape" icon={ContourCutIcon}>
                         <div className="flex flex-col space-y-2">
                             {shapeButtons.map(({ shape, icon: Icon, label }) => (
@@ -1592,8 +1588,8 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                     className={cn(
                                         "w-full flex items-center gap-3 p-3 rounded-md text-left transition-all duration-200",
                                         stickerShape === shape
-                                            ? "bg-slate-700/80 text-white font-semibold shadow-inner"
-                                            : "bg-transparent text-slate-300 hover:bg-slate-800/80 hover:text-white"
+                                            ? "bg-secondary text-foreground font-semibold shadow-inner"
+                                            : "bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
                                     )}
                                 >
                                     <Icon className="h-7 w-7" />
@@ -1606,18 +1602,9 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                       {renderDesignControls()}
 
                     
-                      <Accordion type="multiple" defaultValue={['material', 'size', 'quantity']} className="w-full space-y-4">
+                      <Accordion type="multiple" defaultValue={['material', 'size', 'quantity']} className="w-full space-y-6">
                         <AccordionItem value="material" className="border-none">
-                          <div className="rounded-lg bg-slate-900/50" id="material-section">
-                            <AccordionTrigger className="p-4 text-white hover:no-underline">
-                              <div className="flex items-center gap-2">
-                                  <AnimatedIconContainer>
-                                    <Palette className="h-4 w-4 text-white/80" />
-                                  </AnimatedIconContainer>
-                                  <h2 className="text-lg font-semibold text-white">Material</h2>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="p-4 pt-0">
+                          <CustomizationSection id="material-section" title="Material" icon={Palette}>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 {materials.map((m) => (
                                   <button
@@ -1625,31 +1612,21 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                     type="button"
                                     onClick={() => setAppState(s => ({...s, stickerSheet: {...s.stickerSheet, material: {id: m.id, name: m.name}}}))}
                                     className={cn(
-                                      "relative group rounded-lg p-1 text-center transition-all duration-200 border-2 bg-slate-900/50",
-                                      appState.stickerSheet.material.id === m.id ? "border-indigo-500" : "border-slate-700 hover:border-slate-600"
+                                      "relative group rounded-lg p-1 text-center transition-all duration-200 border-2 bg-card",
+                                      appState.stickerSheet.material.id === m.id ? "border-primary" : "border-border hover:border-muted-foreground"
                                     )}
                                   >
                                     <NextImage src={m.image} alt={m.name} width={80} height={80} style={{width:'auto', height:'auto'}} className="mx-auto mb-1 rounded-md" data-ai-hint="sticker material" priority={m.id === 'matte'} />
-                                    <p className="font-semibold text-xs text-slate-200">{m.name}</p>
+                                    <p className="font-semibold text-xs text-foreground">{m.name}</p>
                                   </button>
                                 ))}
                               </div>
-                            </AccordionContent>
-                          </div>
+                          </CustomizationSection>
                         </AccordionItem>
                          <AccordionItem value="size" className="border-none">
-                          <div className="rounded-lg bg-slate-900/50" id="size-section">
-                            <AccordionTrigger className="p-4 text-white hover:no-underline">
-                              <div className="flex items-center gap-2">
-                                  <AnimatedIconContainer>
-                                    <Ruler className="h-4 w-4 text-white/80" />
-                                  </AnimatedIconContainer>
-                                  <h2 className="text-lg font-semibold text-white">Size</h2>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="p-4 pt-0 space-y-4">
+                          <CustomizationSection id="size-section" title="Size" icon={Ruler}>
                                <div className="flex items-center justify-between">
-                                  <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2 text-slate-300">
+                                  <Label htmlFor="aspect-ratio-lock" className="flex items-center gap-2">
                                       {isAspectRatioLocked ? <Lock className="h-4 w-4"/> : <Unlock className="h-4 w-4" />}
                                       <span>Lock Aspect Ratio</span>
                                   </Label>
@@ -1660,21 +1637,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                   />
                               </div>
                               <SizeSelector size={size} onSizeChange={setSize} />
-                            </AccordionContent>
-                          </div>
+                          </CustomizationSection>
                         </AccordionItem>
                         <AccordionItem value="quantity" className="border-none">
-                            <div className="rounded-lg bg-slate-900/50" id="quantity-section">
-                                <AccordionTrigger className="p-4 text-white hover:no-underline">
-                                    <div className="flex items-center gap-2">
-                                        <AnimatedIconContainer>
-                                            <Sparkles className="h-4 w-4 text-white/80" />
-                                        </AnimatedIconContainer>
-                                        <h2 className="text-lg font-semibold text-white">Quantity</h2>
-                                    </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="p-4 pt-0">
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                            <CustomizationSection id="quantity-section" title="Quantity" icon={Sparkles}>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                         {quantityOptions.map((q) => {
                                             const isActive = quantitySelectionType === 'preset' && quantity === q.quantity;
                                             return (
@@ -1685,12 +1652,11 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                                     aria-pressed={isActive}
                                                     className={cn(
                                                         "h-auto flex-col justify-center items-center gap-1 py-3 px-2 text-center transition-all duration-200",
-                                                        "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
-                                                        isActive && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                                        isActive && "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg"
                                                     )}
                                                 >
                                                     <span className="font-bold text-base leading-none">{q.quantity}</span>
-                                                    <span className="text-xs text-slate-400">${q.pricePer.toFixed(2)}/sticker</span>
+                                                    <span className="text-xs text-muted-foreground">${q.pricePer.toFixed(2)}/ea</span>
                                                 </Button>
                                             );
                                         })}
@@ -1701,8 +1667,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                                         aria-pressed={quantitySelectionType === 'custom'}
                                         className={cn(
                                             "w-full justify-center transition-all duration-200 mt-3",
-                                            "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white",
-                                            quantitySelectionType === 'custom' && "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-indigo-500/70"
+                                             quantitySelectionType === 'custom' && "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg"
                                         )}
                                     >
                                         Custom Quantity
@@ -1710,32 +1675,31 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
 
                                     {quantitySelectionType === 'custom' && (
                                         <div className="pt-4">
-                                            <Label htmlFor="custom-quantity" className="text-slate-400 mb-2 block">Quantity (10,000 max)</Label>
+                                            <Label htmlFor="custom-quantity" className="mb-2 block">Quantity (10,000 max)</Label>
                                             <Input
                                                 id="custom-quantity"
                                                 type="number"
                                                 value={quantity === 0 ? '' : quantity}
                                                 onChange={handleCustomQuantityChange}
-                                                className="w-full bg-slate-800/80 border-slate-700 text-slate-200 focus:ring-indigo-500"
+                                                className="w-full"
                                                 placeholder="e.g. 125"
                                             />
                                         </div>
                                     )}
-                                </AccordionContent>
-                            </div>
+                            </CustomizationSection>
                         </AccordionItem>
                       </Accordion>
                     
-                      <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-indigo-500/20">
-                          <div className="bg-slate-900 rounded-lg p-4">
+                      <div id="add-to-cart-section" className="p-0.5 rounded-xl bg-gradient-to-tr from-primary via-purple-500 to-pink-500 mt-4 sticky bottom-4 shadow-lg shadow-primary/20">
+                          <div className="bg-card rounded-lg p-4">
                             <div className="flex flex-row items-center justify-between pb-4">
-                              <h3 className="text-lg font-semibold text-slate-200">Total Price</h3>
+                              <h3 className="text-lg font-semibold text-foreground">Total Price</h3>
                               <div className="text-right">
-                                 <span className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
-                                 {quantity > 0 && <p className="text-sm text-slate-400">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
+                                 <span className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-400 text-transparent bg-clip-text">${totalPrice}</span>
+                                 {quantity > 0 && <p className="text-sm text-muted-foreground">{quantity} stickers at ${selectedQuantityOption.pricePer.toFixed(2)} each</p>}
                               </div>
                             </div>
-                            <Button size="lg" className="w-full text-lg h-14 font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
+                            <Button size="lg" className="w-full text-lg h-14 font-bold bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleAddToCart} disabled={quantity <= 0 || appState.stickers.length === 0}>
                               Add to Cart
                             </Button>
                           </div>

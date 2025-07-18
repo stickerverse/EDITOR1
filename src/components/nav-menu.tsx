@@ -19,7 +19,7 @@ export function NavMenu() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-lg border-b border-slate-800">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-center h-16">
           <div className="flex items-center space-x-2 md:space-x-4">
@@ -32,8 +32,8 @@ export function NavMenu() {
                   className={cn(
                     "flex flex-col items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "text-white bg-indigo-500/20"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >
