@@ -4,7 +4,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Scissors, StickyNote, ScanLine, Layers, CircleDot } from "lucide-react";
+import { Scissors, StickyNote, ScanLine, Layers, CircleDot, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -13,6 +13,7 @@ const menuItems = [
   { href: "/decal", label: "Decal", icon: CircleDot },
   { href: "/sheet", label: "Sheet", icon: Layers },
   { href: "/qr-code", label: "QR Code", icon: ScanLine },
+  { href: "/image-editor", label: "Image Editor", icon: Image },
 ];
 
 export function NavMenu() {
