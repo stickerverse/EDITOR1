@@ -86,6 +86,9 @@ export function ImageEditor() {
                 threshold: threshold,
                 smoothing: smoothing,
                 featherRadius: featherRadius,
+                mode: 'auto' as const,
+                edgeDetection: true,
+                adaptiveThreshold: true
             });
             setProcessedImage(result.imageDataUri);
             if(result.mask) {

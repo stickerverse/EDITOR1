@@ -364,22 +364,22 @@ async function applyMorphology(
         break;
       case 'close':
         // Dilate then erode
-        processedMask = await applyMorphology(
+        processedMask = sharp(await applyMorphology(
           await processedMask.toBuffer(),
           width,
           height,
           ['dilate', 'erode']
-        );
-        return processedMask;
+        ));
+        return processedMask.toBuffer();
       case 'open':
         // Erode then dilate
-        processedMask = await applyMorphology(
+        processedMask = sharp(await applyMorphology(
           await processedMask.toBuffer(),
           width,
           height,
           ['erode', 'dilate']
-        );
-        return processedMask;
+        ));
+        return processedMask.toBuffer();
     }
   }
 

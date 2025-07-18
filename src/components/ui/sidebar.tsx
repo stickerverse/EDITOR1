@@ -157,10 +157,11 @@ interface SidebarBodyProps extends Omit<MotionProps, "children"> {
 }
 
 export const SidebarBody = (props: SidebarBodyProps) => {
+  const { children, className, ...motionProps } = props;
   return (
     <>
       <DesktopSidebar {...props} />
-      <MobileSidebar {...props} />
+      <MobileSidebar children={children} className={className} />
     </>
   );
 };

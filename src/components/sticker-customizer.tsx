@@ -530,7 +530,15 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
         setIsLoading(true);
         setLoadingText("Removing background...");
         
-        const { imageDataUri: noBgDataUri } = await removeBackgroundAction({ imageDataUri: result.imageDataUri });
+        const { imageDataUri: noBgDataUri } = await removeBackgroundAction({ 
+          imageDataUri: result.imageDataUri,
+          threshold: 30,
+          smoothing: 2,
+          featherRadius: 3,
+          mode: 'auto' as const,
+          edgeDetection: true,
+          adaptiveThreshold: true
+        });
         
         setLoadingText("Adding die-cut border...");
         const { imageDataUri: finalDataUri } = await addBorder({
@@ -735,6 +743,12 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     try {
       const { imageDataUri } = await removeBackgroundAction({
         imageDataUri: activeDesign.sourceUrl,
+        threshold: 30,
+        smoothing: 2,
+        featherRadius: 3,
+        mode: 'auto' as const,
+        edgeDetection: true,
+        adaptiveThreshold: true
       });
 
       // Update the active design with the background-removed image
@@ -1489,7 +1503,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Label className="text-sm font-medium">View Mode:</Label>
-                <ToggleGroup value={viewMode} onValueChange={(value) => value && setViewMode(value as 'design' | 'preview')}>
+                <ToggleGroup value={viewMode} onValueChange={(value: string) => value && setViewMode(value as 'design' | 'preview')}>
                   <ToggleGroupItem value="design" aria-label="Design View">
                     <Code className="h-4 w-4 mr-2" />
                     Design
@@ -1728,6 +1742,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       {/* Context Menu */}
       {contextMenu.isOpen && contextMenu.stickerId && (
         <StickerContextMenu
+          isOpen={contextMenu.isOpen}
           position={contextMenu.position}
           onClose={closeContextMenu}
           onDelete={handleDeleteSticker}

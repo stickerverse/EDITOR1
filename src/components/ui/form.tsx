@@ -11,6 +11,7 @@ import {
   type FieldPath,
   type FieldValues,
   type FieldError,
+  type FieldErrors,
 } from "react-hook-form"
 
 import { cn } from "@/lib/utils"

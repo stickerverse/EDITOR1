@@ -421,4 +421,4 @@ function useToast() {
 
 // Export everything needed
 export { useToast, toast, toastTimers }
-export type { Toast, ToasterToast, ToastVariant }
+export type { Toast }

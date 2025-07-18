@@ -11,10 +11,12 @@ import '../styles/holographic-effect.css';
 interface StickerPreviewProps {
   imageUrl: string;
   material: string;
+  size?: any;
+  shape?: any;
   onClose?: () => void;
 }
 
-export function StickerPreview({ imageUrl, material, onClose }: StickerPreviewProps) {
+export function StickerPreview({ imageUrl, material, size, shape, onClose }: StickerPreviewProps) {
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [rotation, setRotation] = useState({ x: -10, y: 20 });
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
