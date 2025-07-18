@@ -137,6 +137,13 @@ class FloodFillSegmentation {
   private floodFill(startX: number, startY: number, threshold: number, markAsBackground: boolean): void {
     const stack: Array<{x: number, y: number}> = [{x: startX, y: startY}];
     const startIdx = (startY * this.width + startX) * 4;
+    const startAlpha = this.pixels[startIdx + 3];
+
+    // Don't start flood fill on a fully transparent pixel
+    if (startAlpha === 0) {
+        return;
+    }
+    
     const targetColor: Color = {
       r: this.pixels[startIdx],
       g: this.pixels[startIdx + 1],
@@ -154,6 +161,11 @@ class FloodFillSegmentation {
       this.visited[idx] = 1;
 
       const pixelIdx = idx * 4;
+      const pixelAlpha = this.pixels[pixelIdx + 3];
+
+      // Skip fully transparent pixels
+      if(pixelAlpha === 0) continue;
+
       const currentColor: Color = {
         r: this.pixels[pixelIdx],
         g: this.pixels[pixelIdx + 1],
@@ -186,7 +198,7 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
     const imageBuffer = dataUriToBuffer(validatedInput.imageDataUri);
     
     // Load image and get metadata
-    const image = sharp(imageBuffer);
+    let image = sharp(imageBuffer);
     const metadata = await image.metadata();
     const { width, height } = metadata;
     
