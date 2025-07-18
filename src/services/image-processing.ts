@@ -81,7 +81,7 @@ function colorDistance(c1: Color, c2: Color): number {
   return Math.sqrt(
     weightR * deltaR * deltaR +
     weightG * deltaG * deltaG +
-    weightB * deltaB * deltaB
+    Math.max(0, weightB) * deltaB * deltaB
   );
 }
 
@@ -198,15 +198,14 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
     const imageBuffer = dataUriToBuffer(validatedInput.imageDataUri);
     
     // Load image and get metadata
-    let originalImage = sharp(imageBuffer);
-    const metadata = await originalImage.metadata();
+    const metadata = await sharp(imageBuffer).metadata();
     const { width, height } = metadata;
     
     if (!width || !height) {
       throw new Error('Invalid image dimensions');
     }
 
-    // *** FIX: Ensure the image has 4 channels (RGBA) before processing ***
+    // Ensure the image has 4 channels (RGBA) before processing
     const rgbaImageBuffer = await sharp({
         create: {
             width,
