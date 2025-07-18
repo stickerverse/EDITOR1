@@ -137,18 +137,21 @@ export function ImageEditor() {
         }
     };
 
-    const renderImageBox = (type: 'original' | 'result' | 'mask' | 'placeholder') => {
-        const src = type === 'original' ? originalImage : type === 'result' ? processedImage : maskImage;
-        const alt = type === 'original' ? 'Original' : type === 'result' ? 'Result' : 'Mask';
+    const renderImageBox = (type: 'original' | 'result' | 'mask' | 'placeholder', label: string) => {
+        let src: string | null = null;
+        if (type === 'original') src = originalImage;
+        else if (type === 'result') src = processedImage;
+        else if (type === 'mask') src = maskImage;
+        
         const isCheckerboard = type === 'result';
 
         if (type === 'placeholder' || !src) {
             return (
-                <div className="flex h-full min-h-[400px] w-full items-center justify-center rounded-lg bg-secondary/30">
+                 <div className="flex flex-col h-full min-h-[400px] w-full items-center justify-center rounded-lg bg-secondary/30">
                     <div className="text-center text-muted-foreground">
                         <ImageIcon className="mx-auto h-16 w-16" />
                         <p className="mt-2">
-                            {type === 'placeholder' ? 'No image uploaded yet' : 'Processing result will appear here'}
+                           {label}
                         </p>
                     </div>
                 </div>
@@ -156,25 +159,30 @@ export function ImageEditor() {
         }
 
         return (
-            <div className={cn("relative flex h-full min-h-[400px] w-full items-center justify-center rounded-lg bg-secondary/30", isCheckerboard && "transparent-bg")}>
-                <img src={src} alt={alt} className="max-h-[600px] max-w-full" />
+            <div className="flex flex-col">
+                <Label className="text-center mb-2 font-semibold">{label}</Label>
+                <div className={cn("relative flex h-full min-h-[400px] w-full items-center justify-center rounded-lg bg-secondary/30", isCheckerboard && "transparent-bg")}>
+                    <img src={src} alt={label} className="max-h-[600px] max-w-full" />
+                </div>
             </div>
         );
     };
 
     const renderImageView = () => {
-        const imageToShow = showMask ? maskImage : processedImage;
+        const imageToShow = showMask ? 'mask' : 'result';
+        const imageToShowSrc = showMask ? maskImage : processedImage;
+
         if (viewMode === 'side-by-side') {
             return (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {renderImageBox('original')}
-                    {imageToShow ? renderImageBox(showMask ? 'mask' : 'result') : renderImageBox('result-placeholder')}
+                    {renderImageBox('original', 'Original')}
+                    {imageToShowSrc ? renderImageBox(imageToShow, showMask ? 'Mask' : 'Result') : renderImageBox('placeholder', 'Result will appear here')}
                 </div>
             );
         }
         return (
             <div className="grid grid-cols-1 gap-4">
-                {imageToShow ? renderImageBox(showMask ? 'mask' : 'result') : renderImageBox('original')}
+                 {imageToShowSrc ? renderImageBox(imageToShow, showMask ? 'Mask' : 'Result') : renderImageBox('original', 'Original')}
             </div>
         );
     };
@@ -255,7 +263,7 @@ export function ImageEditor() {
                                <Select value={viewMode} onValueChange={setViewMode}>
                                     <SelectTrigger className="w-[180px]">
                                         <SelectValue />
-                                    </Tselect>
+                                    </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="side-by-side">Side by Side</SelectItem>
                                         <SelectItem value="single">Single View</SelectItem>
@@ -271,7 +279,7 @@ export function ImageEditor() {
                         )}
                         
                         <div className="space-y-4">
-                            {originalImage ? renderImageView() : renderImageBox('placeholder')}
+                            {originalImage ? renderImageView() : renderImageBox('placeholder', 'No image uploaded yet')}
                         </div>
                     </Card>
                 </div>
