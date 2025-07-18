@@ -405,34 +405,19 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
     const validatedInput = RemoveBackgroundInputSchema.parse(input);
     const imageBuffer = dataUriToBuffer(validatedInput.imageDataUri);
     
-    // Load image
-    const image = sharp(imageBuffer);
+    // Load image and ensure it has an alpha channel for consistency
+    const image = sharp(imageBuffer).ensureAlpha();
     const metadata = await image.metadata();
-    const { width, height, channels } = metadata;
+    const { width, height } = metadata;
     
     if (!width || !height) {
       throw new Error('Invalid image dimensions');
     }
     
-    // Get raw pixel data
-    const { data: rawPixels } = await image
+    // Get raw RGBA pixel data
+    const { data: pixels } = await image
       .raw()
       .toBuffer({ resolveWithObject: true });
-    
-    // Ensure pixel data is in RGBA format for consistency
-    const pixels = new Uint8ClampedArray(width * height * 4);
-    if (channels === 3) {
-      for (let i = 0; i < width * height; i++) {
-        pixels[i * 4] = rawPixels[i * 3];
-        pixels[i * 4 + 1] = rawPixels[i * 3 + 1];
-        pixels[i * 4 + 2] = rawPixels[i * 3 + 2];
-        pixels[i * 4 + 3] = 255;
-      }
-    } else if (channels === 4) {
-      pixels.set(rawPixels);
-    } else {
-        throw new Error(`Unsupported number of channels: ${channels}`);
-    }
     
     // Perform segmentation
     const segmenter = new FloodFillSegmentation(width, height, pixels);
@@ -627,5 +612,3 @@ export async function analyzeImage(imageDataUri: string): Promise<{
     complexity
   };
 }
-
-    
