@@ -405,8 +405,8 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
     const validatedInput = RemoveBackgroundInputSchema.parse(input);
     const imageBuffer = dataUriToBuffer(validatedInput.imageDataUri);
     
-    // Load image and ensure it has an alpha channel for consistency
-    const image = sharp(imageBuffer).ensureAlpha();
+    // Load image and get metadata
+    const image = sharp(imageBuffer);
     const metadata = await image.metadata();
     const { width, height } = metadata;
     
@@ -416,6 +416,7 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
     
     // Get raw RGBA pixel data
     const { data: pixels } = await image
+      .joinChannel(Buffer.alloc(width * height, 255), { raw: { width, height, channels: 1 } }) // Ensure alpha channel
       .raw()
       .toBuffer({ resolveWithObject: true });
     
