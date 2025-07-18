@@ -1,10 +1,12 @@
+
 'use server';
 /**
- * @fileOverview A background removal flow that uses an image generation model.
+ * @fileOverview A background removal flow that uses a dedicated image processing library.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'zod';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import { removeBackground as removeBgService } from '@/services/image-processing';
 
 const RemoveBackgroundInputSchema = z.object({
   imageDataUri: z.string().describe("The user's uploaded image as a data URI."),
@@ -27,27 +29,13 @@ const removeBackgroundFlow = ai.defineFlow(
     outputSchema: RemoveBackgroundOutputSchema,
   },
   async ({ imageDataUri }) => {
-    const { media } = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: [
-        { media: { url: imageDataUri } },
-        { text: `Remove the background from this image. The subject should be perfectly preserved. The background must be fully transparent, not a checkerboard pattern. The output must be a PNG.` },
-      ],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        safetySettings: [
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        ],
-      },
-    });
+    // We pass the plain data URI to our service, which will handle buffer conversion
+    const result = await removeBgService({ imageDataUri });
 
-    if (!media?.url) {
+    if (!result.imageDataUri) {
       throw new Error('Background removal failed to return image data.');
     }
 
-    return { imageDataUri: media.url };
+    return { imageDataUri: result.imageDataUri };
   }
 );
