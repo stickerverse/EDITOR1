@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SizeSelector } from '@/components/size-selector';
 import type { Size } from '@/components/size-selector';
-import { removeBackground } from '@/ai/flows/remove-background-flow';
+import { removeBackgroundAction } from '@/app/actions';
 import { addBorder } from '@/ai/flows/add-border-flow';
 import { Card } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -486,7 +486,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       if (result.imageDataUri) {
           setIsLoading(true);
           setLoadingText("Removing background...");
-          const { imageDataUri: noBgDataUri } = await removeBackground({ imageDataUri: result.imageDataUri });
+          const { imageDataUri: noBgDataUri } = await removeBackgroundAction({ imageDataUri: result.imageDataUri });
           setLoadingText("Adding die-cut border...");
           const { imageDataUri: finalDataUri } = await addBorder({
               imageDataUri: noBgDataUri,
@@ -668,19 +668,16 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
     setLoadingText("Removing background...");
 
     try {
-      const { imageDataUri: noBgDataUri } = await removeBackground({ 
+      const { imageDataUri: noBgDataUri } = await removeBackgroundAction({ 
         imageDataUri: activeDesign.sourceUrl 
       });
-
-      // Ensure the background is truly transparent by processing the image
-      const transparentImageUri = await ensureTransparentBackground(noBgDataUri);
 
       // Update the active design with the background-removed image
       setAppState(current => ({
         ...current,
         designLibrary: current.designLibrary.map(d => 
           d.designId === activeDesign.designId 
-            ? { ...d, sourceUrl: transparentImageUri }
+            ? { ...d, sourceUrl: noBgDataUri }
             : d
         )
       }));
@@ -700,58 +697,6 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
       setIsLoading(false);
       setLoadingText("");
     }
-  };
-
-  // Helper function to ensure transparent background
-  const ensureTransparentBackground = async (imageDataUri: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(imageDataUri);
-          return;
-        }
-
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        // Draw the image on a transparent canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-
-        // Get the image data
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-
-        // Convert white or near-white pixels to transparent
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const alpha = data[i + 3];
-
-          // If pixel is white or very light (and not already transparent)
-          if (alpha > 0 && r > 240 && g > 240 && b > 240) {
-            data[i + 3] = 0; // Make it transparent
-          }
-        }
-
-        // Put the modified image data back
-        ctx.putImageData(imageData, 0, 0);
-
-        // Convert to data URI with transparency
-        const transparentDataUri = canvas.toDataURL('image/png');
-        resolve(transparentDataUri);
-      };
-      
-      img.onerror = () => {
-        resolve(imageDataUri); // Fallback to original
-      };
-      
-      img.src = imageDataUri;
-    });
   };
 
   const handleAddBorder = async (borderStyle: { width: number; color: string; style: string }) => {
