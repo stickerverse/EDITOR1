@@ -198,17 +198,29 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
     const imageBuffer = dataUriToBuffer(validatedInput.imageDataUri);
     
     // Load image and get metadata
-    let image = sharp(imageBuffer);
-    const metadata = await image.metadata();
+    let originalImage = sharp(imageBuffer);
+    const metadata = await originalImage.metadata();
     const { width, height } = metadata;
     
     if (!width || !height) {
       throw new Error('Invalid image dimensions');
     }
+
+    // *** FIX: Ensure the image has 4 channels (RGBA) before processing ***
+    const rgbaImageBuffer = await sharp({
+        create: {
+            width,
+            height,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+        }
+    })
+    .composite([{ input: imageBuffer, gravity: 'center' }])
+    .png()
+    .toBuffer();
     
-    // Get raw RGBA pixel data, ensuring an alpha channel exists.
-    const { data: pixels } = await image
-      .ensureAlpha() 
+    // Get raw RGBA pixel data from the normalized image
+    const { data: pixels } = await sharp(rgbaImageBuffer)
       .raw()
       .toBuffer({ resolveWithObject: true });
     
@@ -241,8 +253,7 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
     const finalMaskBuffer = await maskSharp.toBuffer();
 
     // Create final image by compositing the original with the mask
-    const outputBuffer = await sharp(imageBuffer)
-        .ensureAlpha()
+    const outputBuffer = await sharp(rgbaImageBuffer)
         .composite([{ 
             input: finalMaskBuffer, 
             blend: 'dest-in' 
