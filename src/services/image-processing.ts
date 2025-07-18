@@ -48,6 +48,9 @@ export type RemoveBackgroundOutput = z.infer<typeof RemoveBackgroundOutputSchema
 
 function dataUriToBuffer(dataUri: string): Buffer {
   const base64Data = dataUri.split(',')[1];
+  if (!base64Data) {
+    throw new Error('Invalid Data URI: no base64 data found.');
+  }
   return Buffer.from(base64Data, 'base64');
 }
 
@@ -82,31 +85,6 @@ function colorDistance(c1: Color, c2: Color): number {
   );
 }
 
-function rgbToHsv(r: number, g: number, b: number): { h: number; s: number; v: number } {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const diff = max - min;
-
-  let h = 0;
-  const s = max === 0 ? 0 : diff / max;
-  const v = max;
-
-  if (diff !== 0) {
-    if (max === r) {
-      h = ((g - b) / diff + (g < b ? 6 : 0)) / 6;
-    } else if (max === g) {
-      h = ((b - r) / diff + 2) / 6;
-    } else {
-      h = ((r - g) / diff + 4) / 6;
-    }
-  }
-
-  return { h: h * 360, s: s * 100, v: v * 100 };
-}
 
 // ===================== FLOOD FILL ALGORITHM =====================
 
@@ -122,7 +100,7 @@ class FloodFillSegmentation {
     this.height = height;
     this.pixels = pixels;
     this.visited = new Uint8Array(width * height);
-    this.mask = new Uint8Array(width * height);
+    this.mask = new Uint8Array(width * height); // 0 = foreground, 255 = background
   }
 
   segment(threshold: number, startPoints?: Array<{x: number, y: number, isBackground: boolean}>): Uint8Array {
@@ -185,7 +163,7 @@ class FloodFillSegmentation {
       const distance = colorDistance(currentColor, targetColor);
       
       if (distance <= threshold) {
-        this.mask[idx] = markAsBackground ? 255 : 0;
+        if(markAsBackground) this.mask[idx] = 255;
         
         // Add neighbors
         stack.push({x: x + 1, y});
@@ -194,204 +172,6 @@ class FloodFillSegmentation {
         stack.push({x, y: y - 1});
       }
     }
-  }
-}
-
-// ===================== EDGE DETECTION =====================
-
-class EdgeDetection {
-  static detectEdges(pixels: Uint8ClampedArray, width: number, height: number): Uint8Array {
-    const edges = new Uint8Array(width * height);
-    const sobelX = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
-    const sobelY = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
-
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        let gx = 0;
-        let gy = 0;
-
-        // Apply Sobel operator
-        for (let ky = -1; ky <= 1; ky++) {
-          for (let kx = -1; kx <= 1; kx++) {
-            const idx = ((y + ky) * width + (x + kx)) * 4;
-            // Convert to grayscale
-            const gray = pixels[idx] * 0.299 + 
-                        pixels[idx + 1] * 0.587 + 
-                        pixels[idx + 2] * 0.114;
-            
-            gx += gray * sobelX[ky + 1][kx + 1];
-            gy += gray * sobelY[ky + 1][kx + 1];
-          }
-        }
-
-        const magnitude = Math.sqrt(gx * gx + gy * gy);
-        edges[y * width + x] = Math.min(255, magnitude);
-      }
-    }
-
-    return edges;
-  }
-}
-
-// ===================== MORPHOLOGICAL OPERATIONS =====================
-
-class MorphologicalOps {
-  static erode(mask: Uint8Array, width: number, height: number, iterations: number = 1): Uint8Array {
-    let result = new Uint8Array(mask);
-    
-    for (let iter = 0; iter < iterations; iter++) {
-      const temp = new Uint8Array(result);
-      
-      for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-          const idx = y * width + x;
-          let min = 255;
-          
-          // Check 3x3 neighborhood
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const nIdx = (y + dy) * width + (x + dx);
-              min = Math.min(min, temp[nIdx]);
-            }
-          }
-          
-          result[idx] = min;
-        }
-      }
-    }
-    
-    return result;
-  }
-
-  static dilate(mask: Uint8Array, width: number, height: number, iterations: number = 1): Uint8Array {
-    let result = new Uint8Array(mask);
-    
-    for (let iter = 0; iter < iterations; iter++) {
-      const temp = new Uint8Array(result);
-      
-      for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-          const idx = y * width + x;
-          let max = 0;
-          
-          // Check 3x3 neighborhood
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const nIdx = (y + dy) * width + (x + dx);
-              max = Math.max(max, temp[nIdx]);
-            }
-          }
-          
-          result[idx] = max;
-        }
-      }
-    }
-    
-    return result;
-  }
-
-  static close(mask: Uint8Array, width: number, height: number, iterations: number = 1): Uint8Array {
-    // Closing = dilation followed by erosion
-    const dilated = this.dilate(mask, width, height, iterations);
-    return this.erode(dilated, width, height, iterations);
-  }
-
-  static open(mask: Uint8Array, width: number, height: number, iterations: number = 1): Uint8Array {
-    // Opening = erosion followed by dilation
-    const eroded = this.erode(mask, width, height, iterations);
-    return this.dilate(eroded, width, height, iterations);
-  }
-}
-
-// ===================== EDGE REFINEMENT =====================
-
-class EdgeRefinement {
-  static refineEdges(
-    mask: Uint8Array, 
-    originalPixels: Uint8ClampedArray,
-    width: number, 
-    height: number,
-    featherRadius: number = 3
-  ): Uint8Array {
-    const refined = new Uint8Array(mask);
-    const edges = EdgeDetection.detectEdges(originalPixels, width, height);
-    
-    // Apply feathering to edges
-    for (let y = featherRadius; y < height - featherRadius; y++) {
-      for (let x = featherRadius; x < width - featherRadius; x++) {
-        const idx = y * width + x;
-        
-        // Check if pixel is near an edge in the mask
-        let isEdge = false;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue;
-            const nIdx = (y + dy) * width + (x + dx);
-            if (mask[idx] !== mask[nIdx]) {
-              isEdge = true;
-              break;
-            }
-          }
-          if (isEdge) break;
-        }
-        
-        if (isEdge && edges[idx] > 30) {
-          // Apply feathering
-          let sum = 0;
-          let weightSum = 0;
-          
-          for (let dy = -featherRadius; dy <= featherRadius; dy++) {
-            for (let dx = -featherRadius; dx <= featherRadius; dx++) {
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist <= featherRadius) {
-                const nIdx = (y + dy) * width + (x + dx);
-                const weight = 1 - (dist / featherRadius);
-                sum += mask[nIdx] * weight;
-                weightSum += weight;
-              }
-            }
-          }
-          
-          refined[idx] = Math.round(sum / weightSum);
-        }
-      }
-    }
-    
-    return refined;
-  }
-
-  static antiAlias(mask: Uint8Array, width: number, height: number): Uint8Array {
-    const result = new Uint8Array(mask);
-    
-    // Simple anti-aliasing using 3x3 averaging for edge pixels
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const idx = y * width + x;
-        
-        // Check if it's an edge pixel
-        let isEdge = false;
-        let sum = 0;
-        let count = 0;
-        
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const nIdx = (y + dy) * width + (x + dx);
-            sum += mask[nIdx];
-            count++;
-            
-            if (mask[idx] !== mask[nIdx]) {
-              isEdge = true;
-            }
-          }
-        }
-        
-        if (isEdge) {
-          result[idx] = Math.round(sum / count);
-        }
-      }
-    }
-    
-    return result;
   }
 }
 
@@ -414,9 +194,9 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
       throw new Error('Invalid image dimensions');
     }
     
-    // Get raw RGBA pixel data
+    // Get raw RGBA pixel data, ensuring an alpha channel exists.
     const { data: pixels } = await image
-      .joinChannel(Buffer.alloc(width * height, 255), { raw: { width, height, channels: 1 } }) // Ensure alpha channel
+      .ensureAlpha() 
       .raw()
       .toBuffer({ resolveWithObject: true });
     
@@ -427,57 +207,42 @@ export async function removeBackground(input: RemoveBackgroundInput): Promise<Re
       validatedInput.manualHints?.samplePoints
     );
     
-    // Apply morphological operations to clean up the mask
-    mask = MorphologicalOps.open(mask, width, height, validatedInput.smoothing);
-    mask = MorphologicalOps.close(mask, width, height, validatedInput.smoothing);
+    // Create a sharp object for the mask
+    let maskSharp = sharp(Buffer.from(mask), { raw: { width, height, channels: 1 } });
     
-    // Refine edges
-    mask = EdgeRefinement.refineEdges(
-      mask,
-      pixels,
-      width,
-      height,
-      validatedInput.featherRadius
-    );
-    
-    // Apply anti-aliasing
-    mask = EdgeRefinement.antiAlias(mask, width, height);
-    
-    // Create output image with transparency
-    const outputPixels = new Uint8ClampedArray(width * height * 4);
-    for (let i = 0; i < width * height; i++) {
-      const srcIdx = i * 4;
-      outputPixels[srcIdx] = pixels[srcIdx];
-      outputPixels[srcIdx + 1] = pixels[srcIdx + 1];
-      outputPixels[srcIdx + 2] = pixels[srcIdx + 2];
-      outputPixels[srcIdx + 3] = mask[i];
+    // Apply morphological operations (opening and closing) for smoothing
+    if (validatedInput.smoothing > 0) {
+        maskSharp = maskSharp.morphology({
+            operation: 'open',
+            kernel: `circle:${validatedInput.smoothing}`
+        }).morphology({
+            operation: 'close',
+            kernel: `circle:${validatedInput.smoothing}`
+        });
     }
+
+    // Apply feathering (blur) to the mask edges
+    if (validatedInput.featherRadius > 0) {
+        maskSharp = maskSharp.blur(validatedInput.featherRadius);
+    }
+
+    const finalMaskBuffer = await maskSharp.toBuffer();
+
+    // Create final image by compositing the original with the mask
+    const outputBuffer = await sharp(imageBuffer)
+        .composite([{ 
+            input: finalMaskBuffer, 
+            blend: 'dest-in' 
+        }])
+        .png()
+        .toBuffer();
     
-    // Convert to PNG
-    const outputBuffer = await sharp(Buffer.from(outputPixels), {
-      raw: {
-        width,
-        height,
-        channels: 4
-      }
-    })
-    .png()
-    .toBuffer();
-    
-    // Create mask image
-    const maskBuffer = await sharp(Buffer.from(mask), {
-      raw: {
-        width,
-        height,
-        channels: 1
-      }
-    })
-    .png()
-    .toBuffer();
+    // Create a visual mask image for debugging/display
+    const visualMaskBuffer = await sharp(finalMaskBuffer, {raw: {width, height, channels: 1}}).png().toBuffer();
     
     return {
       imageDataUri: bufferToDataUri(outputBuffer),
-      mask: bufferToDataUri(maskBuffer),
+      mask: bufferToDataUri(visualMaskBuffer),
       metadata: {
         processingTime: Date.now() - startTime,
         dimensions: { width, height },
@@ -543,68 +308,49 @@ export async function analyzeImage(imageDataUri: string): Promise<{
 }> {
   const buffer = dataUriToBuffer(imageDataUri);
   const image = sharp(buffer);
-  const metadata = await image.metadata();
-  const { width, height } = metadata;
+  const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height } = info;
   
   if (!width || !height) {
     throw new Error('Invalid image dimensions');
   }
   
-  // Sample image at lower resolution for analysis
-  const sampleSize = 100;
-  const { data: samples } = await image
-    .resize(sampleSize, sampleSize, { fit: 'contain' })
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  
-  // Analyze color distribution
-  const colorMap = new Map<string, number>();
-  const colors: Color[] = [];
-  
-  for (let i = 0; i < samples.length; i += 3) {
-    const color = {
-      r: samples[i],
-      g: samples[i + 1],
-      b: samples[i + 2]
-    };
-    
-    const key = `${color.r},${color.g},${color.b}`;
-    colorMap.set(key, (colorMap.get(key) || 0) + 1);
-    colors.push(color);
+  // Analyze color distribution from corners
+  const corners = [
+    {x: 0, y: 0},
+    {x: width - 1, y: 0},
+    {x: 0, y: height - 1},
+    {x: width - 1, y: height - 1}
+  ];
+
+  let r_sum = 0, g_sum = 0, b_sum = 0;
+  for(const corner of corners) {
+    const idx = (corner.y * width + corner.x) * 4;
+    r_sum += data[idx];
+    g_sum += data[idx+1];
+    b_sum += data[idx+2];
   }
-  
-  // Find most common color (likely background)
-  let maxCount = 0;
-  let backgroundColor: Color = { r: 255, g: 255, b: 255 };
-  
-  for (const [key, count] of colorMap) {
-    if (count > maxCount) {
-      maxCount = count;
-      const [r, g, b] = key.split(',').map(Number);
-      backgroundColor = { r, g, b };
-    }
-  }
-  
-  // Calculate color variance
-  let variance = 0;
-  for (const color of colors) {
-    variance += colorDistance(color, backgroundColor);
-  }
-  variance /= colors.length;
-  
-  // Determine complexity and threshold
-  let complexity: 'simple' | 'medium' | 'complex';
-  let suggestedThreshold: number;
-  
-  if (variance < 30) {
-    complexity = 'simple';
-    suggestedThreshold = 20;
-  } else if (variance < 60) {
-    complexity = 'medium';
-    suggestedThreshold = 30;
-  } else {
-    complexity = 'complex';
-    suggestedThreshold = 40;
+
+  const backgroundColor: Color = {
+    r: Math.round(r_sum / 4),
+    g: Math.round(g_sum / 4),
+    b: Math.round(b_sum / 4)
+  };
+
+  // Simplified complexity analysis for now
+  let complexity: 'simple' | 'medium' | 'complex' = 'medium';
+  let suggestedThreshold = 30; // Standard default
+
+  const stats = await sharp(buffer).stats();
+  const { channels } = stats;
+  const stdDev = channels.map(c => c.stdev).reduce((a, b) => a + b, 0) / channels.length;
+
+  if (stdDev < 40) {
+      complexity = 'simple';
+      suggestedThreshold = 20;
+  } else if (stdDev > 70) {
+      complexity = 'complex';
+      suggestedThreshold = 45;
   }
   
   return {
@@ -613,5 +359,3 @@ export async function analyzeImage(imageDataUri: string): Promise<{
     complexity
   };
 }
-
-    
