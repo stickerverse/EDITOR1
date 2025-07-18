@@ -1537,7 +1537,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 <header>
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-                            QR Sticker Editor
+                            Die Cut Stickers
                         </h1>
                          <ToggleGroup 
                             type="single" 
@@ -1583,7 +1583,7 @@ export function StickerCustomizer({ productType }: StickerCustomizerProps) {
                 
 
 
-                      <CustomizationSection id="sticker-shape-section" title="QR Sticker Shape" icon={ContourCutIcon}>
+                      <CustomizationSection id="sticker-shape-section" title="Die Cut Sticker Shape" icon={ContourCutIcon}>
                         <div className="flex flex-col space-y-2">
                             {shapeButtons.map(({ shape, icon: Icon, label }) => (
                                 <button
